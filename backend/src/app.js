@@ -8,6 +8,7 @@ import { env } from './config/env.js';
 import { sequelize } from './models/index.js';
 import apiV1 from './routes/index.js';
 import billingRouter from './routes/billing.routes.js';
+import platformAdminRouter from './routes/platformAdmin.routes.js';
 import groupRouter from './routes/group.routes.js';
 import callRouter from './routes/call.routes.js';
 import callbackRouter from './routes/callback.routes.js';
@@ -76,6 +77,7 @@ app.use('/api/v1', (req, res, next) => {
 });
 app.use('/api/v1', apiV1);
 app.use('/api/v1/billing', billingRouter);
+app.use('/api/v1/platform', platformAdminRouter);
 app.use('/api/v1/groups', groupRouter);
 app.use('/api/v1/calls', callRouter);
 app.use('/api/v1/sms', smsRouter);

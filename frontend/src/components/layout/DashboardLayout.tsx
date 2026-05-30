@@ -19,6 +19,7 @@ import { canManageStaffUser } from '@/lib/roles'
 import ZhiFlowLogo from '@/components/ZhiFlowLogo'
 import DemoBanner from '@/components/DemoBanner'
 import { SidebarNavSections } from '@/components/layout/SidebarNavSections'
+import { usePlatformAdmin } from '@/hooks/usePlatformAdmin'
 
 export function DashboardLayout() {
   const navigate = useNavigate()
@@ -43,6 +44,7 @@ export function DashboardLayout() {
   const canKb = hasPerm('inbox:manage') || hasPerm('ai:use')
   const canTicket = hasPerm('ticket:view') || hasPerm('customer:view')
   const canTransfer = hasPerm('user:manage')
+  const { isPlatformAdmin } = usePlatformAdmin()
 
   const sidebarCtx = useMemo(
     () => ({
@@ -65,6 +67,7 @@ export function DashboardLayout() {
       canTicket,
       canTransfer,
       showPermissionCheck: Boolean(user),
+      isPlatformAdmin,
     }),
     [
       canDash,
@@ -86,6 +89,7 @@ export function DashboardLayout() {
       canTicket,
       canTransfer,
       user,
+      isPlatformAdmin,
     ],
   )
 
@@ -121,6 +125,9 @@ export function DashboardLayout() {
       '/app/service-desk': '服务台',
       '/app/guide-templates': '获客指南',
       '/app/help': '使用帮助',
+      '/app/platform': '平台运营',
+      '/app/platform/tenants': '租户管理',
+      '/app/platform/billing': '订单与兑换码',
     }),
     [],
   )

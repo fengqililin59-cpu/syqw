@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import dayjs from 'dayjs'
 import { getJson, postJson } from '@/api/client'
 import { hasPermUser } from '@/lib/roles'
 import { useAuthStore } from '@/store/authStore'
+import { usePlatformAdmin } from '@/hooks/usePlatformAdmin'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -42,7 +44,6 @@ interface SubscriptionData {
   }
   is_expired: boolean
   days_remaining: number
-  is_platform_admin?: boolean
 }
 
 type PaymentRow = {
@@ -55,19 +56,6 @@ type PaymentRow = {
   out_trade_no: string
   created_at: string
   remark?: string | null
-  tenant_id?: number
-  tenant?: { id: number; name: string } | null
-}
-
-type PromoRow = {
-  id: number
-  code: string
-  plan: { id: number; name: string; code: string } | null
-  billing_cycle: string
-  max_redemptions: number
-  redemption_count: number
-  valid_until: string | null
-  note: string | null
 }
 
 function formatCny(amount: number) {
@@ -118,24 +106,16 @@ function UsageBar({ label, used, limit, unit = '个' }: { label: string; used: n
 export function BillingPage() {
   const perms = useAuthStore((s) => s.permissions)
   const canManage = hasPermUser(perms, 'settings:manage')
+  const { isPlatformAdmin } = usePlatformAdmin()
   const [data, setData] = useState<SubscriptionData | null>(null)
   const [plans, setPlans] = useState<Plan[]>([])
   const [payments, setPayments] = useState<PaymentRow[]>([])
-  const [pendingAll, setPendingAll] = useState<PaymentRow[]>([])
-  const [promoCodes, setPromoCodes] = useState<PromoRow[]>([])
   const [loading, setLoading] = useState(true)
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly')
   const [pickPlan, setPickPlan] = useState<Plan | null>(null)
   const [remark, setRemark] = useState('')
   const [redeemCode, setRedeemCode] = useState('')
   const [redeemMsg, setRedeemMsg] = useState<string | null>(null)
-  const [promoPlanCode, setPromoPlanCode] = useState('pro')
-  const [promoCycle, setPromoCycle] = useState<'monthly' | 'yearly'>('yearly')
-  const [promoMax, setPromoMax] = useState('1')
-  const [promoNote, setPromoNote] = useState('')
-  const [newPromoCode, setNewPromoCode] = useState<string | null>(null)
-
-  const isPlatformAdmin = Boolean(data?.is_platform_admin)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -151,17 +131,6 @@ export function BillingPage() {
         setPayments(pay.list || [])
       } else {
         setPayments([])
-      }
-      if (subData.is_platform_admin) {
-        const [pending, promos] = await Promise.all([
-          getJson<PaymentRow[]>('/billing/platform/pending-payments'),
-          getJson<PromoRow[]>('/billing/platform/promo-codes'),
-        ])
-        setPendingAll(pending || [])
-        setPromoCodes(promos || [])
-      } else {
-        setPendingAll([])
-        setPromoCodes([])
       }
     } finally {
       setLoading(false)
@@ -202,12 +171,6 @@ export function BillingPage() {
     await load()
   }
 
-  async function handleConfirm(outTradeNo: string) {
-    await postJson('/billing/payment/confirm', { out_trade_no: outTradeNo })
-    window.alert('已确认收款，套餐已激活')
-    await load()
-  }
-
   async function handleRedeem() {
     setRedeemMsg(null)
     try {
@@ -220,28 +183,22 @@ export function BillingPage() {
     }
   }
 
-  async function handleCreatePromo() {
-    const row = await postJson<PromoRow>('/billing/platform/promo-codes', {
-      plan_code: promoPlanCode,
-      billing_cycle: promoCycle,
-      max_redemptions: Number(promoMax) || 1,
-      note: promoNote || null,
-      valid_days: 365,
-    })
-    setNewPromoCode(row.code)
-    setPromoNote('')
-    await load()
-  }
-
   if (loading) return <p className="text-sm text-muted-foreground">加载中…</p>
   if (!data || !currentPlan) return <p className="text-sm text-destructive">计费数据加载失败</p>
 
   return (
     <div className="space-y-4">
       <Card className="border-slate-200 bg-slate-50/80">
-        <CardContent className="pt-4 text-sm text-slate-600">
-          ZhiFlow 为 <strong>B2B 订阅制</strong>，不靠免费版广告变现。新注册享 <strong>14 天专业版试用</strong>
-          ，到期后自动降为<strong>体验版</strong>（配额受限）；付费或通过<strong>兑换码</strong>开通正式套餐。
+        <CardContent className="flex flex-wrap items-center justify-between gap-2 pt-4 text-sm text-slate-600">
+          <p>
+            ZhiFlow 为 <strong>B2B 订阅制</strong>，不靠免费版广告变现。新注册享 <strong>14 天专业版试用</strong>
+            ，到期后自动降为<strong>体验版</strong>；付费或通过<strong>兑换码</strong>开通正式套餐。
+          </p>
+          {isPlatformAdmin ? (
+            <Button size="sm" variant="outline" asChild>
+              <Link to="/app/platform">进入平台运营后台 →</Link>
+            </Button>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -344,127 +301,6 @@ export function BillingPage() {
         </CardContent>
       </Card>
 
-      {isPlatformAdmin ? (
-        <Card className="border-violet-200">
-          <CardHeader>
-            <CardTitle className="text-base">平台管理 · 待确认收款</CardTitle>
-            <CardDescription>全站线下转账订单，确认后对应租户套餐立即生效。</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>企业</TableHead>
-                  <TableHead>时间</TableHead>
-                  <TableHead>套餐</TableHead>
-                  <TableHead>金额</TableHead>
-                  <TableHead>操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pendingAll.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell>{p.tenant?.name || `#${p.tenant_id}`}</TableCell>
-                    <TableCell>{formatDate(p.created_at)}</TableCell>
-                    <TableCell>{p.plan?.name || '—'}</TableCell>
-                    <TableCell>{formatCny(p.amount)}</TableCell>
-                    <TableCell>
-                      <Button size="sm" variant="outline" onClick={() => void handleConfirm(p.out_trade_no)}>
-                        确认收款
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {pendingAll.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
-                      暂无待确认订单
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {isPlatformAdmin ? (
-        <Card className="border-violet-200">
-          <CardHeader>
-            <CardTitle className="text-base">平台管理 · 创建兑换码</CardTitle>
-            <CardDescription>用于推广合作、活动赠送；租户输入兑换码即可开通，无需确认收款。</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex flex-wrap gap-3">
-              <div className="space-y-1">
-                <Label>套餐</Label>
-                <select
-                  className="h-9 rounded-md border px-2 text-sm"
-                  value={promoPlanCode}
-                  onChange={(e) => setPromoPlanCode(e.target.value)}
-                >
-                  <option value="pro">专业版</option>
-                  <option value="enterprise">企业版</option>
-                </select>
-              </div>
-              <div className="space-y-1">
-                <Label>周期</Label>
-                <select
-                  className="h-9 rounded-md border px-2 text-sm"
-                  value={promoCycle}
-                  onChange={(e) => setPromoCycle(e.target.value as 'monthly' | 'yearly')}
-                >
-                  <option value="yearly">年付</option>
-                  <option value="monthly">月付</option>
-                </select>
-              </div>
-              <div className="space-y-1">
-                <Label>可用次数</Label>
-                <Input className="w-24" value={promoMax} onChange={(e) => setPromoMax(e.target.value)} />
-              </div>
-              <div className="min-w-[160px] flex-1 space-y-1">
-                <Label>备注（渠道名等）</Label>
-                <Input value={promoNote} onChange={(e) => setPromoNote(e.target.value)} placeholder="例：代理张三-Q2" />
-              </div>
-              <div className="flex items-end">
-                <Button type="button" onClick={() => void handleCreatePromo()}>
-                  生成兑换码
-                </Button>
-              </div>
-            </div>
-            {newPromoCode ? (
-              <p className="rounded-md bg-violet-50 px-3 py-2 text-sm font-medium text-violet-900">
-                新兑换码：<code className="select-all">{newPromoCode}</code>（请复制发给客户）
-              </p>
-            ) : null}
-            {promoCodes.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>兑换码</TableHead>
-                    <TableHead>套餐</TableHead>
-                    <TableHead>已用/总量</TableHead>
-                    <TableHead>备注</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {promoCodes.slice(0, 10).map((c) => (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-mono text-xs">{c.code}</TableCell>
-                      <TableCell>{c.plan?.name}</TableCell>
-                      <TableCell>
-                        {c.redemption_count}/{c.max_redemptions}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{c.note || '—'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : null}
-          </CardContent>
-        </Card>
-      ) : null}
-
       <Card>
         <CardContent className="pt-4">
           <Accordion type="single" defaultValue="payments">
@@ -499,13 +335,7 @@ export function BillingPage() {
                         </TableCell>
                         <TableCell>
                           {p.status === 'pending' ? (
-                            isPlatformAdmin ? (
-                              <Button size="sm" variant="outline" onClick={() => void handleConfirm(p.out_trade_no)}>
-                                确认收款
-                              </Button>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">联系平台确认</span>
-                            )
+                            <span className="text-xs text-muted-foreground">联系平台确认</span>
                           ) : (
                             '—'
                           )}

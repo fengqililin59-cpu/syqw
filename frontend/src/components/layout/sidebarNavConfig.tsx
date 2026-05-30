@@ -32,6 +32,7 @@ import {
   BookMarked,
   LifeBuoy,
   CircleHelp,
+  Shield,
 } from 'lucide-react'
 
 export type NavItemDef = {
@@ -70,6 +71,7 @@ export type SidebarNavContext = {
   canTicket: boolean
   canTransfer: boolean
   showPermissionCheck: boolean
+  isPlatformAdmin?: boolean
 }
 
 function pick(items: (NavItemDef | false | null | undefined)[]): NavItemDef[] {
@@ -159,6 +161,17 @@ export function buildSidebarNavGroups(ctx: SidebarNavContext): NavGroupDef[] {
         ctx.canCampaign && { to: '/app/migration', icon: ArrowRightLeft, label: '客户迁移' },
         ctx.canAudit && { to: '/app/audit-logs', icon: ShieldCheck, label: '审计日志' },
         ctx.showPermissionCheck && { to: '/app/permission-check', icon: KeyRound, label: '权限自检' },
+      ]),
+    },
+    {
+      id: 'platform',
+      title: '平台运营',
+      hint: '仅平台方',
+      defaultOpen: true,
+      items: pick([
+        ctx.isPlatformAdmin && { to: '/app/platform', end: true, icon: Shield, label: '运营概览' },
+        ctx.isPlatformAdmin && { to: '/app/platform/tenants', icon: Users, label: '租户管理' },
+        ctx.isPlatformAdmin && { to: '/app/platform/billing', icon: WalletCards, label: '订单与兑换码' },
       ]),
     },
     {

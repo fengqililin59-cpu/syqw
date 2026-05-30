@@ -49,6 +49,11 @@ import { AiOpsPage } from '@/pages/AiOpsPage'
 import { ServiceDeskPage } from '@/pages/ServiceDeskPage'
 import { TicketDetailPage } from '@/pages/TicketDetailPage'
 import { HelpCenterPage } from '@/pages/HelpCenterPage'
+import { PlatformAdminRoute } from '@/components/auth/PlatformAdminRoute'
+import { PlatformOverviewPage } from '@/pages/platform/PlatformOverviewPage'
+import { PlatformTenantsPage } from '@/pages/platform/PlatformTenantsPage'
+import { PlatformTenantDetailPage } from '@/pages/platform/PlatformTenantDetailPage'
+import { PlatformBillingPage } from '@/pages/platform/PlatformBillingPage'
 
 export default function App() {
   return (
@@ -101,6 +106,38 @@ export default function App() {
             <Route path="audit-logs" element={<AuditLogsPage />} />
             <Route path="permission-check" element={<PermissionCheckPage />} />
             <Route path="help" element={<HelpCenterPage />} />
+            <Route
+              path="platform"
+              element={
+                <PlatformAdminRoute>
+                  <PlatformOverviewPage />
+                </PlatformAdminRoute>
+              }
+            />
+            <Route
+              path="platform/tenants"
+              element={
+                <PlatformAdminRoute>
+                  <PlatformTenantsPage />
+                </PlatformAdminRoute>
+              }
+            />
+            <Route
+              path="platform/tenants/:tenantId"
+              element={
+                <PlatformAdminRoute>
+                  <PlatformTenantDetailPage />
+                </PlatformAdminRoute>
+              }
+            />
+            <Route
+              path="platform/billing"
+              element={
+                <PlatformAdminRoute>
+                  <PlatformBillingPage />
+                </PlatformAdminRoute>
+              }
+            />
           </Route>
         </Route>
 

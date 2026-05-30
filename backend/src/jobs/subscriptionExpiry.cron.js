@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import { env } from '../config/env.js';
 import { Subscription, Tenant, User } from '../models/index.js';
 import { sendAgentTextMessage } from '../services/wework.service.js';
+import { downgradeTenantToFree } from '../services/billing.service.js';
 
 async function notifyTenantAdmins(tenantId, content) {
   const [tenant, admins] = await Promise.all([
@@ -35,36 +36,46 @@ export function registerSubscriptionExpiryCron() {
 
   cron.schedule('0 9 * * *', async () => {
     try {
-      await Subscription.update(
-        { status: 'expired' },
-        {
-          where: {
-            status: 'trialing',
-            trial_ends_at: { [Op.lt]: new Date() },
-          },
-        },
-      );
-      await Subscription.update(
-        { status: 'expired' },
-        {
-          where: {
-            status: 'active',
-            current_period_end: { [Op.lt]: new Date() },
-          },
-        },
-      );
-
-      const expiredToNotify = await Subscription.findAll({
+      const expiredTrials = await Subscription.findAll({
         where: {
-          status: 'expired',
-          expiry_notified_at: null,
+          status: 'trialing',
+          trial_ends_at: { [Op.lt]: new Date() },
         },
         attributes: ['id', 'tenant_id'],
       });
-      for (const sub of expiredToNotify) {
+      for (const sub of expiredTrials) {
+        await downgradeTenantToFree(Number(sub.tenant_id));
         await notifyTenantAdmins(
           Number(sub.tenant_id),
-          `您的套餐已到期，系统功能将受限，请及时续费：${String(env.appUrl || '').replace(/\/$/, '')}/app/billing`,
+          `14 天专业版试用已结束，已切换为体验版（功能与配额受限）。升级续费：${String(env.appUrl || '').replace(/\/$/, '')}/app/billing`,
+        );
+      }
+
+      const expiredPaid = await Subscription.findAll({
+        where: {
+          status: 'active',
+          current_period_end: { [Op.lt]: new Date() },
+          trial_ends_at: null,
+        },
+        attributes: ['id', 'tenant_id'],
+      });
+      for (const sub of expiredPaid) {
+        await downgradeTenantToFree(Number(sub.tenant_id));
+        await notifyTenantAdmins(
+          Number(sub.tenant_id),
+          `付费套餐已到期，已切换为体验版。续费恢复专业版/企业版：${String(env.appUrl || '').replace(/\/$/, '')}/app/billing`,
+        );
+      }
+
+      const expiredLegacy = await Subscription.findAll({
+        where: { status: 'expired', expiry_notified_at: null },
+        attributes: ['id', 'tenant_id'],
+      });
+      for (const sub of expiredLegacy) {
+        await downgradeTenantToFree(Number(sub.tenant_id));
+        await notifyTenantAdmins(
+          Number(sub.tenant_id),
+          `您的套餐已到期，已切换为体验版，请及时续费：${String(env.appUrl || '').replace(/\/$/, '')}/app/billing`,
         );
         await sub.update({ expiry_notified_at: new Date() });
       }

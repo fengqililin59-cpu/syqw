@@ -152,16 +152,16 @@ export async function register(body) {
       { transaction: t }
     );
 
-    // 创建默认订阅（免费版，14天试用）
-    const freePlan = await Plan.findOne({
-      where: { code: 'free', is_active: 1 },
+    // 创建默认订阅（14 天专业版试用，到期后降为体验版 free）
+    const proPlan = await Plan.findOne({
+      where: { code: 'pro', is_active: 1 },
       transaction: t,
     });
-    if (freePlan) {
+    if (proPlan) {
       await Subscription.create(
         {
           tenant_id: tenant.id,
-          plan_id: freePlan.id,
+          plan_id: proPlan.id,
           billing_cycle: 'monthly',
           status: 'trialing',
           trial_ends_at: new Date(Date.now() + 14 * 24 * 3600 * 1000),

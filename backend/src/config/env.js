@@ -218,4 +218,10 @@ export const env = {
     workerCron: process.env.ENABLE_CAMPAIGN_REWARD_CRON === '1',
     workerBatchSize: Math.max(1, Math.min(50, Number(process.env.CAMPAIGN_REWARD_BATCH) || 10)),
   },
+
+  /** 平台超管用户 ID（逗号分隔），可确认任意租户收款、创建兑换码、直接开通套餐 */
+  platformAdminUserIds: (process.env.PLATFORM_ADMIN_USER_IDS || '')
+    .split(',')
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isFinite(n) && n > 0),
 };

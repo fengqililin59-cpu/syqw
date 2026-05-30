@@ -49,6 +49,8 @@ import { Plan } from './plan.model.js';
 import { Subscription } from './subscription.model.js';
 import { UsageStat } from './usageStat.model.js';
 import { PaymentRecord } from './paymentRecord.model.js';
+import { BillingPromoCode } from './billingPromoCode.model.js';
+import { BillingPromoRedemption } from './billingPromoRedemption.model.js';
 import { CallRecord } from './callRecord.model.js';
 import { UserCallSetting } from './userCallSetting.model.js';
 import { CustomerGroup } from './customerGroup.model.js';
@@ -119,6 +121,8 @@ Plan.initModel(sequelize);
 Subscription.initModel(sequelize);
 UsageStat.initModel(sequelize);
 PaymentRecord.initModel(sequelize);
+BillingPromoCode.initModel(sequelize);
+BillingPromoRedemption.initModel(sequelize);
 CallRecord.initModel(sequelize);
 UserCallSetting.initModel(sequelize);
 CustomerGroup.initModel(sequelize);
@@ -403,6 +407,12 @@ Plan.hasMany(PaymentRecord, { foreignKey: 'plan_id' });
 PaymentRecord.belongsTo(Plan, { foreignKey: 'plan_id', as: 'plan' });
 Tenant.hasMany(PaymentRecord, { foreignKey: 'tenant_id' });
 PaymentRecord.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Plan.hasMany(BillingPromoCode, { foreignKey: 'plan_id' });
+BillingPromoCode.belongsTo(Plan, { foreignKey: 'plan_id', as: 'plan' });
+BillingPromoCode.hasMany(BillingPromoRedemption, { foreignKey: 'promo_code_id', as: 'redemptions' });
+BillingPromoRedemption.belongsTo(BillingPromoCode, { foreignKey: 'promo_code_id', as: 'promoCode' });
+Tenant.hasMany(BillingPromoRedemption, { foreignKey: 'tenant_id' });
+BillingPromoRedemption.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 CallRecord.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });
 CallRecord.belongsTo(User, { foreignKey: 'caller_user_id', as: 'caller' });
 Customer.hasMany(CallRecord, { foreignKey: 'customer_id', as: 'callRecords' });
@@ -522,6 +532,8 @@ export {
   Subscription,
   UsageStat,
   PaymentRecord,
+  BillingPromoCode,
+  BillingPromoRedemption,
   CallRecord,
   UserCallSetting,
   CustomerGroup,

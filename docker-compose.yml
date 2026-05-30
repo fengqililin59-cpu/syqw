@@ -1,0 +1,78 @@
+# 一键启动：MySQL + Redis + Express API + Nginx 托管前端（反代 /api）
+# 使用：docker compose up -d --build
+# 访问：http://localhost:8080  （API 经同域 /api/v1 转发到 backend:3000）
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wework_saas
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/docker-init.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: wework_saas
+      DB_USER: root
+      DB_PASSWORD: root
+      JWT_SECRET: change_me_in_production_use_long_random
+      JWT_EXPIRES_IN: 7d
+      FRONTEND_ORIGIN: http://localhost:8080,http://127.0.0.1:8080
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ""
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - app
+
+networks:
+  app:
+    driver: bridge
+
+volumes:
+  mysql_data:

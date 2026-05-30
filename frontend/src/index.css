@@ -1,0 +1,335 @@
+/**
+ * @file 全局样式：Tailwind 指令 + shadcn/ui 设计令牌（HSL CSS 变量）。
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+
+    /* ZhiFlow 品牌主色 */
+    --zf-sidebar-bg: #0a1628;
+    --zf-sidebar-border: rgba(99, 148, 220, 0.12);
+    --zf-sidebar-active-bg: rgba(99, 148, 220, 0.14);
+    --zf-sidebar-active-border: rgba(99, 148, 220, 0.25);
+    --zf-sidebar-text: #3a6a9a;
+    --zf-sidebar-text-active: #c8ddf5;
+    --zf-sidebar-icon: #2a4a6a;
+    --zf-sidebar-icon-active: #7eb3f0;
+    --zf-sidebar-label: #2a4a6a;
+    --zf-sidebar-footer-border: rgba(99, 148, 220, 0.1);
+
+    /* 主强调色（蓝）*/
+    --zf-primary: #5b8dd9;
+    --zf-primary-light: #7eb3f0;
+    --zf-primary-bg: #eef4ff;
+    --zf-primary-border: #dde8f5;
+
+    /* 辅助强调色（紫）*/
+    --zf-purple: #a78bfa;
+    --zf-purple-bg: #f5f3ff;
+
+    /* 内容区背景 */
+    --zf-content-bg: #f0f4f8;
+    --zf-card-bg: #ffffff;
+    --zf-card-border: #dde8f5;
+    --zf-topbar-bg: #fafcff;
+    --zf-topbar-border: #dde8f5;
+
+    /* 文字 */
+    --zf-text-primary: #0f1e2e;
+    --zf-text-secondary: #4a7aaa;
+    --zf-text-muted: #8aabb8;
+
+    /* 状态色 */
+    --zf-success: #16a34a;
+    --zf-success-bg: #f0fdf4;
+    --zf-warning: #ea7c1a;
+    --zf-warning-bg: #fff8f0;
+    --zf-danger: #dc2626;
+    --zf-danger-bg: #fef2f2;
+
+    /* 渐变 */
+    --zf-gradient-primary: linear-gradient(135deg, #7eb3f0, #a78bfa);
+    --zf-gradient-bar: linear-gradient(180deg, #7eb3f0, #a78bfa);
+  }
+
+  /* ── 主题类：五套皮肤 CSS 变量覆盖 ────────────────────────── */
+
+  /* 深海蓝（默认）*/
+  .theme-blue {
+    --zf-sidebar-bg: #0a1628;
+    --zf-sidebar-active-bg: rgba(99,148,220,0.14);
+    --zf-sidebar-active-border: rgba(99,148,220,0.25);
+    --zf-sidebar-text: #6aaad8;
+    --zf-sidebar-text-active: #c8ddf5;
+    --zf-sidebar-icon: #5a8fc0;
+    --zf-sidebar-icon-active: #7eb3f0;
+    --zf-sidebar-label: #4a7aaa;
+    --zf-sidebar-border: rgba(99,148,220,0.12);
+    --zf-sidebar-footer-border: rgba(99,148,220,0.1);
+    --zf-content-bg: #f0f4f8;
+    --zf-topbar-bg: #fafcff;
+    --zf-topbar-border: #dde8f5;
+    --zf-primary: #5b8dd9;
+    --zf-primary-light: #7eb3f0;
+  }
+
+  /* 企微绿 */
+  .theme-green {
+    --zf-sidebar-bg: #1a7f4e;
+    --zf-sidebar-active-bg: rgba(255,255,255,0.2);
+    --zf-sidebar-active-border: rgba(255,255,255,0.3);
+    --zf-sidebar-text: rgba(255,255,255,0.65);
+    --zf-sidebar-text-active: #ffffff;
+    --zf-sidebar-icon: rgba(255,255,255,0.55);
+    --zf-sidebar-icon-active: #ffffff;
+    --zf-sidebar-label: rgba(255,255,255,0.4);
+    --zf-sidebar-border: rgba(255,255,255,0.12);
+    --zf-sidebar-footer-border: rgba(255,255,255,0.12);
+    --zf-content-bg: #f0faf5;
+    --zf-topbar-bg: #ffffff;
+    --zf-topbar-border: #d1e8de;
+    --zf-primary: #1a7f4e;
+    --zf-primary-light: #34d399;
+  }
+
+  /* 暗夜黑 */
+  .theme-dark {
+    --zf-sidebar-bg: #111827;
+    --zf-sidebar-active-bg: rgba(167,139,250,0.15);
+    --zf-sidebar-active-border: rgba(167,139,250,0.3);
+    --zf-sidebar-text: #6b7280;
+    --zf-sidebar-text-active: #e2e8f0;
+    --zf-sidebar-icon: #4b5563;
+    --zf-sidebar-icon-active: #a78bfa;
+    --zf-sidebar-label: #4b5563;
+    --zf-sidebar-border: rgba(167,139,250,0.15);
+    --zf-sidebar-footer-border: rgba(255,255,255,0.08);
+    --zf-content-bg: #1f2937;
+    --zf-topbar-bg: #111827;
+    --zf-topbar-border: #374151;
+    --zf-primary: #a78bfa;
+    --zf-primary-light: #c4b5fd;
+  }
+
+  /* 暖橙棕 */
+  .theme-orange {
+    --zf-sidebar-bg: #431407;
+    --zf-sidebar-active-bg: rgba(251,146,60,0.18);
+    --zf-sidebar-active-border: rgba(251,146,60,0.3);
+    --zf-sidebar-text: rgba(253,186,116,0.6);
+    --zf-sidebar-text-active: #fed7aa;
+    --zf-sidebar-icon: rgba(253,186,116,0.5);
+    --zf-sidebar-icon-active: #fb923c;
+    --zf-sidebar-label: rgba(253,186,116,0.4);
+    --zf-sidebar-border: rgba(251,146,60,0.15);
+    --zf-sidebar-footer-border: rgba(251,146,60,0.12);
+    --zf-content-bg: #fdf6f0;
+    --zf-topbar-bg: #ffffff;
+    --zf-topbar-border: #fde8d8;
+    --zf-primary: #c2410c;
+    --zf-primary-light: #fb923c;
+  }
+
+  /* 企微白 */
+  .theme-wecom {
+    --zf-sidebar-bg: #ffffff;
+    --zf-sidebar-active-bg: #e6f4ff;
+    --zf-sidebar-active-border: #1677ff;
+    --zf-sidebar-text: #595959;
+    --zf-sidebar-text-active: #1677ff;
+    --zf-sidebar-icon: #8c8c8c;
+    --zf-sidebar-icon-active: #1677ff;
+    --zf-sidebar-label: #bfbfbf;
+    --zf-sidebar-border: #e8e8e8;
+    --zf-sidebar-footer-border: #f0f0f0;
+    --zf-content-bg: #f5f5f5;
+    --zf-topbar-bg: #ffffff;
+    --zf-topbar-border: #f0f0f0;
+    --zf-primary: #1677ff;
+    --zf-primary-light: #69b1ff;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── 侧边栏导航 CSS 变量驱动 ──────────────────────────────────── */
+.zf-nav-item {
+  color: var(--zf-sidebar-text);
+}
+.zf-nav-item:hover {
+  background: var(--zf-sidebar-active-bg);
+  color: var(--zf-sidebar-text-active);
+  opacity: 0.85;
+}
+.zf-nav-item > svg {
+  color: var(--zf-sidebar-icon);
+  flex-shrink: 0;
+}
+.zf-nav-item:hover > svg {
+  color: var(--zf-sidebar-icon-active);
+}
+.zf-nav-active {
+  background: var(--zf-sidebar-active-bg) !important;
+  border: 0.5px solid var(--zf-sidebar-active-border) !important;
+  color: var(--zf-sidebar-text-active) !important;
+  opacity: 1 !important;
+}
+.zf-nav-active > svg {
+  color: var(--zf-sidebar-icon-active) !important;
+}
+
+/* 企微白：激活项右侧 2px 蓝线（覆盖默认背景高亮边框）*/
+.theme-wecom .zf-nav-active {
+  background: var(--zf-sidebar-active-bg) !important;
+  border: none !important;
+  border-right: 2px solid var(--zf-sidebar-active-border) !important;
+  border-radius: 0 !important;
+}
+
+/* 暗夜黑：内容区卡片深色适配 */
+.theme-dark .dashboard-card,
+.theme-dark .kpi-card {
+  background: #1e293b !important;
+  border-color: #374151 !important;
+}
+.theme-dark .kpi-card .text-gray-400,
+.theme-dark .dashboard-card .text-gray-400 {
+  color: #9ca3af !important;
+}
+
+/* 暗夜黑：设置页/通用页面标题文字柔化 */
+.theme-dark h1,
+.theme-dark h2,
+.theme-dark h3 {
+  color: #e2e8f0;
+}
+.theme-dark .text-muted-foreground {
+  color: #9ca3af !important;
+}
+
+/* 企微白：卡片边框与企微管理后台风格一致 */
+.theme-wecom .rounded-md.border {
+  border-color: #f0f0f0 !important;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  touch-action: manipulation;
+}
+
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+.login-input input:focus,
+.login-input:focus-within {
+  border-color: #7eb3f0 !important;
+  box-shadow: 0 0 0 3px rgba(126, 179, 240, 0.15) !important;
+}
+
+/* ZhiFlow 全局覆盖 */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #dde8f5;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b8d0ea;
+}
+
+*:focus-visible {
+  outline-color: #7eb3f0 !important;
+  outline-offset: 2px;
+}
+
+.btn-primary,
+[data-variant='default'].btn {
+  background: #1e3a6e;
+  border-color: #2a5a9a;
+}
+
+.btn-primary:hover {
+  background: #1a3260;
+}
+
+.badge-default {
+  background: var(--zf-primary-bg);
+  color: var(--zf-primary);
+  border: 0.5px solid var(--zf-primary-border);
+}
+
+a {
+  color: var(--zf-primary-light);
+}

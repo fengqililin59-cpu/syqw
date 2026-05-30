@@ -1,0 +1,892 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZhiFlow · 私域增长平台</title>
+    <meta name="description" content="让 AI 每天告诉销售先跟进谁、怎么开口。ZhiFlow 帮中小企业提升转化与复购。" />
+    <style>
+      :root {
+        --bg: #f0f4f8;
+        --surface: #ffffff;
+        --deep: #0a1628;
+        --primary: #5b8dd9;
+        --primary-2: #7eb3f0;
+        --text: #0f1e2e;
+        --muted: #5a728d;
+        --line: #dbe6f2;
+        --danger: #dc2626;
+        --success: #16a34a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 14% -10%, rgba(126, 179, 240, 0.35), transparent 35%),
+          radial-gradient(circle at 100% 0%, rgba(91, 141, 217, 0.2), transparent 30%),
+          var(--bg);
+      }
+      .container {
+        width: min(1180px, 92vw);
+        margin: 0 auto;
+      }
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        backdrop-filter: blur(8px);
+        background: rgba(240, 244, 248, 0.84);
+        border-bottom: 1px solid var(--line);
+      }
+      .nav-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 72px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .logo {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #0a1628, #1b3f73);
+        display: grid;
+        place-items: center;
+        color: #cfe2ff;
+        font-weight: 700;
+      }
+      .brand-text {
+        display: grid;
+      }
+      .brand-text strong {
+        font-size: 16px;
+        line-height: 1.1;
+      }
+      .brand-text span {
+        font-size: 11px;
+        color: #617d98;
+      }
+      .btn {
+        border: 1px solid transparent;
+        border-radius: 10px;
+        padding: 11px 18px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+      }
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+      .btn-primary {
+        background: linear-gradient(180deg, #133055, #0a1628);
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(10, 22, 40, 0.28);
+      }
+      .btn-ghost {
+        background: #fff;
+        color: #213449;
+        border-color: #c0d1e4;
+      }
+      .hero {
+        padding: 68px 0 40px;
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 24px;
+      }
+      .hero-left {
+        padding-right: 8px;
+      }
+      .pill {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 7px 12px;
+        background: #dbe8f8;
+        color: #36597f;
+        font-size: 12px;
+      }
+      .hero h1 {
+        margin: 14px 0 12px;
+        font-size: 40px;
+        line-height: 1.1;
+      }
+      .hero p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.75;
+      }
+      .hero-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+        flex-wrap: wrap;
+      }
+      .trust {
+        margin-top: 16px;
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        font-size: 13px;
+        color: #55708d;
+      }
+      .demo-entry {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #5a728d;
+      }
+      .demo-entry a {
+        color: #1b3f73;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .hero-panel {
+        background: linear-gradient(155deg, #0a1628, #1a3b67);
+        border-radius: 18px;
+        color: #d8e8fb;
+        border: 1px solid rgba(126, 179, 240, 0.22);
+        box-shadow: 0 18px 36px rgba(10, 22, 40, 0.25);
+        padding: 18px;
+        min-height: 250px;
+      }
+      .panel-title {
+        font-size: 13px;
+        color: #8fb4dc;
+        margin-bottom: 12px;
+      }
+      .panel-item {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 10px;
+      }
+      .panel-item strong {
+        display: block;
+        font-size: 14px;
+      }
+      .panel-item small {
+        color: #aac5e2;
+      }
+      section {
+        padding: 26px 0 12px;
+      }
+      .section-title {
+        margin: 0 0 16px;
+        font-size: 30px;
+        letter-spacing: 0.2px;
+      }
+      .section-sub {
+        margin: -4px 0 18px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: 0 6px 18px rgba(28, 56, 89, 0.05);
+      }
+      .pain-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
+      }
+      .pain-card {
+        padding: 14px;
+      }
+      .split {
+        border-top: 1px dashed #d4e2f1;
+        margin: 10px 0;
+      }
+      .tag-danger {
+        color: var(--danger);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .tag-success {
+        color: var(--success);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .small {
+        font-size: 13px;
+        line-height: 1.62;
+        color: #4d667f;
+      }
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+      .feature-card {
+        padding: 16px;
+      }
+      .feature-card h4 {
+        margin: 10px 0 6px;
+      }
+      .icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 11px;
+        display: grid;
+        place-items: center;
+        font-size: 16px;
+      }
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+      .step {
+        padding: 15px;
+      }
+      .step-num {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: #dbe9fb;
+        color: #1f4f8d;
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .pricing {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+      .price-card {
+        padding: 18px;
+        position: relative;
+      }
+      .price-card strong {
+        font-size: 30px;
+      }
+      .price-pop {
+        border-color: var(--primary);
+        box-shadow: 0 12px 28px rgba(91, 141, 217, 0.18);
+      }
+      .badge-pop {
+        position: absolute;
+        right: 14px;
+        top: -10px;
+        border-radius: 999px;
+        background: var(--primary);
+        color: #fff;
+        padding: 4px 8px;
+        font-size: 12px;
+      }
+      .faq-item {
+        margin-bottom: 10px;
+        overflow: hidden;
+      }
+      .faq-q {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        text-align: left;
+        padding: 14px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .faq-a {
+        max-height: 0;
+        overflow: hidden;
+        padding: 0 14px;
+        color: #4f6882;
+        transition: max-height 0.24s ease;
+      }
+      .faq-item.open .faq-a {
+        max-height: 220px;
+        padding: 0 14px 14px;
+      }
+      .compare-wrap {
+        overflow-x: auto;
+      }
+      .compare-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      .compare-table th,
+      .compare-table td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      .compare-table th {
+        background: #f4f8fc;
+        color: #2a4560;
+        font-weight: 600;
+      }
+      .compare-table td:first-child {
+        color: #4d667f;
+        width: 28%;
+      }
+      .compare-highlight {
+        color: #0f5132;
+        font-weight: 600;
+      }
+      .combo-note {
+        margin-top: 14px;
+        padding: 14px 16px;
+        background: linear-gradient(90deg, #eef5fc, #f8fbff);
+        border: 1px solid #cfe0f2;
+        border-radius: 12px;
+        font-size: 14px;
+        line-height: 1.65;
+        color: #3f5f7d;
+      }
+      .cta-wrap {
+        margin-top: 10px;
+        padding: 8px 0 22px;
+      }
+      .cta {
+        background: linear-gradient(160deg, #0a1628, #11253e);
+        color: #fff;
+        border-radius: 20px;
+        border: 1px solid rgba(126, 179, 240, 0.2);
+        text-align: center;
+        padding: 40px 20px;
+      }
+      .cta h3 {
+        margin: 0 0 10px;
+        font-size: 32px;
+      }
+      .cta p {
+        margin: 0 0 16px;
+        color: #bdd0e5;
+      }
+      .cta .btn {
+        background: var(--primary-2);
+        color: #0f2237;
+      }
+      footer {
+        margin: 20px 0 34px;
+        font-size: 13px;
+        color: #607995;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      footer a {
+        color: inherit;
+        text-decoration: none;
+      }
+      @media (max-width: 768px) {
+        .hero {
+          grid-template-columns: 1fr;
+          padding: 42px 0 18px;
+        }
+        .hero h1 {
+          font-size: 26px;
+        }
+        .section-title {
+          font-size: 24px;
+        }
+        .pain-grid,
+        .feature-grid,
+        .steps,
+        .pricing {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="nav">
+      <div class="container nav-inner">
+        <div class="brand">
+          <div class="logo">Z</div>
+          <div class="brand-text">
+            <strong>ZhiFlow</strong>
+            <span>私域增长平台</span>
+          </div>
+        </div>
+        <button class="btn btn-primary cta-btn cta-register-btn cta-primary-text" data-cta-pos="top-primary">注册账号，14天免费试用</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="hero">
+        <div class="hero-left">
+          <span class="pill" id="hero-pill">企业微信官方 API · 数据私有化部署 · 14 天免费试用</span>
+          <h1 id="hero-title">销售每天先跟进谁，<br />AI 直接告诉你</h1>
+          <p id="hero-sub">
+            ZhiFlow 自动识别高意向客户，在最佳时机提醒销售跟进；统一收件箱里 AI 只写草稿、销售点确认才发给客户，
+            成交与售后还能转工单——把企微私域当成公司资产来经营，而不只是又一个聊天机器人。
+          </p>
+          <div class="hero-actions">
+            <button class="btn btn-primary cta-btn cta-register-btn cta-primary-text" data-cta-pos="hero-primary">注册账号，14天免费试用</button>
+            <button class="btn btn-ghost cta-btn" id="hero-secondary-btn" data-cta-pos="hero-secondary">无需注册，直接体验演示系统</button>
+            <a class="btn btn-ghost cta-btn" id="hero-lead-btn" style="display: none" data-cta-pos="hero-lead">预约咨询 · 在线留资</a>
+          </div>
+          <p class="demo-entry">想先看效果？ <a href="/demo" id="hero-demo-link">无需注册，直接体验演示系统</a></p>
+          <div class="trust">
+            <span id="trust-1">✓ 今天注册即可试用</span>
+            <span id="trust-2">✓ 无需绑定信用卡</span>
+            <span id="trust-3">✓ 数据可私有化部署</span>
+            <span id="trust-4">✓ 10 分钟完成初始配置</span>
+          </div>
+        </div>
+        <aside class="hero-panel">
+          <div class="panel-title">AI 员工 · 今日值班摘要</div>
+          <div class="panel-item">
+            <strong>待审核 AI 回复 · 6 条</strong>
+            <small>统一收件箱 · 人审通过后再发企微</small>
+          </div>
+          <div class="panel-item">
+            <strong>SLA 超时未回 · 2 会话</strong>
+            <small>已通知负责人 · 建议 30 分钟内响应</small>
+          </div>
+          <div class="panel-item">
+            <strong>高意向客户 · 张总 82 分</strong>
+            <small>近 24h +21 · 可转跟进或外呼</small>
+          </div>
+        </aside>
+      </section>
+
+      <section id="features">
+        <h2 class="section-title" id="pain-title">为什么很多团队做了私域，转化还是上不去？</h2>
+        <div class="pain-grid">
+          <article class="card pain-card">
+            <div class="tag-danger">痛点</div>
+            <p class="small">不知道该跟进谁</p>
+            <div class="split"></div>
+            <div class="tag-success">解决</div>
+            <p class="small">AI 意向评分自动排序高意向客户</p>
+          </article>
+          <article class="card pain-card">
+            <div class="tag-danger">痛点</div>
+            <p class="small">销售离职带走客户</p>
+            <div class="split"></div>
+            <div class="tag-success">解决</div>
+            <p class="small">客户资产一键继承，关系不断档</p>
+          </article>
+          <article class="card pain-card">
+            <div class="tag-danger">痛点</div>
+            <p class="small">跟进全靠记忆</p>
+            <div class="split"></div>
+            <div class="tag-success">解决</div>
+            <p class="small">自动提醒 + 下一步建议话术</p>
+          </article>
+          <article class="card pain-card">
+            <div class="tag-danger">痛点</div>
+            <p class="small">触达渠道割裂</p>
+            <div class="split"></div>
+            <div class="tag-success">解决</div>
+            <p class="small">企微/电话/短信统一归档</p>
+          </article>
+          <article class="card pain-card">
+            <div class="tag-danger">痛点</div>
+            <p class="small">不知道钱花在哪</p>
+            <div class="split"></div>
+            <div class="tag-success">解决</div>
+            <p class="small">渠道分析 + ROI 看板闭环</p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-title" id="feature-title">一个系统，打通“识别机会 → 触达跟进 → 复盘优化”</h2>
+        <div class="feature-grid">
+          <article class="card feature-card">
+            <div class="icon" style="background:#dbeafe;color:#1d4ed8;">🎯</div>
+            <h4>AI 意向评分</h4>
+            <p class="small">规则+AI 双引擎识别高意向客户。</p>
+          </article>
+          <article class="card feature-card">
+            <div class="icon" style="background:#ffedd5;color:#c2410c;">⚡</div>
+            <h4>意向预警</h4>
+            <p class="small">分值上升即提醒销售并推荐话术。</p>
+          </article>
+          <article class="card feature-card">
+            <div class="icon" style="background:#dcfce7;color:#15803d;">📞</div>
+            <h4>一键外呼</h4>
+            <p class="small">手机/网页两种模式，通话自动归档。</p>
+          </article>
+          <article class="card feature-card">
+            <div class="icon" style="background:#f3e8ff;color:#7e22ce;">💬</div>
+            <h4>短信营销</h4>
+            <p class="small">模板变量插值，批量任务定时发送。</p>
+          </article>
+          <article class="card feature-card">
+            <div class="icon" style="background:#fee2e2;color:#b91c1c;">🤖</div>
+            <h4>自动化流程</h4>
+            <p class="small">新客欢迎、无回复跟进自动执行。</p>
+          </article>
+          <article class="card feature-card">
+            <div class="icon" style="background:#dbeafe;color:#1e40af;">📊</div>
+            <h4>数据仪表盘</h4>
+            <p class="small">增长、转化、渠道 ROI 一屏掌握。</p>
+          </article>
+          <article class="card feature-card">
+            <div class="icon" style="background:#e0f2fe;color:#0369a1;">📥</div>
+            <h4>统一收件箱</h4>
+            <p class="small">企微会话集中处理，消息同步与人工回复。</p>
+          </article>
+          <article class="card feature-card">
+            <div class="icon" style="background:#fef3c7;color:#b45309;">✅</div>
+            <h4>AI 审核后发</h4>
+            <p class="small">AI 草稿 + 知识库，销售确认后再触达客户。</p>
+          </article>
+          <article class="card feature-card">
+            <div class="icon" style="background:#ede9fe;color:#6d28d9;">🎫</div>
+            <h4>服务台</h4>
+            <p class="small">订单与工单闭环，会话一键转售后。</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="compare">
+        <h2 class="section-title">为什么选择 ZhiFlow，而不是只做扣子？</h2>
+        <p class="section-sub">
+          扣子（Coze）擅长「造 AI」；ZhiFlow 擅长「管企微私域生意」——客户从哪来、谁在跟、AI 怎么说、人是否发出、有没有成交。
+        </p>
+        <div class="card compare-wrap">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>对比维度</th>
+                <th>扣子 Coze</th>
+                <th>ZhiFlow</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>产品定位</td>
+                <td>AI 智能体 / 工作流平台</td>
+                <td><span class="compare-highlight">企微私域 CRM + 增长系统</span></td>
+              </tr>
+              <tr>
+                <td>客户与跟进</td>
+                <td>弱（非 CRM 核心）</td>
+                <td><span class="compare-highlight">客户、阶段、标签、归属、跟进时间线</span></td>
+              </tr>
+              <tr>
+                <td>企微深度</td>
+                <td>可作为发布渠道之一</td>
+                <td><span class="compare-highlight">活码、同步、回调、继承、侧边栏</span></td>
+              </tr>
+              <tr>
+                <td>AI 怎么用</td>
+                <td>对话与编排中心</td>
+                <td><span class="compare-highlight">意向分 + 收件箱草稿 + 人审后发</span></td>
+              </tr>
+              <tr>
+                <td>成交与售后</td>
+                <td>需自建或对接</td>
+                <td><span class="compare-highlight">订单、工单、收件箱转工单</span></td>
+              </tr>
+              <tr>
+                <td>部署方式</td>
+                <td>字节云为主</td>
+                <td><span class="compare-highlight">支持私有化部署</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="combo-note">
+          <strong>推荐组合：</strong>复杂对话与创意 Agent 可用扣子；客户数据、触达、审核发信、工单与 ROI 放在 ZhiFlow。我们管「对谁、何时、是否发出、是否成交」，扣子管「怎么说得更巧」。
+        </p>
+      </section>
+
+      <section>
+        <h2 class="section-title">从零开始，1 小时上手</h2>
+        <p class="section-sub">把复杂流程拆成 4 步，第一天就看到数据沉淀。</p>
+        <div class="steps">
+          <article class="card step">
+            <div class="step-num">1</div>
+            <h4>注册并配置企微</h4>
+            <p class="small">填入 CorpID / AgentID / Secret（10 分钟）。</p>
+          </article>
+          <article class="card step">
+            <div class="step-num">2</div>
+            <h4>同步 / 导入客户</h4>
+            <p class="small">拉取企微客户或上传 Excel（5 分钟）。</p>
+          </article>
+          <article class="card step">
+            <div class="step-num">3</div>
+            <h4>配置自动化流程</h4>
+            <p class="small">欢迎语、无回复跟进等规则（15 分钟）。</p>
+          </article>
+          <article class="card step">
+            <div class="step-num">4</div>
+            <h4>开始跟进与预警</h4>
+            <p class="small">销售每天看预警，优先跟进高意向。</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="pricing">
+        <h2 class="section-title" id="pricing-title">先试用，再决定是否付费</h2>
+        <div class="pricing">
+          <article class="card price-card">
+            <h4>免费版</h4>
+            <p><strong>¥0</strong></p>
+            <p class="small">100 客户 / 3 席位 / 基础收件箱 / 100 次 AI</p>
+          </article>
+          <article class="card price-card price-pop">
+            <span class="badge-pop">最受欢迎</span>
+            <h4>专业版</h4>
+            <p><strong>¥299/月</strong></p>
+            <p class="small">完整 AI 人审 / 知识库 / 工单 / SLA / 外呼短信</p>
+          </article>
+          <article class="card price-card">
+            <h4>企业版</h4>
+            <p><strong>¥999/月</strong></p>
+            <p class="small">不限规模 / 私有化 / 不限 AI 与知识库</p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-title">常见问题</h2>
+        <div class="card faq-item">
+          <button class="faq-q">Q1：和扣子（Coze）有什么区别？</button>
+          <div class="faq-a">
+            扣子解决「如何快速搭一个 AI Bot」；ZhiFlow 解决「企微私域客户如何管、如何跟、如何成交」。
+            我们提供统一收件箱、AI 草稿人工审核后再发、知识库、工单与渠道 ROI，并支持私有化部署。
+            许多团队两者组合使用：扣子负责复杂对话，ZhiFlow 负责客户资产与销售闭环。
+          </div>
+        </div>
+        <div class="card faq-item">
+          <button class="faq-q">Q2：和微伴/探马有什么区别？</button>
+          <div class="faq-a">我们在标准 CRM 能力上加入 AI 意向评分、统一收件箱与人审发信，并打通企微、电话、短信的统一触达与工单闭环。</div>
+        </div>
+        <div class="card faq-item">
+          <button class="faq-q">Q3：数据安全吗？</button>
+          <div class="faq-a">支持客户私有化部署，数据保存在客户自己的服务器，平台不托管核心客户数据。AI 对外话术默认经人工审核后发送。</div>
+        </div>
+        <div class="card faq-item">
+          <button class="faq-q">Q4：需要员工重新学习吗？</button>
+          <div class="faq-a">一线销售主要使用客户列表、收件箱与跟进记录，移动端 10 分钟即可上手；管理员我们提供企微配置指导。</div>
+        </div>
+        <div class="card faq-item">
+          <button class="faq-q">Q5：企微有什么要求？</button>
+          <div class="faq-a">需要企业认证的企业微信并创建自建应用；按指南配置后即可完成同步、收件箱与消息闭环。</div>
+        </div>
+      </section>
+
+      <section class="cta-wrap">
+        <div class="cta">
+          <h3 id="cta-title">14 天看不到提升，再决定也不迟</h3>
+          <p id="cta-sub">支持现有客户数据一键导入，最快当天开始跑转化闭环</p>
+          <button class="btn cta-btn cta-register-btn cta-primary-text" data-cta-pos="bottom-primary">注册账号，14天免费试用</button>
+          <p class="demo-entry">想先看效果？ <a href="/demo" id="bottom-demo-link">无需注册，直接体验演示系统</a></p>
+          <p style="font-size:12px;margin-top:14px;">无需绑定信用卡 · 试用期结束自动降为免费版</p>
+        </div>
+      </section>
+
+      <footer>
+        <div>© 2026 ZhiFlow · 私域增长平台</div>
+        <div>
+          <a href="#features">功能介绍</a> ·
+          <a href="#pricing">价格方案</a> ·
+          <a href="#" id="contact-link">联系我们</a>
+        </div>
+      </footer>
+    </main>
+
+    <script src="/zf-track.js"></script>
+    <script>
+      document.querySelectorAll('.faq-item').forEach((item) => {
+        item.querySelector('.faq-q').addEventListener('click', () => {
+          item.classList.toggle('open')
+        })
+      })
+
+      const variants = {
+        a: {
+          heroPill: '企业微信官方 API · 数据私有化部署 · 14 天免费试用',
+          heroTitle: '销售每天先跟进谁，<br />AI 直接告诉你',
+          heroSub:
+            'ZhiFlow 自动识别高意向客户，在最佳时机提醒销售跟进，并把企微、电话、短信的触达记录统一归档，让团队告别“凭感觉跟进”。',
+          primaryBtn: '注册账号，14天免费试用',
+          secondaryBtn: '无需注册，直接体验演示系统',
+          trust1: '✓ 今天注册即可试用',
+          trust2: '✓ 无需绑定信用卡',
+          trust3: '✓ 数据可私有化部署',
+          trust4: '✓ 10 分钟完成初始配置',
+          painTitle: '为什么很多团队做了私域，转化还是上不去？',
+          featureTitle: '一个系统，打通“识别机会 → 触达跟进 → 复盘优化”',
+          pricingTitle: '先试用，再决定是否付费',
+          ctaTitle: '14 天看不到提升，再决定也不迟',
+          ctaSub: '支持现有客户数据一键导入，最快当天开始跑转化闭环',
+        },
+        b: {
+          heroPill: '已帮助团队建立“高意向优先跟进”机制 · 14 天免费试用',
+          heroTitle: '把更多咨询，<br />变成可成交客户',
+          heroSub:
+            'ZhiFlow 让销售每天先跟进最有机会成交的人，把企微、电话、短信触达统一沉淀，持续提升转化率与复购率。',
+          primaryBtn: '注册账号，14天免费试用',
+          secondaryBtn: '无需注册，直接体验演示系统',
+          trust1: '✓ 试用期功能不设限',
+          trust2: '✓ 无需信用卡，0 风险体验',
+          trust3: '✓ 数据资产归企业',
+          trust4: '✓ 10 分钟可完成上线',
+          painTitle: '你不是缺客户，而是缺“优先级正确”的跟进系统',
+          featureTitle: '围绕成交结果设计，而不是只做 CRM 记录',
+          pricingTitle: '低成本试错，验证后再放大',
+          ctaTitle: '先试 14 天，再决定要不要长期用',
+          ctaSub: '今天导入客户，最快今天就能收到第一批高意向提醒',
+        },
+      }
+
+      const v = (new URLSearchParams(window.location.search).get('v') || 'a').toLowerCase()
+      const copy = variants[v] || variants.a
+      const setText = (id, text) => {
+        const el = document.getElementById(id)
+        if (el) el.textContent = text
+      }
+      const setHtml = (id, html) => {
+        const el = document.getElementById(id)
+        if (el) el.innerHTML = html
+      }
+
+      setText('hero-pill', copy.heroPill)
+      setHtml('hero-title', copy.heroTitle)
+      setText('hero-sub', copy.heroSub)
+      document.querySelectorAll('.cta-primary-text').forEach((el) => {
+        el.textContent = copy.primaryBtn
+      })
+      setText('hero-secondary-btn', copy.secondaryBtn)
+      setText('trust-1', copy.trust1)
+      setText('trust-2', copy.trust2)
+      setText('trust-3', copy.trust3)
+      setText('trust-4', copy.trust4)
+      setText('pain-title', copy.painTitle)
+      setText('feature-title', copy.featureTitle)
+      setText('pricing-title', copy.pricingTitle)
+      setText('cta-title', copy.ctaTitle)
+      setText('cta-sub', copy.ctaSub)
+
+      const trackEvent = (eventName, extra = {}) => {
+        const payload = {
+          event: eventName,
+          variant: v,
+          ts: Date.now(),
+          path: window.location.pathname,
+          ...extra,
+        }
+        try {
+          const raw = localStorage.getItem('landing_ab_events')
+          const list = raw ? JSON.parse(raw) : []
+          list.push(payload)
+          localStorage.setItem('landing_ab_events', JSON.stringify(list.slice(-200)))
+        } catch (_) {
+          // ignore storage errors
+        }
+
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', eventName, payload)
+        }
+
+        if (window.ZhiFlowTrack) {
+          const map = {
+            landing_view: 'landing_view',
+            landing_cta_click: 'landing_cta_click',
+            landing_demo_click: 'landing_demo_click',
+            landing_lead_click: 'landing_lead_click',
+          }
+          const key = map[eventName]
+          if (key) {
+            void window.ZhiFlowTrack.trackEvent(key, { variant: v, ...extra })
+          }
+        }
+      }
+
+      if (window.ZhiFlowTrack) {
+        window.ZhiFlowTrack.persistUtmFromQuery()
+        void window.ZhiFlowTrack.trackVisitIfUtm()
+        window.ZhiFlowTrack.saveLandingAttribution({ from: 'landing', variant: v })
+      }
+
+      const tenantParam = new URLSearchParams(window.location.search).get('tenant')
+      const leadBtn = document.getElementById('hero-lead-btn')
+      if (tenantParam && /^\d+$/.test(tenantParam) && leadBtn && window.ZhiFlowTrack) {
+        leadBtn.style.display = 'inline-flex'
+        leadBtn.href = window.ZhiFlowTrack.buildLeadFormUrl(tenantParam, { cta: 'hero-lead' })
+        leadBtn.addEventListener('click', () => {
+          trackEvent('landing_lead_click', { ctaPos: 'hero-lead', tenant: tenantParam })
+        })
+      }
+
+      try {
+        sessionStorage.setItem('landing_ab_variant', v)
+      } catch (_) {
+        // ignore storage errors
+      }
+      trackEvent('landing_view')
+
+      document.querySelectorAll('.cta-register-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const pos = btn.getAttribute('data-cta-pos') || 'unknown'
+          trackEvent('landing_cta_click', { ctaPos: pos })
+          const to = new URL('/register', window.location.origin)
+          to.searchParams.set('from', 'landing')
+          to.searchParams.set('variant', v)
+          to.searchParams.set('cta', pos)
+          window.location.href = to.toString()
+        })
+      })
+
+      const toDemo = (pos) => {
+        trackEvent('landing_demo_click', { ctaPos: pos })
+        const to = new URL('/demo', window.location.origin)
+        to.searchParams.set('from', 'landing')
+        to.searchParams.set('variant', v)
+        to.searchParams.set('cta', pos)
+        window.location.href = to.toString()
+      }
+
+      const heroSecondary = document.getElementById('hero-secondary-btn')
+      if (heroSecondary) {
+        heroSecondary.addEventListener('click', () => {
+          toDemo('hero-secondary')
+        })
+      }
+
+      const heroDemoLink = document.getElementById('hero-demo-link')
+      if (heroDemoLink) {
+        heroDemoLink.addEventListener('click', (e) => {
+          e.preventDefault()
+          toDemo('hero-link')
+        })
+      }
+
+      const bottomDemoLink = document.getElementById('bottom-demo-link')
+      if (bottomDemoLink) {
+        bottomDemoLink.addEventListener('click', (e) => {
+          e.preventDefault()
+          toDemo('bottom-link')
+        })
+      }
+
+      const contact = document.getElementById('contact-link')
+      if (contact) {
+        contact.addEventListener('click', (e) => {
+          e.preventDefault()
+          window.location.href = 'mailto:hello@zhiflow.com'
+        })
+      }
+    </script>
+  </body>
+</html>

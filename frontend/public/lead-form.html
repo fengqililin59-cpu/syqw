@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>预约咨询 · ZhiFlow</title>
+    <style>
+      :root {
+        --bg: #f0f4f8;
+        --surface: #fff;
+        --primary: #5b8dd9;
+        --text: #0f1e2e;
+        --muted: #5a728d;
+        --line: #dbe6f2;
+        --danger: #dc2626;
+        --success: #16a34a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+      }
+      .card {
+        width: min(420px, 100%);
+        background: var(--surface);
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        padding: 28px 24px;
+        box-shadow: 0 8px 32px rgba(15, 30, 46, 0.08);
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 1.35rem;
+      }
+      p.sub {
+        margin: 0 0 20px;
+        font-size: 0.875rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: var(--muted);
+      }
+      input,
+      textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 1rem;
+        margin-bottom: 14px;
+        font-family: inherit;
+      }
+      textarea {
+        min-height: 72px;
+        resize: vertical;
+      }
+      button {
+        width: 100%;
+        border: none;
+        border-radius: 10px;
+        padding: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #fff;
+        background: linear-gradient(135deg, #5b8dd9, #7eb3f0);
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .msg {
+        margin-top: 14px;
+        font-size: 0.875rem;
+        text-align: center;
+      }
+      .msg.ok {
+        color: var(--success);
+      }
+      .msg.err {
+        color: var(--danger);
+      }
+      .err-config {
+        color: var(--danger);
+        font-size: 0.875rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>预约咨询</h1>
+      <p class="sub">留下联系方式，专属顾问将尽快与您联系。</p>
+      <div id="configErr" class="err-config" hidden>链接缺少 tenant 参数，请联系企业提供正确表单地址。</div>
+      <form id="leadForm" hidden>
+        <label for="name">姓名 *</label>
+        <input id="name" name="name" required maxlength="50" placeholder="您的姓名" />
+        <label for="phone">手机号 *</label>
+        <input id="phone" name="phone" required maxlength="20" type="tel" placeholder="11 位手机号" />
+        <label for="company">公司（选填）</label>
+        <input id="company" name="company" maxlength="100" placeholder="公司名称" />
+        <label for="need">需求简述（选填）</label>
+        <textarea id="need" name="need" maxlength="500" placeholder="想了解的产品或场景…"></textarea>
+        <button type="submit" id="submitBtn">提交</button>
+      </form>
+      <p id="result" class="msg" hidden></p>
+    </div>
+    <script src="/zf-track.js"></script>
+    <script>
+      (function () {
+        const params = new URLSearchParams(window.location.search)
+        const tenantId = params.get('tenant') || params.get('tenant_id')
+        const form = document.getElementById('leadForm')
+        const configErr = document.getElementById('configErr')
+        const result = document.getElementById('result')
+        const submitBtn = document.getElementById('submitBtn')
+
+        if (!tenantId || !/^\d+$/.test(String(tenantId))) {
+          configErr.hidden = false
+          return
+        }
+        form.hidden = false
+
+        if (window.ZhiFlowTrack) {
+          window.ZhiFlowTrack.persistUtmFromQuery()
+          void window.ZhiFlowTrack.trackVisitIfUtm()
+          const land = window.ZhiFlowTrack.getLandingAttribution()
+          void window.ZhiFlowTrack.trackEvent('lead_form_view', {
+            tenant_id: tenantId,
+            from: land.from || params.get('from') || null,
+            variant: land.variant || params.get('variant') || null,
+          })
+        }
+
+        form.addEventListener('submit', async function (e) {
+          e.preventDefault()
+          result.hidden = true
+          submitBtn.disabled = true
+          submitBtn.textContent = '提交中…'
+
+          const land = window.ZhiFlowTrack ? window.ZhiFlowTrack.getLandingAttribution() : {}
+          const utm = window.ZhiFlowTrack ? window.ZhiFlowTrack.getStoredUtm() : {}
+
+          const body = {
+            name: document.getElementById('name').value.trim(),
+            phone: document.getElementById('phone').value.trim(),
+            company: document.getElementById('company').value.trim() || null,
+            need: document.getElementById('need').value.trim() || null,
+            source: params.get('source') || (land.from === 'landing' ? null : 'H5留资'),
+            session_id: window.ZhiFlowTrack
+              ? window.ZhiFlowTrack.getOrCreateSessionId()
+              : undefined,
+            utm_source: params.get('utm_source') || utm.utm_source || undefined,
+            utm_medium: params.get('utm_medium') || utm.utm_medium || undefined,
+            utm_campaign: params.get('utm_campaign') || utm.utm_campaign || undefined,
+            utm_content: params.get('utm_content') || utm.utm_content || undefined,
+            utm_term: params.get('utm_term') || utm.utm_term || undefined,
+            landing_from: land.from || params.get('from') || undefined,
+            landing_variant: land.variant || params.get('variant') || undefined,
+            landing_cta: land.cta || params.get('cta') || undefined,
+          }
+
+          try {
+            const apiBase = window.ZhiFlowTrack ? window.ZhiFlowTrack.apiBase() : window.location.origin + '/api/v1'
+            const res = await fetch(apiBase + '/leads/' + tenantId + '/submit', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            })
+            const json = await res.json()
+            if (!res.ok) {
+              throw new Error(json.message || '提交失败')
+            }
+            if (window.ZhiFlowTrack) {
+              void window.ZhiFlowTrack.trackEvent('lead_submit', {
+                tenant_id: tenantId,
+                phone: body.phone,
+                created: json.data?.created ? 1 : 0,
+              })
+            }
+            result.textContent = json.message || json.data?.message || '提交成功，感谢！'
+            result.className = 'msg ok'
+            result.hidden = false
+            form.reset()
+          } catch (err) {
+            result.textContent = err.message || '网络错误，请稍后重试'
+            result.className = 'msg err'
+            result.hidden = false
+          } finally {
+            submitBtn.disabled = false
+            submitBtn.textContent = '提交'
+          }
+        })
+      })()
+    </script>
+  </body>
+</html>

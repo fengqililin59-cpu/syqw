@@ -1,0 +1,15 @@
+{
+  "name": "syqw",
+  "private": true,
+  "description": "在仓库根目录可运行；实际脚本定义在 backend/、frontend/ 子项目。",
+  "scripts": {
+    "backend:kill": "npm run kill:3000 --prefix backend",
+    "backend:dev": "npm run dev:no-watch --prefix backend",
+    "backend:dev:clean": "npm run dev:clean --prefix backend",
+    "frontend:dev": "npm run dev --prefix frontend",
+    "frontend:dev:clean": "npm run dev:clean --prefix frontend",
+    "frontend:kill": "node frontend/scripts/kill-port.mjs 5173 5174",
+    "frontend:build": "npm run build --prefix frontend",
+    "frontend:install": "npm install --prefix frontend"
+  }
+}

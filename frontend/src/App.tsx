@@ -48,6 +48,7 @@ import { KnowledgeBasePage } from '@/pages/KnowledgeBasePage'
 import { AiOpsPage } from '@/pages/AiOpsPage'
 import { ServiceDeskPage } from '@/pages/ServiceDeskPage'
 import { TicketDetailPage } from '@/pages/TicketDetailPage'
+import { HelpCenterPage } from '@/pages/HelpCenterPage'
 
 export default function App() {
   return (
@@ -99,6 +100,7 @@ export default function App() {
             <Route path="intent-alerts" element={<IntentAlertsPage />} />
             <Route path="audit-logs" element={<AuditLogsPage />} />
             <Route path="permission-check" element={<PermissionCheckPage />} />
+            <Route path="help" element={<HelpCenterPage />} />
           </Route>
         </Route>
 

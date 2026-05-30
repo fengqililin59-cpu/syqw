@@ -31,6 +31,7 @@ import {
   Inbox,
   BookMarked,
   LifeBuoy,
+  CircleHelp,
 } from 'lucide-react'
 
 export type NavItemDef = {
@@ -84,6 +85,7 @@ export function buildSidebarNavGroups(ctx: SidebarNavContext): NavGroupDef[] {
       title: '工作台',
       items: pick([
         ctx.canDash && { to: '/app', end: true, icon: LayoutDashboard, label: '仪表盘' },
+        { to: '/app/help', icon: CircleHelp, label: '使用帮助' },
       ]),
     },
     {

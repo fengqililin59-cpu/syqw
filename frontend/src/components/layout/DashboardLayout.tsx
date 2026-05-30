@@ -120,6 +120,7 @@ export function DashboardLayout() {
       '/app/ai-ops': 'AI 运营看板',
       '/app/service-desk': '服务台',
       '/app/guide-templates': '获客指南',
+      '/app/help': '使用帮助',
     }),
     [],
   )

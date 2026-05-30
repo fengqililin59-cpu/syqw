@@ -314,8 +314,15 @@ export function DashboardHomePage() {
       {canCustomers && !isAdmin ? (
         <Card className="border-sky-200/80 bg-gradient-to-br from-sky-50/80 to-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold text-sky-950">销售每日 3 步</CardTitle>
-            <p className="text-sm text-sky-900/70">不用记菜单，按这个顺序用就行。</p>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <CardTitle className="text-base font-semibold text-sky-950">销售每日 3 步</CardTitle>
+                <p className="text-sm text-sky-900/70">不用记菜单，按这个顺序用就行。</p>
+              </div>
+              <Button size="sm" variant="ghost" className="text-sky-800" onClick={() => navigate('/app/help')}>
+                完整帮助
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2 pt-0">
             <Button size="sm" variant="secondary" onClick={() => navigate('/app/follow-ups?overdue=1')}>
@@ -336,9 +343,14 @@ export function DashboardHomePage() {
           <CardHeader className="border-b border-sky-100 pb-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <CardTitle className="text-lg font-semibold text-slate-900">上线检查清单</CardTitle>
-              <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-sm font-semibold text-sky-800">
-                {onboarding.done_count}/{onboarding.total} · {onboarding.progress_percent}%
-              </span>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="ghost" className="h-8 text-slate-600" onClick={() => navigate('/app/help')}>
+                  使用帮助
+                </Button>
+                <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-sm font-semibold text-sky-800">
+                  {onboarding.done_count}/{onboarding.total} · {onboarding.progress_percent}%
+                </span>
+              </div>
             </div>
             <p className="mt-1 text-sm text-slate-600">
               管理员首次上线约 15 分钟。按顺序点「去配置」，跑通「留资 → 入库 → 欢迎语 → 跟进」。

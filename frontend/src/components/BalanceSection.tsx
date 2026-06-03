@@ -50,6 +50,7 @@ interface RechargeOrderResult {
   redirect_url?: string  // alipay page.pay redirect URL
   amount: number
   pay_channel: 'wechat' | 'alipay'
+  mock?: boolean
 }
 
 type PayChannel = 'wechat' | 'alipay' | 'transfer'

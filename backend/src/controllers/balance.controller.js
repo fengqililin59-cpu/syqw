@@ -7,17 +7,22 @@ import * as wechatPayService from '../services/wechatPay.service.js';
 import * as alipayService from '../services/alipay.service.js';
 import { PaymentRecord } from '../models/index.js';
 import { HttpError } from '../utils/httpError.js';
+import { ok } from '../utils/response.js';
 import { env } from '../config/env.js';
 
 export async function getBalance(req, res) {
   const tenantId = Number(req.auth.tenantId);
   const balance = await balanceService.getOrCreateBalance(tenantId);
-  res.json({ balance: Number(balance.balance), total_recharged: Number(balance.total_recharged), total_consumed: Number(balance.total_consumed) });
+  return ok(res, {
+    balance: Number(balance.balance),
+    total_recharged: Number(balance.total_recharged),
+    total_consumed: Number(balance.total_consumed),
+  });
 }
 
 export async function listRechargePackages(_req, res) {
   const packages = await balanceService.listRechargePackages();
-  res.json({ list: packages });
+  return ok(res, { list: packages });
 }
 
 export async function createRecharge(req, res) {
@@ -30,17 +35,17 @@ export async function createRecharge(req, res) {
 
   if (amount_package_id) {
     const pkg = (await balanceService.listRechargePackages()).find((p) => p.id === Number(amount_package_id));
-    if (!pkg) return res.status(400).json({ error: '无效的充值面额' });
+    if (!pkg) throw new HttpError(400, '无效的充值面额', 400);
     rechargeAmount = Number(pkg.amount);
     bonusAmount = Number(pkg.bonus || 0);
     packageName = pkg.name;
   } else if (amount) {
     rechargeAmount = Number(amount);
   } else {
-    return res.status(400).json({ error: '请选择充值面额或输入金额' });
+    throw new HttpError(400, '请选择充值面额或输入金额', 400);
   }
 
-  if (rechargeAmount <= 0) return res.status(400).json({ error: '充值金额必须大于0' });
+  if (rechargeAmount <= 0) throw new HttpError(400, '充值金额必须大于0', 400);
 
   const channel = pay_channel === 'transfer' ? 'transfer' : 'manual';
 
@@ -64,7 +69,7 @@ export async function createRecharge(req, res) {
     );
   }
 
-  res.json({
+  return ok(res, {
     balance: Number(result.balance) + bonusAmount,
     amount: rechargeAmount,
     bonus: bonusAmount,
@@ -158,7 +163,7 @@ export async function createRechargeOrder(req, res) {
     },
   });
 
-  res.json({
+  return ok(res, {
     out_trade_no: outTradeNo,
     code_url: codeUrl,
     redirect_url: redirectUrl,
@@ -175,13 +180,13 @@ export async function listTransactions(req, res) {
   const size = Math.min(100, Math.max(1, parseInt(String(req.query.size), 10) || 20));
   const type = req.query.type || null;
   const result = await balanceService.listBalanceTransactions(tenantId, { page, size, type });
-  res.json(result);
+  return ok(res, result);
 }
 
 export async function getAutoRenew(req, res) {
   const tenantId = Number(req.auth.tenantId);
   const sub = await billingService.getSubscription(tenantId);
-  res.json({
+  return ok(res, {
     auto_renew: sub ? !!sub.auto_renew : false,
     auto_renew_plan_id: sub?.auto_renew_plan_id || null,
     auto_renew_cycle: sub?.auto_renew_cycle || null,
@@ -198,5 +203,5 @@ export async function updateAutoRenew(req, res) {
     billing_cycle: billing_cycle || null,
   });
 
-  res.json(updated);
+  return ok(res, updated);
 }

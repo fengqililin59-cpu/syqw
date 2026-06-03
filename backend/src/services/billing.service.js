@@ -2,10 +2,15 @@
  * @file 计费服务：订阅、配额、用量与支付记录。
  */
 import Joi from 'joi';
-import { QueryTypes } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import { HttpError } from '../utils/httpError.js';
 import { sequelize } from '../config/database.js';
-import { Customer, PaymentRecord, Plan, Subscription, UsageStat, User, BillingPromoCode, BillingPromoRedemption, Tenant } from '../models/index.js';
+import { Customer, PaymentRecord, Plan, Subscription, UsageStat, User, BillingPromoCode, BillingPromoRedemption, Tenant, TenantBalance } from '../models/index.js';
+import * as balanceService from './balance.service.js';
+import * as wechatPayService from './wechatPay.service.js';
+import * as wechatMpOAuthService from './wechatMpOAuth.service.js';
+import * as alipayService from './alipay.service.js';
+import { env } from '../config/env.js';
 
 const RESOURCE_MAP = {
   customers: { usageField: 'customers_count', limitField: 'customers_limit' },
@@ -296,20 +301,324 @@ export async function createPaymentRecord(tenantId, planId, billingCycle, payCha
     amount,
     status: 'pending',
     pay_channel: ['wechat', 'alipay', 'manual'].includes(payChannel) ? payChannel : 'manual',
+    purchase_type: 'subscription',
     out_trade_no: outTradeNo,
     remark: remark ? String(remark).slice(0, 255) : null,
   });
   return row.get({ plain: true });
 }
 
-export async function confirmPayment(outTradeNo) {
+export async function confirmPayment(outTradeNo, extra = {}) {
   const row = await PaymentRecord.findOne({ where: { out_trade_no: String(outTradeNo) } });
   if (!row) throw new HttpError(404, '支付记录不存在', 404);
-  await row.update({ status: 'paid', paid_at: new Date() });
+  if (row.status === 'paid') return row.get({ plain: true });
+  if (!['pending', 'failed'].includes(row.status)) {
+    throw new HttpError(400, '订单状态不可确认', 400);
+  }
+
+  const patch = { status: 'paid', paid_at: new Date() };
+  if (extra.wechat_transaction_id) {
+    patch.wechat_transaction_id = String(extra.wechat_transaction_id).slice(0, 64);
+  }
+  await row.update(patch);
+
+  // 根据 purchase_type 分别处理
+  const purchaseType = row.purchase_type || 'subscription';
+
+  if (purchaseType === 'balance_recharge') {
+    // 余额充值 → 充值到租户余额
+    const meta = row.metadata || {};
+    const rechargeAmount = Number(meta.recharge_amount || row.amount);
+    const bonusAmount = Number(meta.bonus_amount || 0);
+    await balanceService.rechargeBalance(
+      row.tenant_id,
+      rechargeAmount,
+      row.pay_channel,
+      row.out_trade_no,
+      `在线充值 ¥${rechargeAmount.toFixed(2)}`,
+    );
+    if (bonusAmount > 0) {
+      await balanceService.rechargeBalance(
+        row.tenant_id,
+        bonusAmount,
+        row.pay_channel,
+        row.out_trade_no,
+        `在线充值赠送 ¥${bonusAmount.toFixed(2)}`,
+      );
+    }
+    return row.get({ plain: true });
+  }
+
+  // 默认：套餐订阅
   const plan = await Plan.findByPk(row.plan_id);
   if (!plan) throw new HttpError(500, '支付记录套餐不存在', 500);
   await createSubscription(row.tenant_id, plan.code, row.billing_cycle);
   return row.get({ plain: true });
+}
+
+export function getPaymentChannels() {
+  return {
+    wechat: {
+      enabled: wechatPayService.isWechatPayConfigured(),
+      mock: wechatPayService.isWechatPayMock(),
+      jsapi_enabled: wechatPayService.isWechatJsapiEnabled(),
+    },
+    alipay: {
+      enabled: alipayService.isAlipayConfigured(),
+      mock: alipayService.isAlipayMock(),
+    },
+    manual: { enabled: true },
+  };
+}
+
+const WECHAT_PENDING_REUSE_MS = 2 * 60 * 60 * 1000;
+
+export async function listPendingOnlinePayments(tenantId) {
+  const rows = await PaymentRecord.findAll({
+    where: {
+      tenant_id: Number(tenantId),
+      status: 'pending',
+      pay_channel: { [Op.in]: ['wechat', 'alipay'] },
+    },
+    include: [{ model: Plan, as: 'plan', attributes: ['id', 'name', 'code'], required: false }],
+    order: [['id', 'DESC']],
+    limit: 5,
+  });
+  return rows.map((r) => {
+    const p = r.get({ plain: true });
+    const payCode = p.pay_code_url || null;
+    const payMode =
+      payCode && String(payCode).startsWith('jsapi:') ? 'jsapi' : payCode ? 'native' : null;
+    return {
+      id: p.id,
+      out_trade_no: p.out_trade_no,
+      pay_channel: p.pay_channel,
+      billing_cycle: p.billing_cycle,
+      amount: Number(p.amount),
+      pay_code_url: payCode,
+      pay_mode: payMode,
+      created_at: p.created_at,
+      plan: p.plan ? { id: p.plan.id, name: p.plan.name, code: p.plan.code } : null,
+    };
+  });
+}
+
+export async function createWechatPayment(tenantId, planCode, billingCycle) {
+  if (!wechatPayService.isWechatPayConfigured()) {
+    throw new HttpError(503, '微信支付未配置，请使用线下转账或兑换码', 503);
+  }
+  const plan = await getPlanByCode(planCode);
+  if (plan.code === 'free') throw new HttpError(400, '体验版无需支付', 400);
+
+  const cycle = billingCycle === 'yearly' ? 'yearly' : 'monthly';
+  const reuseSince = new Date(Date.now() - WECHAT_PENDING_REUSE_MS);
+  const existing = await PaymentRecord.findOne({
+    where: {
+      tenant_id: Number(tenantId),
+      plan_id: plan.id,
+      billing_cycle: cycle,
+      status: 'pending',
+      pay_channel: 'wechat',
+      created_at: { [Op.gte]: reuseSince },
+      pay_code_url: { [Op.ne]: null },
+    },
+    order: [['id', 'DESC']],
+  });
+  if (existing) {
+    const plain = existing.get({ plain: true });
+    return {
+      ...plain,
+      code_url: plain.pay_code_url,
+      wechat_mock: wechatPayService.isWechatPayMock(),
+      reused: true,
+    };
+  }
+
+  const record = await createPaymentRecord(tenantId, plan.id, billingCycle, 'wechat', null);
+  const amountFen = Math.round(Number(record.amount) * 100);
+  const cycleLabel = billingCycle === 'yearly' ? '年付' : '月付';
+  const { code_url, mock } = await wechatPayService.createNativeOrder({
+    outTradeNo: record.out_trade_no,
+    description: `ZhiFlow ${plan.name} ${cycleLabel}`,
+    amountFen,
+  });
+
+  await PaymentRecord.update({ pay_code_url: code_url }, { where: { id: record.id } });
+
+  return {
+    ...record,
+    pay_code_url: code_url,
+    code_url,
+    wechat_mock: mock,
+    pay_mode: 'native',
+  };
+}
+
+export async function getWechatJsapiReady(auth, returnTo) {
+  const openid = await wechatMpOAuthService.getUserMpOpenid(auth.userId);
+  const jsapiEnabled = wechatPayService.isWechatJsapiEnabled();
+  let oauth_url = null;
+  if (jsapiEnabled && !openid && wechatMpOAuthService.isWechatMpOAuthConfigured()) {
+    try {
+      oauth_url = wechatMpOAuthService.buildMpOAuthUrl(auth.userId, returnTo);
+    } catch {
+      oauth_url = null;
+    }
+  }
+  return {
+    jsapi_enabled: jsapiEnabled,
+    openid_bound: Boolean(openid),
+    oauth_url,
+  };
+}
+
+export async function createWechatJsapiPayment(auth, planCode, billingCycle) {
+  if (!wechatPayService.isWechatJsapiEnabled()) {
+    throw new HttpError(503, '微信 JSAPI 支付未配置', 503);
+  }
+
+  const openid = await wechatMpOAuthService.getUserMpOpenid(auth.userId);
+  if (!openid && !wechatPayService.isWechatPayMock()) {
+    throw new HttpError(400, '请先在微信内完成支付授权', 400, { need_oauth: true });
+  }
+
+  const tenantId = auth.tenantId;
+  const plan = await getPlanByCode(planCode);
+  if (plan.code === 'free') throw new HttpError(400, '体验版无需支付', 400);
+
+  const record = await createPaymentRecord(tenantId, plan.id, billingCycle, 'wechat', null);
+  const amountFen = Math.round(Number(record.amount) * 100);
+  const cycleLabel = billingCycle === 'yearly' ? '年付' : '月付';
+  const { prepay_id, mock, jsapi_params } = await wechatPayService.createJsapiOrder({
+    outTradeNo: record.out_trade_no,
+    description: `ZhiFlow ${plan.name} ${cycleLabel}`,
+    amountFen,
+    openid: openid || 'mock_openid_dev',
+  });
+
+  const marker = `jsapi:${prepay_id}`;
+  await PaymentRecord.update({ pay_code_url: marker }, { where: { id: record.id } });
+
+  return {
+    ...record,
+    pay_code_url: marker,
+    pay_mode: 'jsapi',
+    prepay_id,
+    jsapi_params,
+    wechat_mock: mock,
+  };
+}
+
+export async function createAlipayPayment(tenantId, planCode, billingCycle) {
+  if (env.alipay.disabled) {
+    throw new HttpError(503, '支付宝支付暂未开放，请使用微信或线下转账', 503);
+  }
+  if (!alipayService.isAlipayConfigured()) {
+    throw new HttpError(503, '支付宝未配置，请使用微信、线下转账或兑换码', 503);
+  }
+  const plan = await getPlanByCode(planCode);
+  if (plan.code === 'free') throw new HttpError(400, '体验版无需支付', 400);
+
+  const cycle = billingCycle === 'yearly' ? 'yearly' : 'monthly';
+  const reuseSince = new Date(Date.now() - WECHAT_PENDING_REUSE_MS);
+  const existing = await PaymentRecord.findOne({
+    where: {
+      tenant_id: Number(tenantId),
+      plan_id: plan.id,
+      billing_cycle: cycle,
+      status: 'pending',
+      pay_channel: 'alipay',
+      created_at: { [Op.gte]: reuseSince },
+      pay_code_url: { [Op.ne]: null },
+    },
+    order: [['id', 'DESC']],
+  });
+  if (existing) {
+    const plain = existing.get({ plain: true });
+    const isMock = alipayService.isAlipayMock();
+    const code = String(plain.pay_code_url || '');
+    const isMockUrl = code.startsWith('mock:alipay:');
+    return {
+      ...plain,
+      pay_code_url: code,
+      redirect_url: isMock || isMockUrl ? null : code,
+      alipay_mock: isMock || isMockUrl,
+      reused: true,
+    };
+  }
+
+  const record = await createPaymentRecord(tenantId, plan.id, billingCycle, 'alipay', null);
+  const cycleLabel = billingCycle === 'yearly' ? '年付' : '月付';
+  const isMock = alipayService.isAlipayMock();
+  const redirectUrl = isMock
+    ? null
+    : alipayService.buildPagePayUrl({
+        outTradeNo: record.out_trade_no,
+        subject: `ZhiFlow ${plan.name} ${cycleLabel}`,
+        totalAmountYuan: record.amount,
+        returnUrl: `${alipayService.notifyBaseUrl || ''}/app/billing?status=paid`,
+      });
+  const payCodeUrl = isMock ? `mock:alipay:${record.out_trade_no}` : redirectUrl;
+
+  await PaymentRecord.update({ pay_code_url: payCodeUrl }, { where: { id: record.id } });
+
+  return {
+    ...record,
+    pay_code_url: payCodeUrl,
+    redirect_url: redirectUrl,
+    alipay_mock: isMock,
+  };
+}
+
+export async function getPaymentStatusForTenant(tenantId, outTradeNo) {
+  const row = await PaymentRecord.findOne({
+    where: { tenant_id: Number(tenantId), out_trade_no: String(outTradeNo) },
+    include: [{ model: Plan, as: 'plan', attributes: ['id', 'name', 'code'], required: false }],
+  });
+  if (!row) throw new HttpError(404, '订单不存在', 404);
+  const p = row.get({ plain: true });
+  return {
+    out_trade_no: p.out_trade_no,
+    status: p.status,
+    amount: Number(p.amount),
+    pay_channel: p.pay_channel,
+    paid_at: p.paid_at,
+    plan: p.plan ? { id: p.plan.id, name: p.plan.name, code: p.plan.code } : null,
+  };
+}
+
+export async function handleAlipayNotify(rawBody, bodyObj) {
+  const parsed = alipayService.parsePayNotification(rawBody, bodyObj);
+  if (!parsed.handled) return { ack: 'success', skipped: true, ...parsed };
+
+  const row = await PaymentRecord.findOne({ where: { out_trade_no: String(parsed.out_trade_no) } });
+  if (!row) throw new HttpError(404, '订单不存在', 404);
+
+  const expected = Number(row.amount).toFixed(2);
+  if (parsed.total_amount != null && Number(parsed.total_amount).toFixed(2) !== expected) {
+    console.error('[billing] alipay amount mismatch', parsed.out_trade_no, parsed.total_amount, expected);
+    throw new HttpError(400, '支付金额不一致', 400);
+  }
+
+  await confirmPayment(parsed.out_trade_no, { wechat_transaction_id: parsed.trade_no || null });
+  return { ack: 'success', out_trade_no: parsed.out_trade_no };
+}
+
+export async function handleWechatPayNotify(headers, rawBody) {
+  const parsed = wechatPayService.parsePayNotification(headers, rawBody);
+  if (!parsed.handled) return { ack: true, skipped: true, ...parsed };
+
+  const row = await PaymentRecord.findOne({ where: { out_trade_no: String(parsed.out_trade_no) } });
+  if (!row) throw new HttpError(404, '订单不存在', 404);
+
+  const expectedFen = Math.round(Number(row.amount) * 100);
+  if (parsed.amountFen != null && Number(parsed.amountFen) !== expectedFen) {
+    console.error('[billing] wechat amount mismatch', parsed.out_trade_no, parsed.amountFen, expectedFen);
+    throw new HttpError(400, '支付金额不一致', 400);
+  }
+
+  await confirmPayment(parsed.out_trade_no, { wechat_transaction_id: parsed.transaction_id });
+  return { ack: true, out_trade_no: parsed.out_trade_no };
 }
 
 export async function getUsageSummary(tenantId) {
@@ -370,6 +679,7 @@ export async function listPayments(tenantId, query) {
         currency: p.currency,
         status: p.status,
         pay_channel: p.pay_channel,
+        pay_code_url: p.pay_code_url || null,
         out_trade_no: p.out_trade_no,
         paid_at: p.paid_at,
         remark: p.remark,
@@ -538,6 +848,7 @@ export async function listPromoCodes() {
 
 /** 平台方：全站待确认订单 */
 export async function listAllPendingPayments() {
+  const { countAttachmentsForPayments } = await import('./contractAttachment.service.js');
   const rows = await PaymentRecord.findAll({
     where: { status: 'pending' },
     include: [
@@ -547,6 +858,7 @@ export async function listAllPendingPayments() {
     order: [['id', 'DESC']],
     limit: 100,
   });
+  const attCounts = await countAttachmentsForPayments(rows.map((r) => r.id));
   return rows.map((r) => {
     const p = r.get({ plain: true });
     return {
@@ -560,6 +872,108 @@ export async function listAllPendingPayments() {
       out_trade_no: p.out_trade_no,
       remark: p.remark,
       created_at: p.created_at,
+      attachment_count: attCounts[p.id] || 0,
     };
   });
+}
+
+/**
+ * 更新自动续费设置。
+ */
+export async function updateAutoRenew(tenantId, { auto_renew, plan_code, billing_cycle }) {
+  const sub = await Subscription.findOne({ where: { tenant_id: tenantId } });
+  if (!sub) throw new HttpError(404, '未找到订阅记录');
+
+  const updateData = { auto_renew: !!auto_renew };
+
+  if (!auto_renew) {
+    updateData.auto_renew_plan_id = null;
+    updateData.auto_renew_cycle = null;
+  } else {
+    if (plan_code) {
+      const plan = await Plan.findOne({ where: { code: plan_code, is_active: 1 } });
+      if (!plan) throw new HttpError(400, '无效的套餐编码');
+      updateData.auto_renew_plan_id = plan.id;
+    } else {
+      updateData.auto_renew_plan_id = sub.plan_id;
+    }
+    updateData.auto_renew_cycle = billing_cycle || sub.billing_cycle || 'monthly';
+  }
+
+  await sub.update(updateData);
+
+  return {
+    auto_renew: !!sub.auto_renew,
+    auto_renew_plan_id: sub.auto_renew_plan_id,
+    auto_renew_cycle: sub.auto_renew_cycle,
+  };
+}
+
+/**
+ * 尝试从余额自动续费。
+ * 返回 { success, reason, newPeriodEnd }
+ */
+export async function tryAutoRenew(tenantId) {
+  const sub = await Subscription.findOne({
+    where: { tenant_id: tenantId, auto_renew: true },
+    include: [{ model: Plan, as: 'plan', required: false }],
+  });
+  if (!sub || !sub.auto_renew) return { success: false, reason: 'not_enabled' };
+
+  const targetPlanId = sub.auto_renew_plan_id || sub.plan_id;
+  const plan = await Plan.findByPk(targetPlanId);
+  if (!plan) return { success: false, reason: 'plan_not_found' };
+
+  const cycle = sub.auto_renew_cycle || sub.billing_cycle || 'monthly';
+  const price = cycle === 'yearly' ? Number(plan.price_yearly) : Number(plan.price_monthly);
+
+  if (price <= 0) return { success: false, reason: 'free_plan' };
+
+  try {
+    await balanceService.consumeBalance(
+      tenantId,
+      price,
+      'auto_renew',
+      null,
+      `自动续费：${plan.name} ${cycle === 'yearly' ? '年付' : '月付'} ¥${price.toFixed(2)}`,
+    );
+  } catch (e) {
+    return { success: false, reason: e.statusCode === 402 ? 'balance_insufficient' : 'consume_failed', error: e.message };
+  }
+
+  // 续费成功，延长订阅周期
+  const now = new Date();
+  let newEnd = sub.current_period_end && new Date(sub.current_period_end) > now
+    ? new Date(sub.current_period_end)
+    : now;
+
+  if (cycle === 'yearly') {
+    newEnd.setFullYear(newEnd.getFullYear() + 1);
+  } else {
+    newEnd.setMonth(newEnd.getMonth() + 1);
+  }
+
+  await sub.update({
+    plan_id: targetPlanId,
+    billing_cycle: cycle,
+    status: 'active',
+    trial_ends_at: null,
+    current_period_start: new Date(),
+    current_period_end: newEnd,
+  });
+
+  await PaymentRecord.create({
+    tenant_id: tenantId,
+    plan_id: targetPlanId,
+    billing_cycle: cycle,
+    amount: price,
+    currency: 'CNY',
+    status: 'paid',
+    pay_channel: 'manual',
+    out_trade_no: `AR-${tenantId}-${Date.now()}`,
+    paid_at: now,
+    remark: `余额自动续费：${plan.name} ${cycle === 'yearly' ? '年付' : '月付'}`,
+  });
+
+  return { success: true, newPeriodEnd: newEnd };
 }

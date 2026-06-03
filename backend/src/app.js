@@ -9,10 +9,12 @@ import { sequelize } from './models/index.js';
 import apiV1 from './routes/index.js';
 import billingRouter from './routes/billing.routes.js';
 import platformAdminRouter from './routes/platformAdmin.routes.js';
+import syzsIntegrationRouter from './routes/syzsIntegration.routes.js';
 import groupRouter from './routes/group.routes.js';
 import callRouter from './routes/call.routes.js';
 import callbackRouter from './routes/callback.routes.js';
 import smsRouter from './routes/sms.routes.js';
+import emailTrackRouter from './routes/emailTrack.routes.js';
 import { demoModeMiddleware } from './middlewares/demoMode.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { registerSyncCustomersCron } from './jobs/syncCustomers.cron.js';
@@ -26,6 +28,15 @@ import { registerCampaignRewardWorkerCron } from './jobs/campaignRewardWorker.cr
 import { registerIntentAlertWorkerCron } from './jobs/intentAlertWorker.cron.js';
 import { registerUsageSyncCron } from './jobs/usageSync.cron.js';
 import { registerSubscriptionExpiryCron } from './jobs/subscriptionExpiry.cron.js';
+import { registerPaymentExpiryCron } from './jobs/paymentExpiry.cron.js';
+import { registerWeeklyValueDigestCron } from './jobs/weeklyValueDigest.cron.js';
+import { registerTodayActionsDigestCron } from './jobs/todayActionsDigest.cron.js';
+import { registerAiAutoReplyDigestCron } from './jobs/aiAutoReplyDigest.cron.js';
+import { registerCoachingEvaluatorCron } from './jobs/coachingEvaluator.cron.js';
+import { registerChurnAlertCron } from './jobs/churnAlert.cron.js';
+import { registerPlatformOpsDigestCron } from './jobs/platformOpsDigest.cron.js';
+import { registerPlatformPaymentReconcileCron } from './jobs/platformPaymentReconcile.cron.js';
+import { registerPlatformMrrSnapshotCron } from './jobs/platformMrrSnapshot.cron.js';
 import { registerGroupSopCron } from './jobs/groupSop.cron.js';
 import { registerSmsSchedulerCron } from './jobs/smsScheduler.cron.js';
 import { registerInboxSlaReminderCron } from './jobs/inboxSlaReminder.cron.js';
@@ -43,6 +54,15 @@ app.use(
 );
 app.use(
   '/api/v1/callback',
+  express.json({
+    limit: '1mb',
+    verify: (req, _res, buf) => {
+      req.rawBody = buf.toString('utf8');
+    },
+  }),
+);
+app.use(
+  '/api/v1/billing/webhooks',
   express.json({
     limit: '1mb',
     verify: (req, _res, buf) => {
@@ -70,14 +90,17 @@ app.get('/health', async (req, res) => {
 });
 
 app.use('/api/v1/callback', callbackRouter);
+app.use('/api/v1/public', emailTrackRouter);
+// 须在 apiV1 之前：index 中 customer 挂在 `/` 会吞掉 /billing/*，导致未登录 401、支付异常
+app.use('/api/v1/billing', billingRouter);
 // 演示模式中间件（仅在已登录且已挂载 req.user 时生效）
 app.use('/api/v1', (req, res, next) => {
   if (req.user) return demoModeMiddleware(req, res, next);
   return next();
 });
 app.use('/api/v1', apiV1);
-app.use('/api/v1/billing', billingRouter);
 app.use('/api/v1/platform', platformAdminRouter);
+app.use('/api/v1/integrations/syzs', syzsIntegrationRouter);
 app.use('/api/v1/groups', groupRouter);
 app.use('/api/v1/calls', callRouter);
 app.use('/api/v1/sms', smsRouter);
@@ -100,6 +123,20 @@ async function main() {
     registerIntentAlertWorkerCron();
     registerUsageSyncCron();
     registerSubscriptionExpiryCron();
+    registerPaymentExpiryCron();
+    registerWeeklyValueDigestCron();
+    registerTodayActionsDigestCron();
+    registerAiAutoReplyDigestCron();
+    registerChurnAlertCron();
+    registerPlatformOpsDigestCron();
+    registerCoachingEvaluatorCron();
+    import('./jobs/notificationRuleEvaluator.cron.js')
+      .then((m) => m.registerNotificationRuleEvaluatorCron())
+      .catch((e) => {
+        console.warn('[cron] notification rule evaluator disabled (legacy CJS stack):', e?.message || e);
+      });
+    registerPlatformPaymentReconcileCron();
+    registerPlatformMrrSnapshotCron();
     registerGroupSopCron();
     registerSmsSchedulerCron();
     registerInboxSlaReminderCron();

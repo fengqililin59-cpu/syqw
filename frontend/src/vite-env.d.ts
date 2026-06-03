@@ -4,6 +4,10 @@
  */
 interface ImportMetaEnv {
   readonly VITE_API_URL?: string
+  /** 可选：覆盖页脚公司主体名称 */
+  readonly VITE_LEGAL_COMPANY_NAME?: string
+  /** 可选：覆盖页脚 ICP 备案号 */
+  readonly VITE_LEGAL_ICP_NUMBER?: string
 }
 
 interface ImportMeta {

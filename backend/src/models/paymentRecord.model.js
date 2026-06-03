@@ -9,7 +9,7 @@ export class PaymentRecord extends Model {
       {
         id: { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
         tenant_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
-        plan_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+        plan_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
         billing_cycle: {
           type: DataTypes.ENUM('monthly', 'yearly'),
           allowNull: false,
@@ -27,9 +27,17 @@ export class PaymentRecord extends Model {
           allowNull: false,
           defaultValue: 'manual',
         },
+        purchase_type: {
+          type: DataTypes.ENUM('subscription', 'balance_recharge', 'addon_purchase'),
+          allowNull: false,
+          defaultValue: 'subscription',
+        },
         out_trade_no: { type: DataTypes.STRING(64), allowNull: false, unique: true },
+        pay_code_url: { type: DataTypes.STRING(512), allowNull: true },
+        wechat_transaction_id: { type: DataTypes.STRING(64), allowNull: true },
         paid_at: { type: DataTypes.DATE, allowNull: true },
         remark: { type: DataTypes.STRING(255), allowNull: true },
+        metadata: { type: DataTypes.JSON, allowNull: true },
       },
       {
         sequelize,

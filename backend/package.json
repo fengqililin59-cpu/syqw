@@ -8,12 +8,17 @@
     "dev:no-watch": "node src/app.js",
     "kill:3000": "node scripts/kill-port.mjs 3000",
     "dev:clean": "node scripts/kill-port.mjs 3000 && node src/app.js",
-    "start": "node src/app.js"
+    "start": "node src/app.js",
+    "test": "node --test src/services/platformInboxAiAnomaly.level.test.js src/services/aiEmployee.autoSendQualify.test.js src/services/adPlatformConversion/adTracking.inferPlatform.test.js",
+    "verify:alipay": "node scripts/verify-alipay.mjs",
+    "import:alipay-keys": "node scripts/import-alipay-keys.mjs",
+    "test:alipay-pem": "node scripts/test-alipay-pem.mjs"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
+    "archiver": "^7.0.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "csv-parse": "^6.2.1",
@@ -27,7 +32,9 @@
     "mysql2": "^3.11.3",
     "node-cron": "^4.2.1",
     "nodemailer": "^6.10.1",
+    "pdfkit": "^0.17.1",
     "sequelize": "^6.37.3",
+    "web-push": "^3.6.7",
     "xlsx": "^0.18.5",
     "xml2js": "^0.6.2"
   }

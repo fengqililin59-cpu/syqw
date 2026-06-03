@@ -51,6 +51,17 @@ import { UsageStat } from './usageStat.model.js';
 import { PaymentRecord } from './paymentRecord.model.js';
 import { BillingPromoCode } from './billingPromoCode.model.js';
 import { BillingPromoRedemption } from './billingPromoRedemption.model.js';
+import { BillingInvoiceRequest } from './billingInvoiceRequest.model.js';
+import { BillingContractAttachment } from './billingContractAttachment.model.js';
+import { TenantBalance } from './tenantBalance.model.js';
+import { BalanceTransaction } from './balanceTransaction.model.js';
+import { RechargePackage } from './rechargePackage.model.js';
+import { UsageAddonPackage } from './usageAddonPackage.model.js';
+import { TenantUsageAddon } from './tenantUsageAddon.model.js';
+import { TenantChurnAlert } from './tenantChurnAlert.model.js';
+import { TenantPlatformOpsNote } from './tenantPlatformOpsNote.model.js';
+import { PlatformMrrSnapshot } from './platformMrrSnapshot.model.js';
+import { UserSyzsLink } from './userSyzsLink.model.js';
 import { CallRecord } from './callRecord.model.js';
 import { UserCallSetting } from './userCallSetting.model.js';
 import { CustomerGroup } from './customerGroup.model.js';
@@ -73,6 +84,29 @@ import { CustomerOrder } from './customerOrder.model.js';
 import { ServiceTicket } from './serviceTicket.model.js';
 import { TenantLeadSetting } from './tenantLeadSetting.model.js';
 import { TenantPublicWebhookSetting } from './tenantPublicWebhookSetting.model.js';
+import { CustomFieldDef, CustomerFieldValue } from './customField.model.js';
+import { PipelineConfig } from './pipelineConfig.model.js';
+import { DashboardConfig } from './dashboardConfig.model.js';
+import { Notification } from './notification.model.js';
+import { ApprovalTemplate } from './approvalTemplate.model.js';
+import { ApprovalInstance } from './approvalInstance.model.js';
+import { Product } from './product.model.js';
+import { KpiTarget } from './kpiTarget.model.js';
+import { Contract } from './contract.model.js';
+import { Task } from './task.model.js';
+import { MarketingCampaign } from './marketingCampaign.model.js';
+import { MessageTemplate } from './messageTemplate.model.js';
+import { MarketingMessage } from './marketingMessage.model.js';
+import { MarketingOptOut } from './marketingOptout.model.js';
+import { CustomerSegment } from './customerSegment.model.js';
+import { CustomerSegmentMember } from './customerSegmentMember.model.js';
+import { KbCategory } from './kbCategory.model.js';
+import { KbArticle } from './kbArticle.model.js';
+import { NotificationRule } from './notificationRule.model.js';
+import { NotificationRuleLog } from './notificationRuleLog.model.js';
+import { BrowserPushSubscription } from './browserPushSubscription.model.js';
+import { LandingPage, LandingSubmission } from './landingPage.model.js';
+import { CoachingSuggestion } from './coachingSuggestion.model.js';
 
 Tenant.initModel(sequelize);
 Role.initModel(sequelize);
@@ -123,6 +157,17 @@ UsageStat.initModel(sequelize);
 PaymentRecord.initModel(sequelize);
 BillingPromoCode.initModel(sequelize);
 BillingPromoRedemption.initModel(sequelize);
+BillingInvoiceRequest.initModel(sequelize);
+BillingContractAttachment.initModel(sequelize);
+TenantBalance.initModel(sequelize);
+BalanceTransaction.initModel(sequelize);
+RechargePackage.initModel(sequelize);
+UsageAddonPackage.initModel(sequelize);
+TenantUsageAddon.initModel(sequelize);
+TenantChurnAlert.initModel(sequelize);
+TenantPlatformOpsNote.initModel(sequelize);
+PlatformMrrSnapshot.initModel(sequelize);
+UserSyzsLink.initModel(sequelize);
 CallRecord.initModel(sequelize);
 UserCallSetting.initModel(sequelize);
 CustomerGroup.initModel(sequelize);
@@ -145,6 +190,134 @@ CustomerOrder.initModel(sequelize);
 ServiceTicket.initModel(sequelize);
 TenantLeadSetting.initModel(sequelize);
 TenantPublicWebhookSetting.initModel(sequelize);
+CustomFieldDef.initModel(sequelize);
+CustomerFieldValue.initModel(sequelize);
+PipelineConfig.initModel(sequelize);
+DashboardConfig.initModel(sequelize);
+Notification.initModel(sequelize);
+ApprovalTemplate.initModel(sequelize);
+ApprovalInstance.initModel(sequelize);
+Product.initModel(sequelize);
+KpiTarget.initModel(sequelize);
+Contract.initModel(sequelize);
+Task.initModel(sequelize);
+MarketingCampaign.initModel(sequelize);
+MessageTemplate.initModel(sequelize);
+MarketingMessage.initModel(sequelize);
+MarketingOptOut.initModel(sequelize);
+CustomerSegment.initModel(sequelize);
+CustomerSegmentMember.initModel(sequelize);
+KbCategory.initModel(sequelize);
+KbArticle.initModel(sequelize);
+NotificationRule.initModel(sequelize);
+NotificationRuleLog.initModel(sequelize);
+BrowserPushSubscription.initModel(sequelize);
+LandingPage.initModel(sequelize);
+LandingSubmission.initModel(sequelize);
+CoachingSuggestion.initModel(sequelize);
+
+Tenant.hasMany(KpiTarget, { foreignKey: 'tenant_id' });
+Tenant.hasMany(Contract, { foreignKey: 'tenant_id' });
+Contract.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+User.hasMany(Contract, { foreignKey: 'owner_id', as: 'contracts' });
+Contract.belongsTo(User, { foreignKey: 'owner_id', as: 'owner' });
+Customer.hasMany(Contract, { foreignKey: 'customer_id', as: 'contracts' });
+Contract.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });
+
+Tenant.hasMany(Task, { foreignKey: 'tenant_id' });
+Task.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+User.hasMany(Task, { foreignKey: 'assignee_id', as: 'assigned_tasks' });
+Task.belongsTo(User, { foreignKey: 'assignee_id', as: 'assignee' });
+User.hasMany(Task, { foreignKey: 'creator_id', as: 'created_tasks' });
+Task.belongsTo(User, { foreignKey: 'creator_id', as: 'creator' });
+Customer.hasMany(Task, { foreignKey: 'customer_id' });
+Task.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });
+Contract.hasMany(Task, { foreignKey: 'contract_id' });
+Task.belongsTo(Contract, { foreignKey: 'contract_id', as: 'contract' });
+
+// 营销模块关联
+Tenant.hasMany(MarketingCampaign, { foreignKey: 'tenant_id' });
+MarketingCampaign.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+User.hasMany(MarketingCampaign, { foreignKey: 'created_by', as: 'created_campaigns' });
+MarketingCampaign.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
+
+Tenant.hasMany(MessageTemplate, { foreignKey: 'tenant_id' });
+MessageTemplate.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+
+Tenant.hasMany(MarketingMessage, { foreignKey: 'tenant_id' });
+MarketingMessage.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+MarketingCampaign.hasMany(MarketingMessage, { foreignKey: 'campaign_id', as: 'messages' });
+MarketingMessage.belongsTo(MarketingCampaign, { foreignKey: 'campaign_id', as: 'campaign' });
+Customer.hasMany(MarketingMessage, { foreignKey: 'customer_id' });
+MarketingMessage.belongsTo(Customer, { foreignKey: 'customer_id' });
+
+Tenant.hasMany(MarketingOptOut, { foreignKey: 'tenant_id' });
+MarketingOptOut.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Customer.hasMany(MarketingOptOut, { foreignKey: 'customer_id' });
+MarketingOptOut.belongsTo(Customer, { foreignKey: 'customer_id' });
+
+// 客户细分模块关联
+Tenant.hasMany(CustomerSegment, { foreignKey: 'tenant_id' });
+CustomerSegment.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+User.hasMany(CustomerSegment, { foreignKey: 'created_by', as: 'created_segments' });
+CustomerSegment.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
+
+Tenant.hasMany(CustomerSegmentMember, { foreignKey: 'tenant_id' });
+CustomerSegmentMember.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+CustomerSegment.hasMany(CustomerSegmentMember, { foreignKey: 'segment_id', as: 'members' });
+CustomerSegmentMember.belongsTo(CustomerSegment, { foreignKey: 'segment_id', as: 'segment' });
+Customer.hasMany(CustomerSegmentMember, { foreignKey: 'customer_id' });
+CustomerSegmentMember.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });
+
+// 知识库模块关联
+Tenant.hasMany(KbCategory, { foreignKey: 'tenant_id' });
+KbCategory.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+User.hasMany(KbCategory, { foreignKey: 'created_by', as: 'created_categories' });
+KbCategory.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
+
+Tenant.hasMany(KbArticle, { foreignKey: 'tenant_id' });
+KbArticle.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+KbCategory.hasMany(KbArticle, { foreignKey: 'category_id', as: 'articles' });
+KbArticle.belongsTo(KbCategory, { foreignKey: 'category_id', as: 'category' });
+User.hasMany(KbArticle, { foreignKey: 'author_id', as: 'authored_articles' });
+KbArticle.belongsTo(User, { foreignKey: 'author_id', as: 'author' });
+
+// 通知规则模块关联
+Tenant.hasMany(NotificationRule, { foreignKey: 'tenant_id' });
+NotificationRule.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+User.hasMany(NotificationRule, { foreignKey: 'created_by', as: 'created_rules' });
+NotificationRule.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
+
+Tenant.hasMany(NotificationRuleLog, { foreignKey: 'tenant_id' });
+NotificationRuleLog.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+NotificationRule.hasMany(NotificationRuleLog, { foreignKey: 'rule_id', as: 'logs' });
+NotificationRuleLog.belongsTo(NotificationRule, { foreignKey: 'rule_id', as: 'rule' });
+
+// 浏览器推送订阅关联
+Tenant.hasMany(BrowserPushSubscription, { foreignKey: 'tenant_id' });
+BrowserPushSubscription.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+User.hasMany(BrowserPushSubscription, { foreignKey: 'user_id', as: 'push_subscriptions' });
+BrowserPushSubscription.belongsTo(User, { foreignKey: 'user_id' });
+
+// 落地页模块关联
+Tenant.hasMany(LandingPage, { foreignKey: 'tenant_id' });
+LandingPage.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(LandingSubmission, { foreignKey: 'tenant_id' });
+LandingSubmission.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+LandingPage.hasMany(LandingSubmission, { foreignKey: 'landing_id', as: 'submissions' });
+LandingSubmission.belongsTo(LandingPage, { foreignKey: 'landing_id', as: 'landing' });
+Customer.hasMany(LandingSubmission, { foreignKey: 'customer_id' });
+LandingSubmission.belongsTo(Customer, { foreignKey: 'customer_id' });
+
+// AI 教练建议关联
+Tenant.hasMany(CoachingSuggestion, { foreignKey: 'tenant_id' });
+CoachingSuggestion.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+User.hasMany(CoachingSuggestion, { foreignKey: 'user_id', as: 'coaching_suggestions' });
+CoachingSuggestion.belongsTo(User, { foreignKey: 'user_id', as: 'target_user' });
+
+KpiTarget.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+User.hasMany(KpiTarget, { foreignKey: 'user_id', as: 'kpi_targets' });
+KpiTarget.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
 Tenant.hasMany(Role, { foreignKey: 'tenant_id' });
 Role.belongsTo(Tenant, { foreignKey: 'tenant_id' });
@@ -207,6 +380,23 @@ Tenant.hasMany(AuditLog, { foreignKey: 'tenant_id' });
 AuditLog.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 User.hasMany(AuditLog, { foreignKey: 'actor_user_id' });
 AuditLog.belongsTo(User, { foreignKey: 'actor_user_id', as: 'actor' });
+
+Tenant.hasMany(Notification, { foreignKey: 'tenant_id' });
+Notification.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+User.hasMany(Notification, { foreignKey: 'recipient_user_id', as: 'notifications' });
+Notification.belongsTo(User, { foreignKey: 'recipient_user_id', as: 'recipient' });
+
+Tenant.hasMany(ApprovalTemplate, { foreignKey: 'tenant_id' });
+ApprovalTemplate.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(ApprovalInstance, { foreignKey: 'tenant_id' });
+ApprovalInstance.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+ApprovalTemplate.hasMany(ApprovalInstance, { foreignKey: 'template_id' });
+ApprovalInstance.belongsTo(ApprovalTemplate, { foreignKey: 'template_id', as: 'template' });
+User.hasMany(ApprovalInstance, { foreignKey: 'applicant_user_id', as: 'applied_approvals' });
+ApprovalInstance.belongsTo(User, { foreignKey: 'applicant_user_id', as: 'applicant' });
+
+Tenant.hasMany(Product, { foreignKey: 'tenant_id' });
+Product.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 
 Tenant.hasMany(AdClickRecord, { foreignKey: 'tenant_id' });
 AdClickRecord.belongsTo(Tenant, { foreignKey: 'tenant_id' });
@@ -276,6 +466,7 @@ Tenant.hasMany(CustomerOrder, { foreignKey: 'tenant_id' });
 CustomerOrder.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 Customer.hasMany(CustomerOrder, { foreignKey: 'customer_id' });
 CustomerOrder.belongsTo(Customer, { foreignKey: 'customer_id' });
+CustomerOrder.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
 
 Tenant.hasMany(ServiceTicket, { foreignKey: 'tenant_id' });
 ServiceTicket.belongsTo(Tenant, { foreignKey: 'tenant_id' });
@@ -412,6 +603,25 @@ BillingPromoCode.belongsTo(Plan, { foreignKey: 'plan_id', as: 'plan' });
 BillingPromoCode.hasMany(BillingPromoRedemption, { foreignKey: 'promo_code_id', as: 'redemptions' });
 BillingPromoRedemption.belongsTo(BillingPromoCode, { foreignKey: 'promo_code_id', as: 'promoCode' });
 Tenant.hasMany(BillingPromoRedemption, { foreignKey: 'tenant_id' });
+Tenant.hasMany(BillingInvoiceRequest, { foreignKey: 'tenant_id' });
+BillingInvoiceRequest.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+BillingInvoiceRequest.belongsTo(PaymentRecord, { foreignKey: 'payment_record_id' });
+BillingInvoiceRequest.belongsTo(User, { foreignKey: 'requested_by', as: 'requester' });
+PaymentRecord.hasMany(BillingContractAttachment, { foreignKey: 'payment_record_id', as: 'contractAttachments' });
+BillingContractAttachment.belongsTo(PaymentRecord, { foreignKey: 'payment_record_id' });
+Tenant.hasOne(TenantBalance, { foreignKey: 'tenant_id' });
+TenantBalance.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(BalanceTransaction, { foreignKey: 'tenant_id' });
+BalanceTransaction.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(TenantUsageAddon, { foreignKey: 'tenant_id' });
+TenantUsageAddon.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+TenantUsageAddon.belongsTo(UsageAddonPackage, { foreignKey: 'addon_package_id', as: 'addonPackage' });
+TenantUsageAddon.belongsTo(PaymentRecord, { foreignKey: 'payment_record_id' });
+Tenant.hasMany(TenantPlatformOpsNote, { foreignKey: 'tenant_id' });
+TenantPlatformOpsNote.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+User.hasOne(UserSyzsLink, { foreignKey: 'user_id', as: 'syzsLink' });
+UserSyzsLink.belongsTo(User, { foreignKey: 'user_id' });
+UserSyzsLink.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 BillingPromoRedemption.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 CallRecord.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });
 CallRecord.belongsTo(User, { foreignKey: 'caller_user_id', as: 'caller' });
@@ -446,6 +656,9 @@ GroupSopTask.hasMany(GroupSopTarget, {
   foreignKey: 'sop_task_id',
   as: 'targets',
 });
+
+// --- Industry-agnostic custom fields (multi-industry SaaS) ---
+
 GroupSopTarget.belongsTo(GroupSopTask, {
   foreignKey: 'sop_task_id',
   as: 'sopTask',
@@ -534,6 +747,17 @@ export {
   PaymentRecord,
   BillingPromoCode,
   BillingPromoRedemption,
+  BillingInvoiceRequest,
+  BillingContractAttachment,
+  TenantBalance,
+  BalanceTransaction,
+  RechargePackage,
+  UsageAddonPackage,
+  TenantUsageAddon,
+  TenantPlatformOpsNote,
+  TenantChurnAlert,
+  PlatformMrrSnapshot,
+  UserSyzsLink,
   CallRecord,
   UserCallSetting,
   CustomerGroup,
@@ -556,4 +780,29 @@ export {
   ServiceTicket,
   TenantLeadSetting,
   TenantPublicWebhookSetting,
+  CustomFieldDef,
+  CustomerFieldValue,
+  PipelineConfig,
+  DashboardConfig,
+  Notification,
+  ApprovalTemplate,
+  ApprovalInstance,
+  Product,
+  MarketingCampaign,
+  MessageTemplate,
+  MarketingMessage,
+  MarketingOptOut,
+  CustomerSegment,
+  CustomerSegmentMember,
+  KbCategory,
+  KbArticle,
+  CoachingSuggestion,
+  Contract,
+  Task,
+  KpiTarget,
+  NotificationRule,
+  NotificationRuleLog,
+  BrowserPushSubscription,
+  LandingPage,
+  LandingSubmission,
 };

@@ -8,20 +8,23 @@ import {
   BellRing,
   Bot,
   CircleHelp,
+  Sparkles,
   ClipboardList,
-  Contact,
   LayoutGrid,
   QrCode,
   Settings,
   UserRoundCog,
   Users,
   Waypoints,
+  CreditCard,
+  Shield,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { useAuthStore } from '@/store/authStore'
 import { isAdminUser } from '@/lib/roles'
+import { usePlatformAdmin } from '@/hooks/usePlatformAdmin'
 
 type TabId = 'sales' | 'admin' | 'menu' | 'faq'
 
@@ -42,10 +45,10 @@ const SALES_STEPS = [
   },
   {
     step: '2',
-    title: '查资料、记跟进',
-    detail: '在「客户管理」查看联系方式、历史跟进和聊天记录。',
-    to: '/app/customers',
-    icon: Contact,
+    title: '用 AI 写话术再联系',
+    detail: '打开「AI 智能助手」，粘贴客户原话，复制推荐回复后发企微。',
+    to: '/app/ai-assistant',
+    icon: Sparkles,
   },
   {
     step: '3',
@@ -65,9 +68,15 @@ const ADMIN_STEPS = [
   },
   {
     title: '让客户进系统',
-    detail: '用渠道活码扫码加好友，或 Excel 批量导入历史客户。',
-    to: '/app/channel-live',
+    detail: '打开「获客向导」按渠道配置；或用渠道活码扫码加好友。',
+    to: '/app/acquisition-wizard',
     icon: QrCode,
+  },
+  {
+    title: '启动 AI 员工（收件箱 + 草稿 + 跟进）',
+    detail: '按向导检查企微、公域 Webhook、知识库与自动跟进。首发建议仅开 AI 草稿；FAQ/询价自动发在系统设置中按需开启。',
+    to: '/app/ai-employee-playbook',
+    icon: Bot,
   },
   {
     title: '配自动化流程',
@@ -87,14 +96,21 @@ const ADMIN_STEPS = [
     to: '/app/users',
     icon: Users,
   },
+  {
+    title: '套餐与试用',
+    detail: '新注册 14 天专业版试用；到期前可微信支付、兑换码或线下转账升级。',
+    to: '/app/billing',
+    icon: CreditCard,
+  },
 ]
 
 const MENU_GROUPS = [
   { group: '工作台', who: '全员', items: '仪表盘、使用帮助' },
+  { group: 'AI 智能', who: '销售/运营', items: 'AI 智能助手、AI 文案、话术库、意向预警、知识库' },
   { group: '客户与跟进', who: '销售', items: '客户管理、销售看板、待跟进、收件箱、标签' },
   { group: '自动化', who: '管理员配置', items: '自动化流程、自动跟进规则、意向预警' },
   { group: '营销获客', who: '运营', items: '渠道活码、获客指南、裂变、群发' },
-  { group: '系统管理', who: '管理员', items: '用户、角色、系统设置' },
+  { group: '系统管理', who: '管理员', items: '用户、角色、系统设置、套餐计费' },
 ]
 
 const FAQ = [
@@ -116,7 +132,31 @@ const FAQ = [
   },
   {
     q: 'AI 会自动给客户发消息吗？',
-    a: '不会。收件箱里的 AI 只生成草稿，必须人工确认后再发送，避免误发。',
+    a: '默认不会直接发出：统一收件箱里 AI 先生成草稿，销售确认后再发。若管理员在「系统设置」开启 FAQ/询价自动发送，且平台已允许，则仅企微会话内、符合护栏的资料/简单询价可自动回复；抖音/小红书等公域仍须人工。含合同、底价、投诉等一律转人工。',
+  },
+  {
+    q: 'AI 调用次数用完了怎么办？',
+    a: '在「套餐计费 → 本月用量」查看剩余次数。可升级专业版/企业版，或选购「AI 助手版 / AI 旗舰版」获得更高 AI 配额。',
+  },
+  {
+    q: 'AI 智能助手和 AI 文案有什么区别？',
+    a: '智能助手是多轮对话，适合问跟进策略、异议处理；AI 文案专注生成朋友圈/群发/海报素材。两者都计 AI 调用次数。',
+  },
+  {
+    q: '如何在线支付升级？',
+    a: '管理员进入「套餐计费」，选择套餐后点「微信支付」扫码；支付成功后套餐自动开通。也可使用兑换码或线下转账（需平台确认）。',
+  },
+  {
+    q: '专业版试用到期会怎样？',
+    a: '到期后自动降为体验版（客户数、AI 次数、自动化等受限）。到期前 7 天会在后台顶部与计费页提醒续费。',
+  },
+  {
+    q: '行业话术包怎么用？',
+    a: '进入「话术库」顶部选择教培 / 美业 / B2B 包，一键导入后可编辑占位符（如 {机构}），在客户跟进或 AI 助手中复制使用。',
+  },
+  {
+    q: '仪表盘「活跃提醒」是什么？',
+    a: '系统根据登录、AI 用量、跟进频率等判断流失风险，管理员可在仪表盘查看；生产环境可开启每日企微推送（ENABLE_CHURN_ALERT_CRON=1）。',
   },
 ]
 
@@ -124,6 +164,7 @@ export function HelpCenterPage() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const isAdmin = isAdminUser(user)
+  const { isPlatformAdmin } = usePlatformAdmin()
   const defaultTab = useMemo<TabId>(() => (isAdmin ? 'admin' : 'sales'), [isAdmin])
   const [tab, setTab] = useState<TabId>(defaultTab)
 
@@ -192,6 +233,10 @@ export function HelpCenterPage() {
               <CardTitle className="text-sm font-medium text-amber-950">额外提醒</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 pt-0 text-sm text-amber-900/80">
+              <p>
+                <Sparkles className="mr-1 inline h-4 w-4" />
+                AI 智能助手：不会写话术时，先问 AI 再复制发给客户。
+              </p>
               <p>
                 <BellRing className="mr-1 inline h-4 w-4" />
                 意向预警：客户意向突然升高时优先联系。
@@ -264,9 +309,48 @@ export function HelpCenterPage() {
             </CardContent>
           </Card>
 
+          {isPlatformAdmin ? (
+            <Card className="border-violet-200 bg-violet-50/40">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium text-violet-950">
+                  <Shield className="h-4 w-4" />
+                  平台运营 · 收件箱 AI
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 pt-0 text-sm text-violet-900/90">
+                <p>首发建议全站仅开 AI 草稿；试点客户再开 FAQ/询价半自动。实施清单见仓库 docs/deploy/go-live-ai-inbox.md。</p>
+                <ul className="list-inside list-disc space-y-1 text-xs">
+                  <li>每日查看「AI 自动发异常」与抽检队列</li>
+                  <li>风险租户在详情页一键关停并留运营备注</li>
+                  <li>迁移 072～076 未跑齐时异常/抽检不可用</li>
+                </ul>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button type="button" size="sm" variant="outline" onClick={() => navigate('/app/platform/inbox-ai-anomalies')}>
+                    AI 异常名单
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={() => navigate('/app/platform')}>
+                    运营概览
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={() => navigate('/app/ai-review?tab=qa')}>
+                    抽检队列
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
           <p className="text-xs text-muted-foreground">
             企微回调地址示例：<code className="rounded bg-muted px-1">https://你的域名/api/v1/wework/msg-callback</code>
             ，在「系统设置」保存后可复制完整 URL。
+          </p>
+          <p className="text-xs text-muted-foreground">
+            <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+              服务条款
+            </a>
+            {' · '}
+            <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+              隐私政策
+            </a>
           </p>
         </div>
       ) : null}

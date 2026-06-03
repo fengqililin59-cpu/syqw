@@ -2,6 +2,7 @@
  * @file 角色服务：角色管理 + 权限字典。
  */
 import Joi from 'joi';
+import { Op } from 'sequelize';
 import { HttpError } from '../utils/httpError.js';
 import { Role, User } from '../models/index.js';
 import { canManageStaff, normalizePermissionCodes } from '../utils/permissions.js';
@@ -104,6 +105,37 @@ function isAdminLikeRole(row, perms) {
   if (/管理员|admin/i.test(name)) return true;
   if (perms.includes('settings:manage') || perms.includes('*')) return true;
   return false;
+}
+
+/**
+ * 为租户系统「管理员」角色补齐收件箱 / AI 审核权限（注册、登录时幂等调用，无需 settings 权限）。
+ */
+export async function patchSystemAdminInboxAiPermsForTenant(tenantId, options = {}) {
+  const tid = Number(tenantId);
+  if (!Number.isFinite(tid) || tid <= 0) return { updated_roles: [] };
+  const { transaction } = options;
+  const roles = await Role.findAll({
+    where: {
+      tenant_id: tid,
+      is_system: 1,
+      name: { [Op.in]: ['管理员', 'admin'] },
+    },
+    transaction,
+  });
+  const updated = [];
+  for (const row of roles) {
+    const current = normalizePermissionCodes(row.perm_codes || []);
+    const merged = normalizePermissionCodes([...current, ...AI_EMPLOYEE_PERMISSION_CODES]);
+    if (
+      merged.length === current.length
+      && AI_EMPLOYEE_PERMISSION_CODES.every((c) => current.includes(c))
+    ) {
+      continue;
+    }
+    await row.update({ perm_codes: merged, permissions: merged }, { transaction });
+    updated.push({ id: row.id, name: row.name });
+  }
+  return { updated_roles: updated };
 }
 
 /**

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>品牌页</title>
+    <meta name="description" content="" id="meta-desc" />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" id="canonical-link" href="" />
+    <script type="application/ld+json" id="jsonld-org"></script>
+    <script type="application/ld+json" id="jsonld-product"></script>
+    <style>
+      :root {
+        --bg: #f0f4f8;
+        --surface: #fff;
+        --primary: #5b8dd9;
+        --text: #0f1e2e;
+        --muted: #5a728d;
+        --line: #dbe6f2;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .wrap {
+        width: min(640px, 92vw);
+        margin: 48px auto;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 32px 28px;
+        box-shadow: 0 8px 32px rgba(15, 30, 46, 0.06);
+      }
+      h1 { margin: 0 0 8px; font-size: 1.6rem; }
+      p { margin: 0 0 16px; color: var(--muted); line-height: 1.65; }
+      a { color: var(--primary); }
+      .err { color: #dc2626; }
+      footer {
+        width: min(640px, 92vw);
+        margin: 20px auto 40px;
+        font-size: 12px;
+        color: var(--muted);
+        text-align: center;
+      }
+      footer a { color: inherit; text-decoration: none; }
+      footer a:hover { color: var(--primary); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1 id="name">加载中…</h1>
+      <p id="desc"></p>
+      <p id="links"></p>
+    </div>
+    <footer>
+      © 2026 ZhiFlow · 杭州中数云科智慧科技有限公司 ·
+      <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">浙ICP备2026009605号-1</a>
+    </footer>
+    <script>
+      (function () {
+        const params = new URLSearchParams(location.search)
+        const tenantId = params.get('tenant') || params.get('tenant_id')
+        const nameEl = document.getElementById('name')
+        const descEl = document.getElementById('desc')
+        const linksEl = document.getElementById('links')
+        const metaDesc = document.getElementById('meta-desc')
+        const canonical = document.getElementById('canonical-link')
+
+        if (!tenantId || !/^\d+$/.test(tenantId)) {
+          nameEl.textContent = '参数错误'
+          descEl.innerHTML = '<span class="err">请使用 <code>?tenant=租户ID</code></span>'
+          return
+        }
+
+        const apiBase = location.origin + '/api/v1'
+        const pageUrl = location.origin + location.pathname + '?tenant=' + tenantId
+        canonical.href = pageUrl
+
+        fetch(apiBase + '/public/tenants/' + tenantId + '/branding')
+          .then((r) => r.json())
+          .then((json) => {
+            if (json.code !== 0 || !json.data) throw new Error(json.message || '加载失败')
+            const d = json.data
+            nameEl.textContent = d.name
+            document.title = d.name + ' · ' + (d.product_name || 'ZhiFlow')
+            const desc = d.description || ''
+            descEl.textContent = desc
+            metaDesc.content = desc
+            linksEl.innerHTML =
+              '<a href="' +
+              d.help_center_url +
+              '">公开帮助中心</a> · <a href="' +
+              (location.origin + '/landing.html?tenant=' + tenantId) +
+              '">营销落地页</a>'
+
+            const org = {
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: d.name,
+              url: pageUrl,
+              description: desc,
+            }
+            if (d.logo_url) org.logo = d.logo_url
+
+            const product = {
+              '@context': 'https://schema.org',
+              '@type': 'SoftwareApplication',
+              name: d.product_name || 'ZhiFlow',
+              applicationCategory: 'BusinessApplication',
+              operatingSystem: 'Web',
+              description: desc,
+              url: d.help_center_url,
+              provider: { '@type': 'Organization', name: d.name },
+            }
+
+            document.getElementById('jsonld-org').textContent = JSON.stringify(org)
+            document.getElementById('jsonld-product').textContent = JSON.stringify(product)
+          })
+          .catch((e) => {
+            nameEl.textContent = '无法加载'
+            descEl.innerHTML = '<span class="err">' + (e.message || '网络错误') + '</span>'
+          })
+      })()
+    </script>
+  </body>
+</html>

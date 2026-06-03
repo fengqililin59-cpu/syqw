@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getJson, postFormData, postJson } from '@/api/client'
+import { downloadImportTemplate } from '@/api/customers'
 import type { Paginated, UserRow } from '@/api/types'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
@@ -110,8 +111,16 @@ export function ImportDrawer({ open, onOpenChange, onSuccess }: ImportDrawerProp
     void handleFile(file)
   }
 
-  function downloadTemplate() {
-    void import('xlsx').then((XLSX) => {
+  async function downloadTemplate() {
+    try {
+      const tpl = await downloadImportTemplate()
+      const link = document.createElement('a')
+      link.href = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${tpl.file_base64}`
+      link.download = tpl.filename
+      link.click()
+    } catch {
+      // 降级到本地模板
+      const XLSX = await import('xlsx')
       const ws = XLSX.utils.aoa_to_sheet([
         ['姓名', '手机', '公司', '职位', '微信号', '阶段', '来源', '备注', '标签'],
         ['张三', '13800138000', '示例公司', '销售总监', 'zhangsan', '新客户', '朋友介绍', '', '高意向,重点客户'],
@@ -119,7 +128,7 @@ export function ImportDrawer({ open, onOpenChange, onSuccess }: ImportDrawerProp
       const wb = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(wb, ws, '客户导入模板')
       XLSX.writeFile(wb, '客户导入模板.xlsx')
-    })
+    }
   }
 
   async function onConfirmImport() {
@@ -229,6 +238,10 @@ export function ImportDrawer({ open, onOpenChange, onSuccess }: ImportDrawerProp
                         <TableCell>
                           {col.ignored ? (
                             <Badge variant="secondary">忽略</Badge>
+                          ) : col.mapped?.startsWith('cf:') ? (
+                            <Badge className="bg-purple-600 hover:bg-purple-600">
+                              自定义: {col.mapped.slice(3)}
+                            </Badge>
                           ) : (
                             <Badge className="bg-emerald-600 hover:bg-emerald-600">{col.mapped}</Badge>
                           )}

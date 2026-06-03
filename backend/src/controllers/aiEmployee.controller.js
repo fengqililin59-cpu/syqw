@@ -2,6 +2,8 @@
  * @file AI 员工：草稿、审核、运营统计。
  */
 import * as aiEmployeeService from '../services/aiEmployee.service.js';
+import * as aiAutoReplyDigestService from '../services/aiAutoReplyDigest.service.js';
+import * as inboxAiQaService from '../services/inboxAiQa.service.js';
 import * as kbService from '../services/kb.service.js';
 import { ok } from '../utils/response.js';
 
@@ -55,7 +57,22 @@ export async function reindexKb(req, res) {
   return ok(res, data, '已重建索引');
 }
 
+export async function pushAutoReplyDigest(req, res) {
+  const data = await aiAutoReplyDigestService.pushAiAutoReplyDigestToWework(req.auth);
+  return ok(res, data, data.sent > 0 ? '已推送' : '未发送');
+}
+
 export async function reindexAllKb(req, res) {
   const data = await kbService.reindexAllDocuments(req.auth);
   return ok(res, data, '已重建全部索引');
+}
+
+export async function qaQueue(req, res) {
+  const data = await inboxAiQaService.listAiAutoSendQaQueue(req.auth, req.query);
+  return ok(res, data);
+}
+
+export async function qaReview(req, res) {
+  const data = await inboxAiQaService.submitAiAutoSendQaReview(req.auth, req.params.id, req.body);
+  return ok(res, data, '已提交抽检');
 }

@@ -217,6 +217,7 @@ run_backend_deploy() {
   fi
   blue "3/4 远端后端发布..."
   failed_step="backend_deploy"
+  # DB: no npm migrate scripts in this repo; apply database/*.sql manually (docs/deploy/production-checklist.md §4.2).
   run_or_echo "ssh \"$REMOTE_HOST\" \"cd \\\"$REMOTE_BACKEND_DIR\\\" \
     && npm ci \
     && if npm run | rg -q '^  migrate:status'; then npm run migrate:status; fi \

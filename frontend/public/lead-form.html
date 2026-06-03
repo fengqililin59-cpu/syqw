@@ -25,9 +25,10 @@
         color: var(--text);
         min-height: 100vh;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 24px 16px;
+        padding: 24px 16px 16px;
       }
       .card {
         width: min(420px, 100%);
@@ -98,6 +99,19 @@
         color: var(--danger);
         font-size: 0.875rem;
       }
+      .page-footer {
+        margin-top: 20px;
+        font-size: 12px;
+        color: var(--muted);
+        text-align: center;
+      }
+      .page-footer a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .page-footer a:hover {
+        color: var(--primary);
+      }
     </style>
   </head>
   <body>
@@ -118,6 +132,12 @@
       </form>
       <p id="result" class="msg" hidden></p>
     </div>
+    <footer class="page-footer">
+      © 2026 ZhiFlow · 杭州中数云科智慧科技有限公司 ·
+      <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">浙ICP备2026009605号-1</a><br />
+      <a href="/terms.html">服务条款</a> ·
+      <a href="/privacy.html">隐私政策</a>
+    </footer>
     <script src="/zf-track.js"></script>
     <script>
       (function () {
@@ -136,6 +156,8 @@
 
         if (window.ZhiFlowTrack) {
           window.ZhiFlowTrack.persistUtmFromQuery()
+          window.ZhiFlowTrack.persistAdParamsFromQuery()
+          void window.ZhiFlowTrack.trackAdLandingIfPresent()
           void window.ZhiFlowTrack.trackVisitIfUtm()
           const land = window.ZhiFlowTrack.getLandingAttribution()
           void window.ZhiFlowTrack.trackEvent('lead_form_view', {
@@ -172,6 +194,18 @@
             landing_variant: land.variant || params.get('variant') || undefined,
             landing_cta: land.cta || params.get('cta') || undefined,
           }
+
+          const adHitRaw = params.get('ad_hit')
+          if (adHitRaw && /^\d+$/.test(adHitRaw)) body.ad_hit = Number(adHitRaw)
+          const clickid = params.get('clickid') || params.get('click_id')
+          if (clickid) {
+            body.clickid = clickid
+            body.click_id = clickid
+          }
+          const gdtVid = params.get('gdt_vid')
+          if (gdtVid) body.gdt_vid = gdtVid
+          const bdVid = params.get('bd_vid')
+          if (bdVid) body.bd_vid = bdVid
 
           try {
             const apiBase = window.ZhiFlowTrack ? window.ZhiFlowTrack.apiBase() : window.location.origin + '/api/v1'

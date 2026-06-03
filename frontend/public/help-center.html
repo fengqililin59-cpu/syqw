@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>帮助中心</title>
+    <meta name="description" content="产品说明、常见问题与使用指南" />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" id="canonical-link" href="" />
+    <style>
+      :root {
+        --bg: #f0f4f8;
+        --surface: #fff;
+        --primary: #5b8dd9;
+        --text: #0f1e2e;
+        --muted: #5a728d;
+        --line: #dbe6f2;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+      .wrap { width: min(920px, 94vw); margin: 0 auto; padding: 24px 0 48px; }
+      header { margin-bottom: 20px; }
+      h1 { margin: 0 0 6px; font-size: 1.5rem; }
+      .sub { margin: 0; color: var(--muted); font-size: 0.9rem; }
+      .layout { display: grid; grid-template-columns: 220px 1fr; gap: 20px; }
+      @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
+      aside {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        height: fit-content;
+      }
+      aside button {
+        display: block; width: 100%; text-align: left;
+        border: none; background: transparent; padding: 8px 10px;
+        border-radius: 8px; cursor: pointer; font-size: 0.9rem;
+      }
+      aside button.active, aside button:hover { background: #eef4fc; color: var(--primary); }
+      main {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 20px 22px;
+        min-height: 280px;
+      }
+      .list a {
+        display: block; padding: 10px 0; border-bottom: 1px solid var(--line);
+        color: inherit; text-decoration: none;
+      }
+      .list a:hover { color: var(--primary); }
+      .article h2 { margin: 0 0 8px; font-size: 1.25rem; }
+      .article .meta { font-size: 0.8rem; color: var(--muted); margin-bottom: 16px; }
+      .article .body { white-space: pre-wrap; word-break: break-word; }
+      .err { color: #dc2626; padding: 12px; }
+      .vote { margin-top: 20px; display: flex; gap: 8px; }
+      .vote button {
+        border: 1px solid var(--line); background: #fff; border-radius: 8px;
+        padding: 6px 12px; cursor: pointer; font-size: 0.85rem;
+      }
+      .back { margin-bottom: 12px; }
+      .back a { color: var(--primary); text-decoration: none; font-size: 0.9rem; }
+      footer {
+        margin-top: 24px;
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      footer a { color: inherit; text-decoration: none; }
+      footer a:hover { color: var(--primary); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1 id="site-title">帮助中心</h1>
+        <p class="sub" id="site-sub">加载中…</p>
+      </header>
+      <div class="layout">
+        <aside id="cats"><p class="sub">分类</p></aside>
+        <main id="main"><p class="sub">加载文章…</p></main>
+      </div>
+      <footer>
+        <div>
+          © 2026 ZhiFlow<br />
+          杭州中数云科智慧科技有限公司 ·
+          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">浙ICP备2026009605号-1</a>
+        </div>
+        <div>
+          <a href="/landing.html">返回首页</a> ·
+          <a href="/terms.html">服务条款</a> ·
+          <a href="/privacy.html">隐私政策</a>
+        </div>
+      </footer>
+    </div>
+    <script src="/zf-track.js"></script>
+    <script>
+      (function () {
+        const params = new URLSearchParams(location.search)
+        const tenantId = params.get('tenant') || params.get('tenant_id')
+        const slug = params.get('article') || params.get('slug')
+        const main = document.getElementById('main')
+        const catsEl = document.getElementById('cats')
+        const siteTitle = document.getElementById('site-title')
+        const siteSub = document.getElementById('site-sub')
+        const canonical = document.getElementById('canonical-link')
+
+        if (!tenantId || !/^\d+$/.test(tenantId)) {
+          main.innerHTML = '<p class="err">请在 URL 中提供租户 ID，例如 <code>?tenant=1</code></p>'
+          siteSub.textContent = '缺少 tenant 参数'
+          return
+        }
+
+        const apiBase = window.ZhiFlowTrack ? window.ZhiFlowTrack.apiBase() : location.origin + '/api/v1'
+        const qTenant = 'tenant=' + encodeURIComponent(tenantId)
+        let activeCat = params.get('category_id') || ''
+
+        function setCanonical(path) {
+          canonical.href = location.origin + path
+        }
+
+        async function apiGet(path) {
+          const res = await fetch(apiBase + path + (path.includes('?') ? '&' : '?') + qTenant)
+          const json = await res.json()
+          if (!res.ok || json.code !== 0) throw new Error(json.message || '加载失败')
+          return json.data
+        }
+
+        async function loadBranding() {
+          try {
+            const b = await fetch(apiBase + '/public/tenants/' + tenantId + '/branding').then((r) => r.json())
+            if (b.code === 0 && b.data) {
+              siteTitle.textContent = b.data.name + ' · 帮助中心'
+              siteSub.textContent = b.data.description || ''
+              document.title = siteTitle.textContent
+            }
+          } catch (_) { /* optional */ }
+        }
+
+        function renderCategories(cats) {
+          let html = '<p class="sub" style="margin:0 0 8px">分类</p>'
+          html += '<button type="button" data-cat="" class="' + (!activeCat ? 'active' : '') + '">全部</button>'
+          for (const c of cats) {
+            html += '<button type="button" data-cat="' + c.id + '" class="' + (String(activeCat) === String(c.id) ? 'active' : '') + '">' + escapeHtml(c.name) + '</button>'
+          }
+          catsEl.innerHTML = html
+          catsEl.querySelectorAll('button').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              activeCat = btn.getAttribute('data-cat') || ''
+              const u = new URL(location.href)
+              if (activeCat) u.searchParams.set('category_id', activeCat)
+              else u.searchParams.delete('category_id')
+              u.searchParams.delete('article')
+              u.searchParams.delete('slug')
+              history.replaceState(null, '', u)
+              void showList()
+            })
+          })
+        }
+
+        function escapeHtml(s) {
+          return String(s || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+        }
+
+        async function showList() {
+          setCanonical('/help-center.html?' + qTenant + (activeCat ? '&category_id=' + activeCat : ''))
+          main.innerHTML = '<p class="sub">加载中…</p>'
+          const articles = await apiGet('/kb/public/articles' + (activeCat ? '?category_id=' + activeCat : ''))
+          if (!articles.length) {
+            main.innerHTML = '<p class="sub">暂无已发布的帮助文章。请在 ZhiFlow 知识库管理中发布文章。</p>'
+            return
+          }
+          main.innerHTML =
+            '<div class="list">' +
+            articles
+              .map((a) => {
+                const href = '?tenant=' + tenantId + '&article=' + encodeURIComponent(a.slug || a.id)
+                return (
+                  '<a href="' +
+                  href +
+                  '"><strong>' +
+                  escapeHtml(a.title) +
+                  '</strong><br><span class="sub">' +
+                  escapeHtml(a.summary || '') +
+                  '</span></a>'
+                )
+              })
+              .join('') +
+            '</div>'
+        }
+
+        async function showArticle(articleSlug) {
+          setCanonical('/help-center.html?tenant=' + tenantId + '&article=' + encodeURIComponent(articleSlug))
+          main.innerHTML = '<p class="sub">加载中…</p>'
+          const a = await apiGet('/kb/public/articles/' + encodeURIComponent(articleSlug))
+          document.title = (a.title || '文章') + ' · 帮助中心'
+          const body =
+            a.content_type === 'html'
+              ? '<div class="body">' + a.content + '</div>'
+              : '<div class="body">' + escapeHtml(a.content || '') + '</div>'
+          main.innerHTML =
+            '<div class="back"><a href="?tenant=' +
+            tenantId +
+            '">← 返回列表</a></div><article class="article"><h2>' +
+            escapeHtml(a.title) +
+            '</h2><p class="meta">' +
+            escapeHtml(a.summary || '') +
+            (a.published_at ? ' · ' + String(a.published_at).slice(0, 10) : '') +
+            '</p>' +
+            body +
+            '<div class="vote"><span class="sub">这篇有帮助吗？</span><button type="button" data-yes="1">有帮助</button><button type="button" data-yes="0">没帮助</button><span id="vote-msg" class="sub"></span></div></article>'
+          main.querySelectorAll('.vote button').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+              const helpful = btn.getAttribute('data-yes') === '1'
+              try {
+                await fetch(apiBase + '/kb/public/articles/' + a.id + '/rate?' + qTenant, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ helpful }),
+                })
+                document.getElementById('vote-msg').textContent = '感谢反馈'
+              } catch (_) {
+                document.getElementById('vote-msg').textContent = '提交失败'
+              }
+            })
+          })
+        }
+
+        void (async function init() {
+          try {
+            await loadBranding()
+            const cats = await apiGet('/kb/public/categories')
+            renderCategories(cats)
+            if (slug) await showArticle(slug)
+            else await showList()
+          } catch (e) {
+            main.innerHTML = '<p class="err">' + escapeHtml(e.message) + '</p>'
+          }
+        })()
+      })()
+    </script>
+  </body>
+</html>

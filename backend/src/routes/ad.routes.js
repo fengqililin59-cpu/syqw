@@ -12,7 +12,14 @@ import { requireAnyPerm, requirePerm } from '../middlewares/requirePerm.js';
 const router = Router();
 
 router.get('/redirect', asyncHandler(adTrackingController.redirect));
+router.get('/wework-state', asyncHandler(adTrackingController.weworkState));
 router.post('/conversion', requireAuth, requirePerm('campaign:manage'), asyncHandler(adTrackingController.conversion));
+router.get(
+  '/conversion/platforms',
+  requireAuth,
+  requireAnyPerm('ads:view', 'campaign:manage'),
+  asyncHandler(adTrackingController.conversionPlatforms),
+);
 router.get('/roi', requireAuth, requireAnyPerm('ads:view', 'dashboard:view'), asyncHandler(adTrackingController.roi));
 router.get('/roi/trend', requireAuth, requireAnyPerm('ads:view', 'dashboard:view'), asyncHandler(adTrackingController.roiTrend));
 router.get('/roi/details', requireAuth, requireAnyPerm('ads:view', 'dashboard:view'), asyncHandler(adTrackingController.roiDetails));

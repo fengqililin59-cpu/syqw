@@ -10,6 +10,7 @@
     "frontend:dev:clean": "npm run dev:clean --prefix frontend",
     "frontend:kill": "node frontend/scripts/kill-port.mjs 5173 5174",
     "frontend:build": "npm run build --prefix frontend",
-    "frontend:install": "npm install --prefix frontend"
+    "frontend:install": "npm install --prefix frontend",
+    "verify:alipay": "npm run verify:alipay --prefix backend"
   }
 }

@@ -18,6 +18,7 @@ export class User extends Model {
         wework_userid: { type: DataTypes.STRING(64), allowNull: true },
         /** 与企微扫码登录返回的 corpid 一致，可与租户级配置并存 */
         wework_corp_id: { type: DataTypes.STRING(64), allowNull: true },
+        wechat_mp_openid: { type: DataTypes.STRING(64), allowNull: true },
         role_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
         demo_mode: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
         /** 过渡：与 roles 表配套的简短编码 admin/sales（见 database/036–037） */

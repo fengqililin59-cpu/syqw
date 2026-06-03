@@ -13,6 +13,11 @@ router.use(requireAuth);
 
 router.get('/audit-logs', requirePerm('audit:view'), asyncHandler(settingsController.listAuditLogs));
 router.get('/intent-alerts', requirePerm('dashboard:view'), asyncHandler(settingsController.listIntentAlerts));
+router.get(
+  '/intent-alerts/:alertId/playbook',
+  requirePerm('dashboard:view'),
+  asyncHandler(settingsController.getIntentAlertPlaybook),
+);
 router.get('/wework', requirePerm('settings:manage'), asyncHandler(settingsController.getWework));
 router.put('/wework', requirePerm('settings:manage'), asyncHandler(settingsController.updateWework));
 router.get('/lead-assignment', requirePerm('settings:manage'), asyncHandler(settingsController.getLeadAssignment));

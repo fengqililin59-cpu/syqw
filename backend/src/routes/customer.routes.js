@@ -3,6 +3,7 @@
  */
 import { Router } from 'express';
 import * as customerController from '../controllers/customer.controller.js';
+import * as customFieldController from '../controllers/customField.controller.js';
 import { requireAuth } from '../middlewares/auth.js';
 import { requirePerm } from '../middlewares/requirePerm.js';
 import { requireQuota } from '../middlewares/requireQuota.js';
@@ -17,6 +18,10 @@ router.get('/customers/export', requirePerm('customer:export'), asyncHandler(cus
 router.post('/customers/import-csv', requirePerm('customer:edit'), csvUpload.single('file'), asyncHandler(customerController.importCsv));
 router.post('/customers/import/preview', requirePerm('customer:edit'), asyncHandler(customerController.importPreview));
 router.post('/customers/import', requirePerm('customer:edit'), asyncHandler(customerController.importMany));
+router.get('/customers/import/template', requirePerm('customer:edit'), asyncHandler(customerController.downloadImportTemplate));
+
+// 批量操作
+router.post('/customers/batch', requirePerm('customer:edit'), asyncHandler(customerController.batchOperate));
 
 router.get('/customers', requirePerm('customer:view'), asyncHandler(customerController.list));
 router.post('/customers', requirePerm('customer:edit'), requireQuota('customers'), asyncHandler(customerController.create));
@@ -29,6 +34,8 @@ router.get(
 router.get('/customers/:id/follow-ups', requirePerm('customer:view'), asyncHandler(customerController.listFollowUps));
 router.get('/customers/:id/timeline', requirePerm('customer:view'), asyncHandler(customerController.timeline));
 router.post('/customers/:id/follow-ups', requirePerm('customer:edit'), asyncHandler(customerController.createFollowUp));
+router.post('/customers/:id/followup-scripts', requirePerm('ai:use'), asyncHandler(customerController.generateFollowupScripts));
+router.get('/customers/:id/summary', requirePerm('ai:use'), asyncHandler(customerController.generateSummary));
 router.post('/customers/:id/transfer', requirePerm('customer:edit'), asyncHandler(customerController.transfer));
 router.put('/customers/:id/tags', requirePerm('customer:edit'), asyncHandler(customerController.setTags));
 
@@ -37,6 +44,14 @@ router.post('/customers/:id/rollback-auto-deal', requirePerm('customer:edit'), a
 
 router.post('/customers/:id/score-intent', requirePerm('ai:use'), asyncHandler(customerController.scoreIntent));
 router.get('/customers/:id/score-history', requirePerm('customer:view'), asyncHandler(customerController.scoreHistory));
+router.get(
+  '/customers/:id/intent-playbook',
+  requirePerm('customer:view'),
+  asyncHandler(customerController.intentPlaybook),
+);
+
+router.get('/customers/:id/custom-fields', requirePerm('customer:view'), asyncHandler(customFieldController.getCustomerFields));
+router.put('/customers/:id/custom-fields', requirePerm('customer:edit'), asyncHandler(customFieldController.saveCustomerFields));
 
 router.get('/customers/:id', requirePerm('customer:view'), asyncHandler(customerController.detail));
 router.put('/customers/:id', requirePerm('customer:edit'), asyncHandler(customerController.update));

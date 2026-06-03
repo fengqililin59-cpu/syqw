@@ -31,6 +31,12 @@ rsync -a \
 yellow "复制后端 package.json / package-lock.json ..."
 cp "$ROOT_DIR/backend/package.json" "$PKG_ROOT/backend/package.json"
 cp "$ROOT_DIR/backend/package-lock.json" "$PKG_ROOT/backend/package-lock.json"
+if [[ -f "$ROOT_DIR/backend/ecosystem.config.cjs" ]]; then
+  cp "$ROOT_DIR/backend/ecosystem.config.cjs" "$PKG_ROOT/backend/ecosystem.config.cjs"
+fi
+if [[ -f "$ROOT_DIR/backend/ecosystem.config.js" ]]; then
+  cp "$ROOT_DIR/backend/ecosystem.config.js" "$PKG_ROOT/backend/ecosystem.config.js"
+fi
 
 yellow "复制前端 dist..."
 rsync -a "$FRONTEND_DIR/dist/" "$PKG_ROOT/frontend/dist/"
@@ -57,3 +63,5 @@ printf "  压缩包: %s\n" "$OUT_DIR/${PKG_NAME}.tar.gz"
 printf "\n下一步:\n"
 printf "  1. Workbench 上传 %s 到 ECS /tmp/\n" "${PKG_NAME}.tar.gz"
 printf "  2. 服务器执行: cd /tmp && tar xzf %s.tar.gz && cd %s && sudo ./install.sh\n" "$PKG_NAME" "$PKG_NAME"
+printf "  3. 迁移 SQL 不在本包内，请另打: bash deploy/scripts/pack-migrate-upload.sh\n"
+printf "     详见 docs/deploy/ecs-workbench-quickstart-zh.md\n"

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getJson, postJson } from '@/api/client'
+import { getJsonWithToken, postJson } from '@/api/client'
 import { useAuthStore, type AuthUser } from '@/store/authStore'
 import { permListFromMeResponse, type MePermissionsResponse } from '@/lib/permApi'
 
@@ -26,7 +26,7 @@ export function DemoPreviewPage() {
       try {
         const data = await postJson<GuestLoginRes>('/auth/guest-login', {})
         useAuthStore.setState({ token: data.token })
-        const perm = await getJson<MyPermRes>('/auth/me/permissions')
+        const perm = await getJsonWithToken<MyPermRes>('/auth/me/permissions', data.token)
         if (cancelled) return
         localStorage.setItem('last_tenant_id', String(data.tenant.id))
         setSession({

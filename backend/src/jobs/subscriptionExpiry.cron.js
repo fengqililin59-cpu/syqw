@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
 import { env } from '../config/env.js';
 import { Subscription, Tenant, User } from '../models/index.js';
 import { sendAgentTextMessage } from '../services/wework.service.js';
-import { downgradeTenantToFree } from '../services/billing.service.js';
+import { downgradeTenantToFree, tryAutoRenew } from '../services/billing.service.js';
 
 async function notifyTenantAdmins(tenantId, content) {
   const [tenant, admins] = await Promise.all([
@@ -57,9 +57,30 @@ export function registerSubscriptionExpiryCron() {
           current_period_end: { [Op.lt]: new Date() },
           trial_ends_at: null,
         },
-        attributes: ['id', 'tenant_id'],
+        attributes: ['id', 'tenant_id', 'auto_renew', 'plan_id'],
       });
       for (const sub of expiredPaid) {
+        // 先尝试自动续费
+        if (sub.auto_renew) {
+          try {
+            const result = await tryAutoRenew(Number(sub.tenant_id));
+            if (result.success) {
+              await notifyTenantAdmins(
+                Number(sub.tenant_id),
+                `余额自动续费成功！套餐已续期至 ${dayjs(result.newPeriodEnd).format('YYYY-MM-DD')}。`,
+              );
+              continue; // 续费成功，跳过降级
+            }
+            if (result.reason === 'balance_insufficient') {
+              await notifyTenantAdmins(
+                Number(sub.tenant_id),
+                `自动续费失败：余额不足。已切换为体验版，请充值后续费：${String(env.appUrl || '').replace(/\/$/, '')}/app/billing`,
+              );
+            }
+          } catch (e) {
+            console.error('[billing] auto-renew failed', sub.tenant_id, e);
+          }
+        }
         await downgradeTenantToFree(Number(sub.tenant_id));
         await notifyTenantAdmins(
           Number(sub.tenant_id),
@@ -80,14 +101,14 @@ export function registerSubscriptionExpiryCron() {
         await sub.update({ expiry_notified_at: new Date() });
       }
 
-      const in3days = dayjs().add(3, 'day').toDate();
+      const in7days = dayjs().add(7, 'day').toDate();
       const remindSubs = await Subscription.findAll({
         where: {
           status: { [Op.in]: ['trialing', 'active'] },
           reminder_notified_at: null,
           [Op.or]: [
-            { trial_ends_at: { [Op.between]: [new Date(), in3days] } },
-            { current_period_end: { [Op.between]: [new Date(), in3days] } },
+            { trial_ends_at: { [Op.between]: [new Date(), in7days] } },
+            { current_period_end: { [Op.between]: [new Date(), in7days] } },
           ],
         },
         attributes: ['id', 'tenant_id', 'trial_ends_at', 'current_period_end'],

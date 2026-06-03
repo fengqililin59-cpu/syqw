@@ -1,0 +1,45 @@
+-- 096 子集：仅余额表 + tenant_balances 初始化（跳过 tax_number 重命名）
+SET NAMES utf8mb4;
+
+CREATE TABLE IF NOT EXISTS tenant_balances (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL UNIQUE,
+  balance DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  total_recharged DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  total_consumed DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS balance_transactions (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  type ENUM('recharge','consume','refund') NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  balance_after DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  channel VARCHAR(32) NOT NULL DEFAULT 'manual',
+  description VARCHAR(500) NULL,
+  payment_record_id BIGINT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_tenant (tenant_id),
+  INDEX idx_created (tenant_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS recharge_packages (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  bonus DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  sort_order INT NOT NULL DEFAULT 0,
+  is_active TINYINT NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT IGNORE INTO recharge_packages (name, amount, bonus, sort_order) VALUES
+('¥100', 100.00, 0.00, 1),
+('¥500', 500.00, 50.00, 2),
+('¥1000', 1000.00, 120.00, 3);
+
+INSERT IGNORE INTO tenant_balances (tenant_id, balance, total_recharged, total_consumed)
+  SELECT id, 0.00, 0.00, 0.00 FROM tenants;

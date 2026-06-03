@@ -37,21 +37,25 @@
   - `commit/PR:`
 - 前端提交范围：
   - `commit/PR:`
-- 数据库迁移：
+- 数据库迁移（手动 `database/*.sql`，无 npm migrate）：
   - [ ] 无
-  - [ ] 有（列出 migration 名称）
-    - `2026xxxx_xxx.sql`
+  - [ ] 有（列出本次执行的 SQL 文件名）
+    - `0xx_xxx.sql`
     - `...`
+  - 对照文档：[production-checklist.md §4.2](../deploy/production-checklist.md#42-执行迁移按顺序)、[go-live-ai-inbox.md §三](../deploy/go-live-ai-inbox.md#三数据库迁移增量库必跑)（收件箱 AI `072`～`076`）
 
 ## 4. 执行步骤记录（命令留痕）
 
 ### 4.1 后端
 
 ```bash
+# 发布前（本机仓库根目录，可选）
+./scripts/deploy-check.sh
+
 cd /var/www/wework-saas/backend
 npm ci
-npm run migrate:status
-npm run migrate:up
+# 数据库：按编号手动执行本次 database/*.sql（见 production-checklist.md §4.2）
+# mysql -u <user> -p <db> < /path/to/database/0xx_xxx.sql
 pm2 restart wework-api --update-env
 ```
 

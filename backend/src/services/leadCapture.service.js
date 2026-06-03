@@ -8,6 +8,7 @@ import { dispatchNewCustomerFlows } from './flowEngine.service.js';
 import { recordServerMarketingEvent } from './marketingEvent.service.js';
 import { resolveLeadOwnerId, notifyOwnerNewLead } from './leadAssignment.service.js';
 import * as billingService from './billing.service.js';
+import { tryAutoReportConversionOnLead } from './adTracking.service.js';
 
 const submitSchema = Joi.object({
   name: Joi.string().trim().max(50).required(),
@@ -25,6 +26,11 @@ const submitSchema = Joi.object({
   landing_from: Joi.string().trim().max(32).optional(),
   landing_variant: Joi.string().trim().max(8).optional(),
   landing_cta: Joi.string().trim().max(64).optional(),
+  ad_hit: Joi.number().integer().positive().optional(),
+  click_id: Joi.string().trim().max(512).optional(),
+  clickid: Joi.string().trim().max(512).optional(),
+  gdt_vid: Joi.string().trim().max(512).optional(),
+  bd_vid: Joi.string().trim().max(512).optional(),
 }).unknown(false);
 
 function buildLeadSource(value) {
@@ -140,12 +146,21 @@ export async function submitPublicLead(tenantId, body, meta = {}) {
       landing_cta: value.landing_cta ?? null,
       created: created ? 1 : 0,
       ip: meta.ip ?? null,
+      ad_hit: value.ad_hit ?? null,
     },
   });
+
+  const adConversion = await tryAutoReportConversionOnLead(value);
 
   return {
     customer_id: customerId,
     created,
     message: created ? '提交成功，顾问将尽快联系您' : '我们已收到您的信息，顾问将尽快联系您',
+    ad_conversion: adConversion
+      ? {
+          report_status: adConversion.report_status,
+          platform: adConversion.platform,
+        }
+      : null,
   };
 }

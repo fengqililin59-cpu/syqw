@@ -117,6 +117,19 @@
         color: #36597f;
         font-size: 12px;
       }
+      .ad-hit-banner {
+        margin: 12px 0 4px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #b8d4f5;
+        background: #eef5fc;
+        font-size: 13px;
+        color: #1e4a72;
+        line-height: 1.5;
+      }
+      .ad-hit-banner strong {
+        font-weight: 600;
+      }
       .hero h1 {
         margin: 14px 0 12px;
         font-size: 40px;
@@ -433,6 +446,10 @@
             ZhiFlow 自动识别高意向客户，在最佳时机提醒销售跟进；统一收件箱里 AI 只写草稿、销售点确认才发给客户，
             成交与售后还能转工单——把企微私域当成公司资产来经营，而不只是又一个聊天机器人。
           </p>
+          <div id="ad-hit-banner" class="ad-hit-banner" hidden>
+            <strong>广告监测已生效</strong>
+            <p id="ad-hit-state" style="margin: 6px 0 0">留资或扫码加企微后将自动向广告平台回传转化。</p>
+          </div>
           <div class="hero-actions">
             <button class="btn btn-primary cta-btn cta-register-btn cta-primary-text" data-cta-pos="hero-primary">注册账号，14天免费试用</button>
             <button class="btn btn-ghost cta-btn" id="hero-secondary-btn" data-cta-pos="hero-secondary">无需注册，直接体验演示系统</button>
@@ -639,20 +656,33 @@
         <h2 class="section-title" id="pricing-title">先试用，再决定是否付费</h2>
         <div class="pricing">
           <article class="card price-card">
-            <h4>免费版</h4>
+            <h4>体验版</h4>
             <p><strong>¥0</strong></p>
-            <p class="small">100 客户 / 3 席位 / 基础收件箱 / 100 次 AI</p>
+            <p class="small">50 客户 / 2 席位 / 30 次 AI / 月</p>
           </article>
           <article class="card price-card price-pop">
             <span class="badge-pop">最受欢迎</span>
             <h4>专业版</h4>
             <p><strong>¥299/月</strong></p>
-            <p class="small">完整 AI 人审 / 知识库 / 工单 / SLA / 外呼短信</p>
+            <p class="small">5000 客户 / 2000 次 AI / 完整 CRM 与自动化</p>
           </article>
           <article class="card price-card">
             <h4>企业版</h4>
             <p><strong>¥999/月</strong></p>
-            <p class="small">不限规模 / 私有化 / 不限 AI 与知识库</p>
+            <p class="small">不限规模 / 私有化 / 不限 AI</p>
+          </article>
+        </div>
+        <h3 class="section-title" style="margin-top:2rem;font-size:1.15rem">AI 专用套餐（站内智能助手）</h3>
+        <div class="pricing" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+          <article class="card price-card" style="border-color:#c4b5fd">
+            <h4>AI 助手版</h4>
+            <p><strong>¥199/月</strong></p>
+            <p class="small">8000 次 AI / 月 · 2000 客户 · 适合重度用 AI 的销售团队</p>
+          </article>
+          <article class="card price-card" style="border-color:#a78bfa">
+            <h4>AI 旗舰版</h4>
+            <p><strong>¥499/月</strong></p>
+            <p class="small">30000 次 AI / 月 · 10000 客户 · 大团队 AI 首选</p>
           </article>
         </div>
       </section>
@@ -696,10 +726,16 @@
       </section>
 
       <footer>
-        <div>© 2026 ZhiFlow · 私域增长平台</div>
+        <div>
+          © 2026 ZhiFlow · 私域增长平台<br />
+          杭州中数云科智慧科技有限公司 ·
+          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">浙ICP备2026009605号-1</a>
+        </div>
         <div>
           <a href="#features">功能介绍</a> ·
           <a href="#pricing">价格方案</a> ·
+          <a href="/terms.html">服务条款</a> ·
+          <a href="/privacy.html">隐私政策</a> ·
           <a href="#" id="contact-link">联系我们</a>
         </div>
       </footer>
@@ -732,10 +768,10 @@
           ctaSub: '支持现有客户数据一键导入，最快当天开始跑转化闭环',
         },
         b: {
-          heroPill: '已帮助团队建立“高意向优先跟进”机制 · 14 天免费试用',
+          heroPill: 'AI 草稿 + 人审后发 · 14 天免费试用',
           heroTitle: '把更多咨询，<br />变成可成交客户',
           heroSub:
-            'ZhiFlow 让销售每天先跟进最有机会成交的人，把企微、电话、短信触达统一沉淀，持续提升转化率与复购率。',
+            'ZhiFlow 让销售每天先跟进最有机会成交的人；统一收件箱里 AI 只写草稿、销售点确认才发给客户，不替销售乱发——持续提升转化率与复购率。',
           primaryBtn: '注册账号，14天免费试用',
           secondaryBtn: '无需注册，直接体验演示系统',
           trust1: '✓ 试用期功能不设限',
@@ -815,8 +851,37 @@
 
       if (window.ZhiFlowTrack) {
         window.ZhiFlowTrack.persistUtmFromQuery()
+        window.ZhiFlowTrack.persistAdParamsFromQuery()
         void window.ZhiFlowTrack.trackVisitIfUtm()
+        void window.ZhiFlowTrack.trackAdLandingIfPresent()
         window.ZhiFlowTrack.saveLandingAttribution({ from: 'landing', variant: v })
+      }
+
+      const adHitBanner = document.getElementById('ad-hit-banner')
+      const adHitStateEl = document.getElementById('ad-hit-state')
+      const adHitRaw = new URLSearchParams(window.location.search).get('ad_hit')
+      if (adHitBanner && adHitRaw && /^\d+$/.test(adHitRaw)) {
+        adHitBanner.hidden = false
+        const tenantForAd = new URLSearchParams(window.location.search).get('tenant')
+        if (tenantForAd && /^\d+$/.test(tenantForAd) && adHitStateEl && window.ZhiFlowTrack) {
+          const api = window.ZhiFlowTrack.apiBase()
+          fetch(api + '/ads/wework-state?tenant_id=' + tenantForAd + '&ad_hit=' + adHitRaw)
+            .then((r) => r.json())
+            .then((j) => {
+              if (j && j.data && j.data.state) {
+                adHitStateEl.textContent =
+                  '投流归因已记录（ad_hit=' +
+                  adHitRaw +
+                  '）。创建企微活码时请使用 state：' +
+                  j.data.state
+              }
+            })
+            .catch(() => {
+              adHitStateEl.textContent = '投流归因 ad_hit=' + adHitRaw + '（可在渠道活码创建时绑定同一 ad_hit）'
+            })
+        } else if (adHitStateEl) {
+          adHitStateEl.textContent = '投流归因 ad_hit=' + adHitRaw + '，留资/加好友将自动回传转化'
+        }
       }
 
       const tenantParam = new URLSearchParams(window.location.search).get('tenant')

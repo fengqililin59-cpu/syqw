@@ -2,12 +2,16 @@
  * @file 话术库管理：按分类维护常用话术，支持检索与 CRUD。
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   createScriptLibraryItem,
   deleteScriptLibraryItem,
+  fetchIndustryScriptPacks,
   fetchScriptLibraryCategories,
   fetchScriptLibraryItems,
+  importIndustryScriptPack,
   updateScriptLibraryItem,
+  type IndustryScriptPack,
 } from '@/api/scriptLibrary'
 import type { ScriptLibraryItem } from '@/api/types'
 import { Button } from '@/components/ui/button'
@@ -22,6 +26,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 const QUICK_CATEGORIES = [
   'general',
@@ -33,6 +38,7 @@ const QUICK_CATEGORIES = [
 ]
 
 export function ScriptLibraryPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [list, setList] = useState<ScriptLibraryItem[]>([])
   const [categories, setCategories] = useState<string[]>([])
@@ -46,6 +52,8 @@ export function ScriptLibraryPage() {
   const [formTitle, setFormTitle] = useState('')
   const [formBody, setFormBody] = useState('')
   const [formSortOrder, setFormSortOrder] = useState(0)
+  const [industryPacks, setIndustryPacks] = useState<IndustryScriptPack[]>([])
+  const [importingPack, setImportingPack] = useState<string | null>(null)
 
   const allCategoryOptions = useMemo(() => {
     const set = new Set([...QUICK_CATEGORIES, ...categories])
@@ -55,12 +63,14 @@ export function ScriptLibraryPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [items, cats] = await Promise.all([
+      const [items, cats, packs] = await Promise.all([
         fetchScriptLibraryItems({ category: category || undefined, keyword: keyword || undefined }),
         fetchScriptLibraryCategories(),
+        fetchIndustryScriptPacks(),
       ])
       setList(items)
       setCategories(cats)
+      setIndustryPacks(packs)
     } finally {
       setLoading(false)
     }
@@ -69,6 +79,13 @@ export function ScriptLibraryPage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    const kw = searchParams.get('keyword')?.trim()
+    if (!kw) return
+    setKeyword(kw)
+    setSearchParams({}, { replace: true })
+  }, [searchParams, setSearchParams])
 
   function openCreate() {
     setEditing(null)
@@ -119,6 +136,19 @@ export function ScriptLibraryPage() {
     }
   }
 
+  async function onImportPack(packId: string) {
+    setImportingPack(packId)
+    try {
+      const r = await importIndustryScriptPack(packId)
+      window.alert(`「${r.pack_name}」已导入 ${r.created} 条${r.skipped ? `，跳过重复 ${r.skipped} 条` : ''}`)
+      await load()
+    } catch (e: unknown) {
+      window.alert(e instanceof Error ? e.message : '导入失败')
+    } finally {
+      setImportingPack(null)
+    }
+  }
+
   async function onDelete(row: ScriptLibraryItem) {
     if (!window.confirm(`确定删除话术「${row.title}」？`)) return
     await deleteScriptLibraryItem(row.id)
@@ -134,6 +164,35 @@ export function ScriptLibraryPage() {
         </div>
         <Button onClick={openCreate}>新建话术</Button>
       </div>
+
+      {industryPacks.length > 0 ? (
+        <Card className="border-violet-200/80 bg-gradient-to-br from-violet-50/40 to-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">行业话术包</CardTitle>
+            <CardDescription>
+              一键导入可编辑模板（含占位符如 {'{机构}'}），导入后可按本企业话术微调。重复标题会自动跳过。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-3">
+            {industryPacks.map((pack) => (
+              <div key={pack.id} className="rounded-lg border border-violet-100 bg-white p-4">
+                <p className="font-semibold text-violet-950">{pack.name}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{pack.description}</p>
+                <p className="mt-2 text-xs text-violet-700">{pack.item_count} 条模板</p>
+                <Button
+                  className="mt-3 w-full"
+                  size="sm"
+                  variant={pack.imported ? 'outline' : 'default'}
+                  disabled={importingPack !== null}
+                  onClick={() => void onImportPack(pack.id)}
+                >
+                  {importingPack === pack.id ? '导入中…' : pack.imported ? '再次导入（跳过重复）' : '一键导入'}
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="rounded-md border bg-card p-3">
         <div className="grid gap-2 md:grid-cols-[180px_1fr_auto]">

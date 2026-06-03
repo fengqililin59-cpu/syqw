@@ -6,11 +6,12 @@
 import crypto from 'crypto';
 import Joi from 'joi';
 import { HttpError } from '../utils/httpError.js';
-import { Tenant, WeworkChannelGroup, WeworkChannel, WeworkCustomerAddRecord } from '../models/index.js';
+import { Tenant, WeworkChannelGroup, WeworkChannel, WeworkCustomerAddRecord, AdClickRecord } from '../models/index.js';
 import * as contactWay from './weworkContactWay.service.js';
 import { processInviteFromContactState } from './campaign.service.js';
 import * as migrationService from './migration.service.js';
 import { ensureCustomerFromWeworkContactAdd } from './weworkContactAdd.service.js';
+import { buildAdContactWayState, tryAutoReportConversionOnWeworkAdd } from './adTracking.service.js';
 
 /**
  * 生成「联系我」渠道 state：租户可追溯片段 + 随机数，总长度 ≤30（与企微限制一致）
@@ -39,6 +40,9 @@ const employeeChannelSchema = Joi.object({
   remark: Joi.string().allow('', null).max(200).optional(),
   skip_verify: Joi.boolean().optional(),
   style: Joi.number().integer().min(1).max(4).optional(),
+  /** 绑定广告点击 id，活码 state 使用 zfah{id}，加好友后自动转化回传 */
+  ad_hit: Joi.number().integer().positive().optional(),
+  click_key: Joi.string().trim().max(512).optional(),
 }).unknown(false);
 
 const channelUpdateSchema = Joi.object({
@@ -130,7 +134,27 @@ export async function createEmployeeChannel(auth, body) {
     }
   }
 
-  const state = buildContactWayState(auth.tenantId);
+  let state = buildContactWayState(auth.tenantId);
+  const channelConfig = {
+    user: value.user,
+    remark: value.remark ?? '',
+  };
+  if (value.ad_hit) {
+    const click = await AdClickRecord.findOne({
+      where: { id: Number(value.ad_hit), tenant_id: auth.tenantId },
+    });
+    if (!click) {
+      throw new HttpError(400, 'ad_hit 不存在或不属于当前企业', 400);
+    }
+    const adState = buildAdContactWayState(value.ad_hit);
+    if (adState) {
+      state = adState;
+      channelConfig.ad_hit = Number(value.ad_hit);
+    }
+  }
+  if (value.click_key) {
+    channelConfig.click_key = String(value.click_key).trim();
+  }
 
   const wxRes = await contactWay.addContactWay(tenant, {
     user: value.user,
@@ -153,8 +177,7 @@ export async function createEmployeeChannel(auth, body) {
     wework_config_id: wxRes.config_id ?? null,
     config: {
       ...wxRes,
-      user: value.user,
-      remark: value.remark ?? '',
+      ...channelConfig,
     },
   });
 
@@ -288,6 +311,12 @@ export async function recordCustomerAdd(payload) {
     });
   } catch (e) {
     console.error('[wework] ensureCustomerFromWeworkContactAdd', e);
+  }
+
+  try {
+    await tryAutoReportConversionOnWeworkAdd({ tenantId, state, channelId });
+  } catch (e) {
+    console.error('[ads] wework add conversion', e);
   }
 
   return rec.get({ plain: true });

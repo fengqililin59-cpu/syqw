@@ -71,6 +71,7 @@ export type CustomerDiscoveryProfile = {
 }
 
 export type CustomerRow = {
+  inbox_threads_synced?: number
   id: number
   tenant_id: number
   owner_id: number
@@ -214,6 +215,18 @@ export type DashboardStats = {
     count: number
     conversion_from_prev_percent: number | null
   }[]
+  /** 本月 AI 与跟进效率（估算 ROI，仅供参考） */
+  roi_summary?: {
+    ai_calls_used: number
+    ai_calls_limit: number
+    ai_usage_percent: number | null
+    follow_ups_last_7d: number
+    pending_followup: number
+    estimated_minutes_saved: number
+    plan_name: string | null
+    plan_code: string | null
+    note: string
+  }
   revenue?: {
     paid_total: number
     paid_mtd: number
@@ -312,6 +325,11 @@ export type InboxThreadRow = {
   last_direction?: string | null
   needs_reply?: boolean
   sla_overdue?: boolean
+  has_ai_auto_sent?: boolean
+  ai_auto_sent_count?: number
+  ai_auto_sent_at?: string | null
+  is_public_channel?: boolean
+  channel_delivery_hint?: string | null
   channel?: { code: string; name: string }
   Customer?: {
     id: number
@@ -319,6 +337,13 @@ export type InboxThreadRow = {
     nickname?: string | null
     phone?: string | null
     stage?: string | null
+  }
+  crm_stage_label?: string
+  inbox_stage_label?: string
+  stage_sync?: {
+    updated: boolean
+    crm_stage?: string
+    from_inbox_stage?: string
   }
 }
 
@@ -331,6 +356,10 @@ export type InboxMessageRow = {
   msg_type: string
   risk_level: string
   created_at: string
+  ai_auto?: boolean
+  ai_auto_kind?: string | null
+  wework_delivered?: boolean
+  inbox_only?: boolean
 }
 
 export type AiReplyLogRow = {
@@ -342,7 +371,9 @@ export type AiReplyLogRow = {
   draft_content: string
   final_content?: string | null
   status: string
+  approved_by?: number | null
   created_at: string
+  updated_at?: string
   InboxThread?: {
     id: number
     customer_id?: number | null
@@ -363,6 +394,14 @@ export type AiOpsStats = {
   staff_or_ai_replies: number
   ai_drafts_created: number
   ai_replies_approved: number
+  ai_replies_auto_sent?: number
+  threads_with_ai_auto_sent?: number
+  auto_send_usage_today?: {
+    daily_count: number
+    daily_cap: number
+    thread_cap: number
+    wework_only: boolean
+  }
   auto_reply_rate_percent: number
   open_followup_tasks: number
 }

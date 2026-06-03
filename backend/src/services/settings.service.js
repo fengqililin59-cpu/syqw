@@ -7,6 +7,7 @@ import { HttpError } from '../utils/httpError.js';
 import { Tenant, AuditLog, User } from '../models/index.js';
 import { isAdmin } from '../utils/permissions.js';
 import { clearAccessTokenCache } from '../services/wework.service.js';
+import { env } from '../config/env.js';
 
 const updateWeworkSchema = Joi.object({
   wework_corp_id: Joi.string().max(64).allow('', null).optional(),
@@ -15,6 +16,10 @@ const updateWeworkSchema = Joi.object({
   wework_token: Joi.alternatives().try(Joi.string().max(64), Joi.valid(null)).optional(),
   wework_encoding_aes_key: Joi.string().max(86).allow('', null).optional(),
   allow_auto_send: Joi.boolean().optional(),
+  inbox_ai_auto_send: Joi.boolean().optional(),
+  inbox_ai_auto_send_pricing: Joi.boolean().optional(),
+  inbox_ai_notify_assignee_on_auto_send: Joi.boolean().optional(),
+  inbox_auto_draft_enabled: Joi.boolean().optional(),
 }).unknown(false);
 
 const listAuditLogsSchema = Joi.object({
@@ -50,6 +55,13 @@ export async function getWeworkSettings(auth) {
     wework_token: tenant.wework_token ?? null,
     wework_encoding_aes_key_set: Boolean(tenant.wework_encoding_aes_key),
     allow_auto_send: Boolean(tenant.allow_auto_send),
+    inbox_ai_auto_send: Boolean(tenant.inbox_ai_auto_send),
+    inbox_ai_auto_send_pricing: Boolean(tenant.inbox_ai_auto_send_pricing),
+    inbox_ai_notify_assignee_on_auto_send: Boolean(tenant.inbox_ai_notify_assignee_on_auto_send),
+    inbox_auto_draft_enabled: Boolean(tenant.inbox_auto_draft_enabled),
+    inbox_ai_platform_disabled: Boolean(tenant.inbox_ai_platform_disabled),
+    inbox_ai_auto_send_platform_enabled: env.inboxAiAutoSendEnabled,
+    inbox_ai_auto_send_notify_platform_enabled: env.inboxAiAutoSendNotify,
   };
 }
 
@@ -87,6 +99,41 @@ export async function updateWeworkSettings(auth, body) {
   if (value.allow_auto_send !== undefined) {
     updateData.allow_auto_send = Boolean(value.allow_auto_send);
   }
+  if (value.inbox_ai_auto_send !== undefined) {
+    if (!env.inboxAiAutoSendEnabled && value.inbox_ai_auto_send) {
+      throw new HttpError(400, '平台已禁用收件箱 AI 自动发送（INBOX_AI_AUTO_SEND=0）', 400);
+    }
+    const tenantCheck = await Tenant.findByPk(auth.tenantId, {
+      attributes: ['inbox_ai_platform_disabled'],
+    });
+    if (tenantCheck?.inbox_ai_platform_disabled && value.inbox_ai_auto_send) {
+      throw new HttpError(403, '平台已关闭本企业 AI 自动发送，请联系运营', 403);
+    }
+    updateData.inbox_ai_auto_send = Boolean(value.inbox_ai_auto_send);
+    if (!updateData.inbox_ai_auto_send && value.inbox_ai_auto_send_pricing === undefined) {
+      updateData.inbox_ai_auto_send_pricing = false;
+    }
+  }
+  if (value.inbox_ai_auto_send_pricing !== undefined) {
+    if (!env.inboxAiAutoSendEnabled && value.inbox_ai_auto_send_pricing) {
+      throw new HttpError(400, '平台已禁用收件箱 AI 自动发送（INBOX_AI_AUTO_SEND=0）', 400);
+    }
+    const tenantCheck2 = await Tenant.findByPk(auth.tenantId, {
+      attributes: ['inbox_ai_platform_disabled'],
+    });
+    if (tenantCheck2?.inbox_ai_platform_disabled && value.inbox_ai_auto_send_pricing) {
+      throw new HttpError(403, '平台已关闭本企业 AI 自动发送，请联系运营', 403);
+    }
+    updateData.inbox_ai_auto_send_pricing = Boolean(value.inbox_ai_auto_send_pricing);
+  }
+  if (value.inbox_ai_notify_assignee_on_auto_send !== undefined) {
+    updateData.inbox_ai_notify_assignee_on_auto_send = Boolean(
+      value.inbox_ai_notify_assignee_on_auto_send,
+    );
+  }
+  if (value.inbox_auto_draft_enabled !== undefined) {
+    updateData.inbox_auto_draft_enabled = Boolean(value.inbox_auto_draft_enabled);
+  }
 
   await tenant.update(updateData);
   await clearAccessTokenCache(Number(tenant.id));
@@ -99,6 +146,13 @@ export async function updateWeworkSettings(auth, body) {
     wework_token: tenant.wework_token ?? null,
     wework_encoding_aes_key_set: Boolean(tenant.wework_encoding_aes_key),
     allow_auto_send: Boolean(tenant.allow_auto_send),
+    inbox_ai_auto_send: Boolean(tenant.inbox_ai_auto_send),
+    inbox_ai_auto_send_pricing: Boolean(tenant.inbox_ai_auto_send_pricing),
+    inbox_ai_notify_assignee_on_auto_send: Boolean(tenant.inbox_ai_notify_assignee_on_auto_send),
+    inbox_auto_draft_enabled: Boolean(tenant.inbox_auto_draft_enabled),
+    inbox_ai_platform_disabled: Boolean(tenant.inbox_ai_platform_disabled),
+    inbox_ai_auto_send_platform_enabled: env.inboxAiAutoSendEnabled,
+    inbox_ai_auto_send_notify_platform_enabled: env.inboxAiAutoSendNotify,
   };
 }
 

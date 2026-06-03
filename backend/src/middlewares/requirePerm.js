@@ -1,20 +1,36 @@
 /**
  * @file 细粒度权限守卫（方案 A：以 JWT 内 perm_codes 为准）。
  */
+import { LEGACY_PERMISSION_ALIAS } from '../constants/permissionCatalog.js';
 import { fail } from '../utils/response.js';
+import { hasPerm, isAdmin } from '../utils/permissions.js';
 
-function jwtRole(req) {
-  const u = req.user;
-  if (u && Object.prototype.hasOwnProperty.call(u, '__jwtRole') && u.__jwtRole !== undefined && u.__jwtRole !== null) {
-    return u.__jwtRole;
+function authFromReq(req) {
+  if (req.auth) {
+    return {
+      permissions: req.auth.permissions ?? [],
+      legacyRole: req.auth.legacyRole ?? null,
+      roleName: req.auth.roleName ?? null,
+    };
   }
-  return u?.get?.('role') ?? u?.role;
+  const u = req.user;
+  let legacyRole = u?.get?.('role') ?? u?.role ?? null;
+  if (u && Object.prototype.hasOwnProperty.call(u, '__jwtRole') && u.__jwtRole !== undefined && u.__jwtRole !== null) {
+    legacyRole = u.__jwtRole;
+  }
+  return {
+    permissions: u?.perm_codes ?? [],
+    legacyRole,
+    roleName: u?.Role?.name ?? null,
+  };
 }
 
-function tokenHasPerm(perms, code) {
-  if (!code) return false;
-  if (perms.includes('*')) return true;
-  return perms.includes(code);
+function permAllowed(auth, permCode) {
+  if (!permCode) return true;
+  if (hasPerm(auth, permCode)) return true;
+  const alias = LEGACY_PERMISSION_ALIAS[permCode];
+  if (alias && hasPerm(auth, alias)) return true;
+  return false;
 }
 
 /**
@@ -22,11 +38,11 @@ function tokenHasPerm(perms, code) {
  */
 export function requirePerm(permCode) {
   return function checkPerm(req, res, next) {
-    const perms = req.user?.perm_codes ?? [];
-    if (jwtRole(req) !== 'admin' && !tokenHasPerm(perms, permCode)) {
-      return fail(res, 403, `缺少权限: ${permCode}`, null, 403);
+    const auth = authFromReq(req);
+    if (isAdmin(auth) || permAllowed(auth, permCode)) {
+      return next();
     }
-    return next();
+    return fail(res, 403, `缺少权限: ${permCode}`, null, 403);
   };
 }
 
@@ -36,12 +52,12 @@ export function requirePerm(permCode) {
  */
 export function requireAnyPerm(...codes) {
   return function checkAny(req, res, next) {
-    const perms = req.user?.perm_codes ?? [];
-    if (jwtRole(req) === 'admin') {
+    const auth = authFromReq(req);
+    if (isAdmin(auth)) {
       return next();
     }
     for (const c of codes) {
-      if (tokenHasPerm(perms, c)) {
+      if (permAllowed(auth, c)) {
         return next();
       }
     }

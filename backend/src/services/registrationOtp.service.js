@@ -33,7 +33,7 @@ function normalizeCnMobile(s) {
 }
 
 export function isRegisterOtpEnabled() {
-  return true;
+  return env.registerOtp.required;
 }
 
 export function getRegisterOtpChannels() {
@@ -119,6 +119,9 @@ async function sendSmsWebhook(phone, code) {
 }
 
 export async function sendRegisterOtp({ channel, target }, clientIp) {
+  if (!isRegisterOtpEnabled()) {
+    throw new HttpError(400, '当前未开启注册验证码', 400);
+  }
   const channels = getRegisterOtpChannels();
   if (channels.length === 0) {
     // 开发环境兜底：未配置真实通道时允许生成验证码用于本地联调

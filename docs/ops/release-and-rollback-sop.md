@@ -31,19 +31,25 @@
 
 ### 1.3 数据库
 
-- [ ] `schema_migrations` 表存在
-- [ ] `npm run migrate:status` 可执行
-- [ ] 已确认本次迁移列表（名称 + 风险）
+> 本仓库**无** `npm run migrate:status` / `migrate:up`。请按编号手动执行 `database/*.sql`，详见 [production-checklist.md §4.2](../deploy/production-checklist.md#42-执行迁移按顺序)；收件箱 AI 增量见 [go-live-ai-inbox.md §三](../deploy/go-live-ai-inbox.md#三数据库迁移增量库必跑)（`072`～`076` 等）。
+
+- [ ] 已确认本次待执行的 `database/*.sql` 列表（文件名 + 风险）
+- [ ] 生产库已备份或可回滚
+- [ ] （推荐）仓库根目录已执行 `./scripts/deploy-check.sh`
 
 ## 2. 标准发布流程
 
 ### 2.1 后端发布（ECS）
 
 ```bash
+# 发布前（本机仓库根目录，可选）
+./scripts/deploy-check.sh
+
 cd /var/www/wework-saas/backend
 npm ci
-npm run migrate:status
-npm run migrate:up
+# 数据库：按编号执行本次新增的 database/*.sql（勿依赖 npm migrate）
+# 示例见 docs/deploy/production-checklist.md §4.2
+# mysql -u <user> -p <db> < /var/www/wework-saas/database/0xx_xxx.sql
 pm2 restart wework-api --update-env
 ```
 

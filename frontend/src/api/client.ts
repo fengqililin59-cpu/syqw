@@ -82,8 +82,15 @@ http.interceptors.response.use(
       }
     }
     if (status === 401) {
-      useAuthStore.getState().clear()
-      if (!window.location.pathname.startsWith('/login')) {
+      const path = window.location.pathname
+      const onAuthSurface =
+        path.startsWith('/login') ||
+        path.startsWith('/register') ||
+        path.startsWith('/demo') ||
+        path.startsWith('/wework/callback') ||
+        path.startsWith('/syzs/callback')
+      if (!onAuthSurface) {
+        useAuthStore.getState().clear()
         window.location.assign('/login')
       }
     }
@@ -127,6 +134,12 @@ function wrapAxiosError(err: unknown): Error {
     return e
   }
   return new Error(err.message || '网络错误')
+}
+
+/** 登录/注册后立即拉权限：显式带 token，避免 persist 重水合覆盖 store 导致 401 */
+export async function getJsonWithToken<T>(url: string, token: string, config?: AxiosRequestConfig): Promise<T> {
+  const headers = { ...(config?.headers as Record<string, string> | undefined), Authorization: `Bearer ${token}` }
+  return getJson<T>(url, { ...config, headers })
 }
 
 export async function getJson<T>(url: string, config?: AxiosRequestConfig): Promise<T> {

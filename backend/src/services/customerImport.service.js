@@ -9,6 +9,7 @@ import { parse as parseCsv } from 'csv-parse/sync';
 import { Op } from 'sequelize';
 import { HttpError } from '../utils/httpError.js';
 import { Customer, CustomerTag, ImportJob, Tag, User } from '../models/index.js';
+import { CustomFieldDef, CustomerFieldValue } from '../models/customField.model.js';
 import { writeAuditLog } from './auditLog.service.js';
 
 const STAGES = ['new', 'intent_confirm', 'proposal', 'negotiation', 'deal', 'lost', 'contacted', 'intent'];
@@ -38,6 +39,31 @@ const FIELD_ALIASES = {
   source: ['source', '来源', '客户来源'],
   tags: ['tag', '标签', '客户标签', 'tags'],
 };
+
+// 自定义字段映射（key 为 `cf:<field_key>`，运行时由 buildCustomFieldAliases 动态填充）
+let customFieldAliases = {};
+// 自定义字段定义缓存（field_key → field_id 映射）
+let customFieldDefMap = {};
+
+/**
+ * 从租户激活的自定义字段定义构建别名映射。
+ */
+async function buildCustomFieldAliases(tenantId) {
+  const defs = await CustomFieldDef.findAll({
+    where: { tenant_id: tenantId, is_active: true },
+    attributes: ['id', 'field_key', 'field_label', 'field_type'],
+    order: [['display_order', 'ASC']],
+    raw: true,
+  });
+  customFieldAliases = {};
+  customFieldDefMap = {};
+  for (const d of defs) {
+    const key = `cf:${d.field_key}`;
+    customFieldAliases[key] = [d.field_label, d.field_key];
+    customFieldDefMap[d.field_key] = { id: d.id, type: d.field_type };
+  }
+  return customFieldAliases;
+}
 
 function normalizeHeader(v) {
   return String(v ?? '')
@@ -74,9 +100,16 @@ function splitTags(v) {
 function mapHeaderToField(raw) {
   const n = normalizeHeader(raw);
   if (!n) return null;
+  // 先检查标准字段
   for (const [field, aliases] of Object.entries(FIELD_ALIASES)) {
     if (aliases.some((a) => normalizeHeader(a) === n || n.includes(normalizeHeader(a)))) {
       return field;
+    }
+  }
+  // 再检查自定义字段
+  for (const [cfKey, aliases] of Object.entries(customFieldAliases)) {
+    if (aliases.some((a) => normalizeHeader(a) === n || n.includes(normalizeHeader(a)))) {
+      return cfKey; // 返回 "cf:<field_key>" 格式
     }
   }
   return null;
@@ -100,11 +133,26 @@ function parseBufferByExt(buf, fileName) {
 function shapeRow(rawRow, columns, defaultStage = 'new') {
   const rawObj = {};
   const mapped = {};
+  const customFields = {}; // 自定义字段值：{ field_key: value }
   for (let i = 0; i < columns.length; i += 1) {
     const c = columns[i];
     const val = rawRow[i] ?? '';
     rawObj[c.raw || `col_${i + 1}`] = val;
     if (!c.mapped) continue;
+    // 自定义字段：格式 "cf:<field_key>"
+    if (c.mapped.startsWith('cf:')) {
+      const fieldKey = c.mapped.slice(3);
+      const def = customFieldDefMap[fieldKey];
+      if (def) {
+        let normalizedVal = String(val ?? '').trim();
+        // 多选型：按逗号分隔后 JSON 化
+        if (def.type === 'multi_select' && normalizedVal) {
+          normalizedVal = JSON.stringify(normalizedVal.split(',').map((x) => x.trim()).filter(Boolean));
+        }
+        customFields[fieldKey] = normalizedVal || null;
+      }
+      continue;
+    }
     if (c.mapped === 'tags') {
       mapped.tags = String(val ?? '');
     } else {
@@ -135,7 +183,7 @@ function shapeRow(rawRow, columns, defaultStage = 'new') {
   if (!mapped.name) issues.push('缺少姓名/手机号');
   if (mapped.phone && !/^\+?\d{6,20}$/.test(mapped.phone)) issues.push('手机号格式可能异常');
 
-  return { raw: rawObj, mapped, tags, issues };
+  return { raw: rawObj, mapped, tags, customFields, issues };
 }
 
 async function ensureOwnerInTenant(tenantId, ownerId) {
@@ -143,7 +191,10 @@ async function ensureOwnerInTenant(tenantId, ownerId) {
   if (!user) throw new HttpError(400, '默认负责人不存在或不属于当前租户', 400);
 }
 
-async function readAndMapRows(filePath, fileName, defaultStage = 'new') {
+async function readAndMapRows(filePath, fileName, tenantId, defaultStage = 'new') {
+  // 加载该租户的自定义字段映射
+  await buildCustomFieldAliases(tenantId);
+
   const buf = await fs.readFile(filePath);
   const matrix = parseBufferByExt(buf, fileName);
   if (!Array.isArray(matrix) || matrix.length < 1) return { columns: [], rows: [] };
@@ -191,6 +242,31 @@ function formatJobPreview(job, preview, includeLarge = true) {
 }
 
 /**
+ * 保存导入行的自定义字段值（批量 upsert）。
+ * @param {number} tenantId
+ * @param {number} customerId
+ * @param {Record<string, string|null>} customFields - { field_key: value }
+ */
+async function saveImportCustomFieldValues(tenantId, customerId, customFields) {
+  if (!customFields || Object.keys(customFields).length === 0) return;
+  for (const [fieldKey, value] of Object.entries(customFields)) {
+    const def = customFieldDefMap[fieldKey];
+    if (!def) continue;
+    await CustomerFieldValue.upsert(
+      {
+        tenant_id: tenantId,
+        customer_id: customerId,
+        field_id: def.id,
+        value: value ?? '',
+      },
+      {
+        conflictFields: ['tenant_id', 'customer_id', 'field_id'],
+      },
+    );
+  }
+}
+
+/**
  * 解析上传文件并创建预览任务（不执行导入）。
  */
 export async function parseUploadedFile(tenantId, createdBy, filePath, fileName) {
@@ -211,7 +287,7 @@ export async function parseUploadedFile(tenantId, createdBy, filePath, fileName)
   });
 
   try {
-    const { columns, rows } = await readAndMapRows(filePath, fileName, 'new');
+    const { columns, rows } = await readAndMapRows(filePath, fileName, tenantId, 'new');
     if (rows.length > FILE_MAX_ROWS) {
       throw new HttpError(400, `单次最多导入 ${FILE_MAX_ROWS} 条，请拆分后重试`, 400);
     }
@@ -280,7 +356,7 @@ export async function executeImport(jobId, options) {
 
     await ensureOwnerInTenant(tenantId, options.default_owner_id);
 
-    const { rows } = await readAndMapRows(filePath, job.file_name, options.default_stage || 'new');
+    const { rows } = await readAndMapRows(filePath, job.file_name, tenantId, options.default_stage || 'new');
     if (rows.length > FILE_MAX_ROWS) throw new Error(`单次最多导入 ${FILE_MAX_ROWS} 条`);
 
     await job.update({
@@ -390,6 +466,8 @@ export async function executeImport(jobId, options) {
                 defaults: { created_by: createdBy },
               });
             }
+            // 保存自定义字段值（更新模式）
+            await saveImportCustomFieldValues(tenantId, found.id, line.customFields);
           }
         } else {
           const created = await Customer.create({
@@ -413,6 +491,8 @@ export async function executeImport(jobId, options) {
               defaults: { created_by: createdBy },
             });
           }
+          // 保存自定义字段值（新建模式）
+          await saveImportCustomFieldValues(tenantId, created.id, line.customFields);
         }
       } catch (e) {
         failed += 1;

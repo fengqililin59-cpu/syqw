@@ -16,5 +16,6 @@ router.post('/generate-copy', asyncHandler(aiContentController.generateCopy));
 router.post('/generate-poster', asyncHandler(aiContentController.generatePoster));
 router.post('/reply-suggestions', asyncHandler(aiContentController.replySuggestions));
 router.post('/chat', asyncHandler(aiContentController.contextChat));
+router.post('/assistant', asyncHandler(aiContentController.assistantChat));
 
 export default router;

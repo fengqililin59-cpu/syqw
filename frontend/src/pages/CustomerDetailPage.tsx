@@ -15,6 +15,7 @@ import {
   Send,
   Edit2,
   Save,
+  Sparkles,
 } from 'lucide-react'
 import { getJson, postJson, putJson } from '@/api/client'
 import { fetchTags } from '@/api/tags'
@@ -42,27 +43,20 @@ import {
 } from '@/components/ui/dialog'
 import { useAuthStore } from '@/store/authStore'
 import { canManageStaffUser, hasPermUser } from '@/lib/roles'
+import { CustomerAiReplyPanel } from '@/components/CustomerAiReplyPanel'
+import { IntentAlertPlaybookDialog } from '@/components/IntentAlertPlaybookDialog'
+import {
+  CustomerTimelineSection,
+  type TimelineItem,
+  type TimelineSummary,
+} from '@/components/CustomerTimelineSection'
 import CallButton from '@/components/CallButton'
 import SmsButton from '@/components/SmsButton'
 
 // ─── types ────────────────────────────────────────────────────────────────────
 type FollowUp = { id: number; content: string; created_at: string; type?: string }
 
-type TimelineItem = {
-  id: string
-  type: 'follow_up' | 'wework_message' | 'inbox_message' | 'ticket' | 'order' | 'call' | 'sms'
-  at: string
-  title: string
-  summary: string
-  meta?: {
-    ticket_id?: number
-    thread_id?: number
-    follow_up_id?: number
-    author?: string
-  }
-}
-
-type TimelineResponse = { list: TimelineItem[]; total: number }
+type TimelineResponse = { list: TimelineItem[]; total: number; summary?: TimelineSummary }
 
 // ─── constants ────────────────────────────────────────────────────────────────
 const stageLabels: Record<string, string> = {
@@ -103,26 +97,6 @@ const followTypeLabels: Record<string, string> = {
   other: '📝 备注',
 }
 
-const timelineTypeLabels: Record<TimelineItem['type'], string> = {
-  follow_up: '跟进',
-  wework_message: '企微',
-  inbox_message: '收件箱',
-  ticket: '工单',
-  order: '订单',
-  call: '通话',
-  sms: '短信',
-}
-
-const timelineTypeColors: Record<TimelineItem['type'], string> = {
-  follow_up: 'bg-emerald-100 text-emerald-700',
-  wework_message: 'bg-green-100 text-green-700',
-  inbox_message: 'bg-blue-100 text-blue-700',
-  ticket: 'bg-amber-100 text-amber-700',
-  order: 'bg-purple-100 text-purple-700',
-  call: 'bg-orange-100 text-orange-700',
-  sms: 'bg-slate-100 text-slate-700',
-}
-
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function fmtDt(iso?: string | null) {
   if (!iso) return '—'
@@ -160,6 +134,7 @@ export function CustomerDetailPage() {
 
   const canEdit = hasPermUser(permissions, 'customer:edit')
   const canManageUsers = canManageStaffUser(permissions)
+  const canAi = hasPermUser(permissions, 'ai:use')
 
   // ── data ──
   const [customer, setCustomer] = useState<CustomerRow | null>(null)
@@ -170,6 +145,7 @@ export function CustomerDetailPage() {
   const [fuLoading, setFuLoading] = useState(false)
 
   const [timeline, setTimeline] = useState<TimelineItem[]>([])
+  const [timelineSummary, setTimelineSummary] = useState<TimelineSummary | null>(null)
   const [timelineLoading, setTimelineLoading] = useState(false)
 
   const [chatMsgs, setChatMsgs] = useState<WeworkChatMessage[]>([])
@@ -179,12 +155,21 @@ export function CustomerDetailPage() {
   const [scoreLoading, setScoreLoading] = useState(false)
 
   // ── tabs ──
-  const [activeTab, setActiveTab] = useState<'timeline' | 'followups' | 'messages' | 'intent'>('timeline')
+  const [activeTab, setActiveTab] = useState<'timeline' | 'followups' | 'messages' | 'intent' | 'products'>('timeline')
 
   // ── quick follow-up ──
   const [fuContent, setFuContent] = useState('')
   const [fuType, setFuType] = useState('other')
   const [fuSaving, setFuSaving] = useState(false)
+
+  // ── AI 话术生成 ──
+  const [fuScripts, setFuScripts] = useState<string[]>([])
+  const [fuScriptLoading, setFuScriptLoading] = useState(false)
+  const [fuScriptOpen, setFuScriptOpen] = useState(false)
+
+  // ── AI 客户画像摘要 ──
+  const [aiSummary, setAiSummary] = useState<string | null>(null)
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false)
 
   // ── edit dialog ──
   const [editOpen, setEditOpen] = useState(false)
@@ -204,6 +189,8 @@ export function CustomerDetailPage() {
 
   const [discovery, setDiscovery] = useState<CustomerDiscoveryProfile>({})
   const [discoverySaving, setDiscoverySaving] = useState(false)
+
+  const [playbookOpen, setPlaybookOpen] = useState(false)
   const [discoverySaved, setDiscoverySaved] = useState(false)
 
   function applyDiscoveryFromCustomer(row: CustomerRow) {
@@ -234,12 +221,27 @@ export function CustomerDetailPage() {
     }
   }, [id])
 
+  // ─── AI 客户画像摘要 ──────────────────────────────────────────────────────────
+  const loadAiSummary = useCallback(async () => {
+    if (!id || !canAi) return
+    setAiSummaryLoading(true)
+    try {
+      const data = await getJson<{ summary: string; stage: string; intent_score: number }>(`/customers/${id}/summary`)
+      setAiSummary(data.summary || null)
+    } catch {
+      setAiSummary(null)
+    } finally {
+      setAiSummaryLoading(false)
+    }
+  }, [id, canAi])
+
   const loadTimeline = useCallback(async () => {
     if (!id) return
     setTimelineLoading(true)
     try {
-      const data = await getJson<TimelineResponse>(`/customers/${id}/timeline?limit=100`)
+      const data = await getJson<TimelineResponse>(`/customers/${id}/timeline?limit=120`)
       setTimeline(data.list ?? [])
+      setTimelineSummary(data.summary ?? null)
     } finally {
       setTimelineLoading(false)
     }
@@ -271,7 +273,8 @@ export function CustomerDetailPage() {
     void loadCustomer()
     void loadTimeline()
     void loadFollowUps()
-  }, [loadCustomer, loadTimeline, loadFollowUps])
+    void loadAiSummary()
+  }, [loadCustomer, loadTimeline, loadFollowUps, loadAiSummary])
 
   useEffect(() => {
     if (activeTab === 'messages' && chatMsgs.length === 0) {
@@ -315,6 +318,26 @@ export function CustomerDetailPage() {
     }
   }
 
+  // ─── AI 生成跟进话术 ─────────────────────────────────────────────────────────
+  async function handleGenerateScripts() {
+    if (!id) return
+    setFuScriptLoading(true)
+    setFuScriptOpen(true)
+    try {
+      const res = await postJson<{ scripts: string[] }>(`/customers/${id}/followup-scripts`, {})
+      setFuScripts(res.scripts || [])
+    } catch {
+      setFuScripts([])
+    } finally {
+      setFuScriptLoading(false)
+    }
+  }
+
+  function applyScript(text: string) {
+    setFuContent(text)
+    setFuScriptOpen(false)
+  }
+
   // ─── score intent ─────────────────────────────────────────────────────────
   async function handleScoreIntent() {
     if (!id) return
@@ -355,7 +378,7 @@ export function CustomerDetailPage() {
     if (!id) return
     setEditSaving(true)
     try {
-      await putJson(`/customers/${id}`, {
+      const saved = await putJson<CustomerRow>(`/customers/${id}`, {
         name: editName || null,
         phone: editPhone || null,
         wechat_id: editWechatId || null,
@@ -369,6 +392,9 @@ export function CustomerDetailPage() {
       await putJson(`/customers/${id}/tags`, { tag_ids: editTagIds })
       setEditOpen(false)
       await loadCustomer()
+      if (saved.inbox_threads_synced && saved.inbox_threads_synced > 0) {
+        window.alert(`已同步 ${saved.inbox_threads_synced} 个收件箱会话的销售阶段`)
+      }
     } finally {
       setEditSaving(false)
     }
@@ -429,6 +455,12 @@ export function CustomerDetailPage() {
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${stageColor}`}>
                   {stageLabel}
                 </span>
+                <Link
+                  to={`/app/inbox?customer_id=${customer.id}`}
+                  className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-800 hover:bg-indigo-100"
+                >
+                  收件箱
+                </Link>
                 {customer.intent_score != null && (
                   <span
                     className={`flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${intentBg(customer.intent_score)}`}
@@ -505,10 +537,63 @@ export function CustomerDetailPage() {
                   customerPhone={customer.phone}
                 />
               )}
+              {(customer.intent_score ?? 0) >= 65 ? (
+                <Button size="sm" onClick={() => setPlaybookOpen(true)}>
+                  <Sparkles className="mr-1 h-3.5 w-3.5" />
+                  跟进助手
+                </Button>
+              ) : null}
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {(customer.intent_score ?? 0) >= 70 ? (
+        <Card className="border-violet-200 bg-gradient-to-r from-violet-50/80 to-white">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+            <div>
+              <p className="text-sm font-semibold text-violet-950">高意向客户 · 建议今日跟进</p>
+              <p className="text-xs text-violet-900/75">
+                一键匹配话术库并生成 AI 跟进文案，复制后即可在企微发送。
+              </p>
+            </div>
+            <Button size="sm" onClick={() => setPlaybookOpen(true)}>
+              <Sparkles className="mr-1 h-3.5 w-3.5" />
+              打开跟进助手
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* ── AI 客户画像摘要 ── */}
+      {canAi && (
+        <Card className="border-indigo-100 bg-gradient-to-r from-indigo-50/60 to-white shadow-sm">
+          <CardContent className="py-3">
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                <Sparkles className="h-3.5 w-3.5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                {aiSummaryLoading ? (
+                  <p className="text-sm text-muted-foreground animate-pulse">AI 正在分析客户画像...</p>
+                ) : aiSummary ? (
+                  <p className="text-sm leading-relaxed text-indigo-950">{aiSummary}</p>
+                ) : null}
+              </div>
+              {aiSummary && !aiSummaryLoading && (
+                <button
+                  type="button"
+                  onClick={() => void loadAiSummary()}
+                  className="shrink-0 rounded-md px-2 py-1 text-xs text-indigo-500 hover:bg-indigo-100 transition-colors"
+                  title="重新生成"
+                >
+                  刷新
+                </button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── 内容区：左侧信息 + 右侧活动流 ── */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[280px_1fr]">
@@ -657,6 +742,7 @@ export function CustomerDetailPage() {
                 { key: 'followups', label: `跟进记录 (${followUps.length})` },
                 { key: 'messages', label: '企微消息' },
                 { key: 'intent', label: '意向分析' },
+                { key: 'products', label: '🏦 产品匹配' },
               ] as const
             ).map((tab) => (
               <button
@@ -674,60 +760,14 @@ export function CustomerDetailPage() {
           </div>
 
           {/* ── Tab: 全渠道时间线 ── */}
-          {activeTab === 'timeline' && (
-            <div className="space-y-3">
-              {timelineLoading ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">加载中...</p>
-              ) : timeline.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">
-                  暂无互动记录（跟进、企微、收件箱、工单、订单、通话、短信将聚合展示）
-                </p>
-              ) : (
-                <div className="relative space-y-0 pl-5">
-                  <div className="absolute left-2 top-2 bottom-2 w-px bg-border" />
-                  {timeline.map((item) => (
-                    <div key={item.id} className="relative pb-5">
-                      <div className="absolute -left-3 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-primary bg-background" />
-                      <div className="rounded-xl border bg-card p-3.5 shadow-sm">
-                        <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge className={timelineTypeColors[item.type]}>
-                              {timelineTypeLabels[item.type]}
-                            </Badge>
-                            <span className="text-sm font-medium">{item.title}</span>
-                          </div>
-                          <span className="text-xs text-muted-foreground">{fmtDt(item.at)}</span>
-                        </div>
-                        {item.summary ? (
-                          <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                            {item.summary}
-                          </p>
-                        ) : null}
-                        {item.meta?.author ? (
-                          <p className="mt-1 text-xs text-muted-foreground">操作人：{item.meta.author}</p>
-                        ) : null}
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {item.meta?.ticket_id ? (
-                            <Link
-                              to={`/app/service-desk/tickets/${item.meta.ticket_id}`}
-                              className="text-xs text-primary hover:underline"
-                            >
-                              查看工单
-                            </Link>
-                          ) : null}
-                          {item.meta?.thread_id ? (
-                            <Link to="/app/inbox" className="text-xs text-primary hover:underline">
-                              打开收件箱
-                            </Link>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          {activeTab === 'timeline' && id ? (
+            <CustomerTimelineSection
+              items={timeline}
+              summary={timelineSummary}
+              loading={timelineLoading}
+              customerId={id}
+            />
+          ) : null}
 
           {/* ── Tab: 跟进记录 ── */}
           {activeTab === 'followups' && (
@@ -750,7 +790,48 @@ export function CustomerDetailPage() {
                           {followTypeLabels[t]}
                         </button>
                       ))}
+                      {canAi && (
+                        <button
+                          type="button"
+                          onClick={() => void handleGenerateScripts()}
+                          disabled={fuScriptLoading}
+                          className="rounded-lg px-2.5 py-1 text-xs font-medium bg-gradient-to-r from-violet-500 to-indigo-500 text-white hover:from-violet-600 hover:to-indigo-600 transition-all disabled:opacity-50"
+                        >
+                          <Sparkles className="mr-1 inline h-3 w-3" />
+                          {fuScriptLoading ? '生成中...' : 'AI话术'}
+                        </button>
+                      )}
                     </div>
+                    {/* AI 话术气泡 */}
+                    {fuScriptOpen && (
+                      <div className="rounded-lg border border-violet-200 bg-violet-50/50 p-3 space-y-2">
+                        <p className="text-xs font-medium text-violet-700 flex items-center gap-1">
+                          <Sparkles className="h-3 w-3" /> AI 生成的话术（点击使用）
+                        </p>
+                        {fuScriptLoading ? (
+                          <p className="text-xs text-muted-foreground animate-pulse">正在生成个性化话术...</p>
+                        ) : fuScripts.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">生成失败，请重试</p>
+                        ) : (
+                          fuScripts.map((s, i) => {
+                            const badges = ['关怀型', '价值型', '促成型']
+                            return (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => applyScript(s)}
+                                className="block w-full text-left rounded-md border border-violet-100 bg-white p-2.5 text-sm leading-relaxed hover:border-violet-300 hover:shadow-sm transition-all"
+                              >
+                                <span className="inline-block rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-600 mr-1.5">
+                                  {badges[i]}
+                                </span>
+                                {s}
+                              </button>
+                            )
+                          })
+                        )}
+                      </div>
+                    )}
                     <Textarea
                       placeholder="记录跟进内容..."
                       value={fuContent}
@@ -804,6 +885,16 @@ export function CustomerDetailPage() {
           {activeTab === 'messages' && (
             <Card className="rounded-2xl shadow-sm">
               <CardContent className="p-4">
+                {canAi && id ? (
+                  <div id="customer-ai-panel">
+                    <CustomerAiReplyPanel
+                      customerId={Number(id)}
+                      lastCustomerMessage={
+                        [...chatMsgs].reverse().find((m) => m.direction === 'customer')?.content || null
+                      }
+                    />
+                  </div>
+                ) : null}
                 {chatLoading ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">加载中...</p>
                 ) : chatMsgs.length === 0 ? (
@@ -963,6 +1054,9 @@ export function CustomerDetailPage() {
                   <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>
+              <p className="text-[11px] text-muted-foreground">
+                保存后将同步关联的收件箱会话阶段（见「收件箱」）。
+              </p>
             </div>
             {canManageUsers && allUsers.length > 0 && (
               <div className="space-y-1">
@@ -1023,6 +1117,12 @@ export function CustomerDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <IntentAlertPlaybookDialog
+        customerId={customer.id}
+        open={playbookOpen}
+        onOpenChange={setPlaybookOpen}
+      />
     </div>
   )
 }

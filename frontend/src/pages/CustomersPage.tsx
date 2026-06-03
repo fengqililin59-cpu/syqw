@@ -3,13 +3,13 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronLeft, SlidersHorizontal, Upload, X } from 'lucide-react'
+import { ChevronLeft, SlidersHorizontal, Upload, X, Download, Tags, UserPlus, ArrowRight, Trash2, CheckSquare, Square } from 'lucide-react'
 import { deleteJson, getJson, postJson, putJson } from '@/api/client'
 import { fetchTags } from '@/api/tags'
+import { exportCustomers, downloadImportTemplate, batchOperateCustomers } from '@/api/customers'
 import type {
   CustomerIntentScoreResult,
   CustomerRow,
-  ExportCustomersResult,
   Paginated,
   TagRow,
   UserRow,
@@ -117,6 +117,28 @@ export function CustomersPage() {
   const [transferUserId, setTransferUserId] = useState('')
   const [importOpen, setImportOpen] = useState(false)
   const [filterOpen, setFilterOpen] = useState(false)
+
+  // 批量选择
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [selectAll, setSelectAll] = useState(false)
+
+  // 导出对话框
+  const [exportOpen, setExportOpen] = useState(false)
+  const [exportFields, setExportFields] = useState<string[]>([])
+  const [exportFormat, setExportFormat] = useState<'xlsx' | 'csv'>('xlsx')
+  const [exportLoading, setExportLoading] = useState(false)
+  const [availableExportFields, setAvailableExportFields] = useState<string[]>([])
+
+  // 批量操作加载
+  const [batchLoading, setBatchLoading] = useState(false)
+
+  // 批量操作对话框
+  const [batchTagOpen, setBatchTagOpen] = useState(false)
+  const [batchTagIds, setBatchTagIds] = useState<number[]>([])
+  const [batchAssignOpen, setBatchAssignOpen] = useState(false)
+  const [batchAssignUserId, setBatchAssignUserId] = useState('')
+  const [batchStageOpen, setBatchStageOpen] = useState(false)
+  const [batchStage, setBatchStage] = useState('')
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedCustomer] = useState<CustomerRow | null>(null)
   const [detailFollowUps, setDetailFollowUps] = useState<
@@ -312,18 +334,102 @@ export function CustomersPage() {
     await load()
   }
 
-  async function onExport() {
-    const q = new URLSearchParams()
-    if (keyword.trim()) q.set('keyword', keyword.trim())
-    if (stageFilter) q.set('stage', stageFilter)
-    if (tagFilter) q.set('tag_id', tagFilter)
-    if (canManageUsers && ownerFilter) q.set('owner_id', ownerFilter)
-    const qs = q.toString()
-    const res = await getJson<ExportCustomersResult>(`/customers/export${qs ? `?${qs}` : ''}`)
-    const link = document.createElement('a')
-    link.href = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${res.file_base64}`
-    link.download = res.filename
-    link.click()
+  // 导出功能（含字段选择对话框）
+  async function openExportDialog() {
+    try {
+      // 获取导入模板头（含自定义字段），作为可导出字段列表
+      const tpl = await downloadImportTemplate()
+      const fields = [...new Set([...tpl.headers])]
+      setAvailableExportFields(fields)
+      setExportFields(fields) // 默认全选
+      setExportOpen(true)
+    } catch {
+      // 降级：直接导出
+      void doExport()
+    }
+  }
+
+  async function doExport() {
+    setExportLoading(true)
+    try {
+      const res = await exportCustomers({
+        keyword: keyword.trim() || undefined,
+        stage: stageFilter || undefined,
+        tag_id: tagFilter || undefined,
+        owner_id: canManageUsers && ownerFilter ? ownerFilter : undefined,
+        fields: exportFields.length > 0 ? exportFields.join(',') : undefined,
+        format: exportFormat === 'csv' ? 'csv' : undefined,
+      })
+      const mime =
+        exportFormat === 'csv'
+          ? 'data:text/csv;base64'
+          : 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64'
+      const link = document.createElement('a')
+      link.href = `${mime},${res.file_base64}`
+      link.download = res.filename
+      link.click()
+      setExportOpen(false)
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
+  // 批量选择处理
+  function toggleSelectAll() {
+    if (selectAll) {
+      setSelectedIds(new Set())
+      setSelectAll(false)
+    } else {
+      setSelectedIds(new Set(list.map((c) => c.id)))
+      setSelectAll(true)
+    }
+  }
+
+  function toggleSelect(id: number) {
+    const next = new Set(selectedIds)
+    if (next.has(id)) {
+      next.delete(id)
+      setSelectAll(false)
+    } else {
+      next.add(id)
+      if (next.size === list.length) setSelectAll(true)
+    }
+    setSelectedIds(next)
+  }
+
+  async function doBatchAction(action: string) {
+    const ids = [...selectedIds]
+    if (ids.length === 0) return
+    setBatchLoading(true)
+    try {
+      if (action === 'tag_add') {
+        if (batchTagIds.length === 0) { window.alert('请选择标签'); return }
+        await batchOperateCustomers({ ids, action: 'tag_add', tag_ids: batchTagIds })
+        setBatchTagOpen(false)
+      } else if (action === 'tag_remove') {
+        if (batchTagIds.length === 0) { window.alert('请选择标签'); return }
+        await batchOperateCustomers({ ids, action: 'tag_remove', tag_ids: batchTagIds })
+        setBatchTagOpen(false)
+      } else if (action === 'assign_owner') {
+        if (!batchAssignUserId) { window.alert('请选择负责人'); return }
+        await batchOperateCustomers({ ids, action: 'assign_owner', target_owner_id: Number(batchAssignUserId) })
+        setBatchAssignOpen(false)
+      } else if (action === 'change_stage') {
+        if (!batchStage) { window.alert('请选择阶段'); return }
+        await batchOperateCustomers({ ids, action: 'change_stage', target_stage: batchStage })
+        setBatchStageOpen(false)
+      } else if (action === 'delete') {
+        if (!window.confirm(`确定批量删除 ${ids.length} 个客户？此操作不可恢复。`)) return
+        await batchOperateCustomers({ ids, action: 'delete' })
+      }
+      setSelectedIds(new Set())
+      setSelectAll(false)
+      await load()
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : '批量操作失败')
+    } finally {
+      setBatchLoading(false)
+    }
   }
 
   async function onConfirmTransfer() {
@@ -389,8 +495,8 @@ export function CustomersPage() {
               批量导入
             </Button>
           ) : null}
-          <Button variant="outline" type="button" onClick={() => void onExport()} disabled={!canExport}>
-            导出
+          <Button variant="outline" type="button" onClick={openExportDialog} disabled={!canExport || list.length === 0}>
+            <Download className="mr-1 h-4 w-4" />导出
           </Button>
           <Button type="button" onClick={openCreate} disabled={!canEdit}>
             新建客户
@@ -488,6 +594,55 @@ export function CustomersPage() {
         ) : null}
       </div>
 
+      {selectedIds.size > 0 ? (
+        <div className="sticky top-0 z-30 flex flex-wrap items-center gap-2 rounded-md border bg-blue-50/80 p-3 backdrop-blur">
+          <CheckSquare className="h-4 w-4 text-blue-600" />
+          <span className="text-sm font-medium text-blue-800">已选 {selectedIds.size} 个客户</span>
+          <div className="flex-1" />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setBatchTagOpen(true)}
+            disabled={batchLoading || !canEdit}
+          >
+            <Tags className="mr-1 h-3 w-3" />批量标签
+          </Button>
+          {canManageUsers ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setBatchAssignOpen(true)}
+              disabled={batchLoading || !canEdit}
+            >
+              <UserPlus className="mr-1 h-3 w-3" />转移负责人
+            </Button>
+          ) : null}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setBatchStageOpen(true)}
+            disabled={batchLoading || !canEdit}
+          >
+            <ArrowRight className="mr-1 h-3 w-3" />变更阶段
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => void doBatchAction('delete')}
+            disabled={batchLoading || !canDelete}
+          >
+            <Trash2 className="mr-1 h-3 w-3" />批量删除
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => { setSelectedIds(new Set()); setSelectAll(false) }}
+          >
+            <X className="mr-1 h-3 w-3" />取消
+          </Button>
+        </div>
+      ) : null}
+
       {filterOpen ? (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setFilterOpen(false)} />
@@ -567,6 +722,19 @@ export function CustomersPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10">
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center"
+                  onClick={toggleSelectAll}
+                >
+                  {selectAll ? (
+                    <CheckSquare className="h-4 w-4 text-blue-600" />
+                  ) : (
+                    <Square className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+              </TableHead>
               <TableHead>姓名</TableHead>
               <TableHead>手机</TableHead>
               <TableHead>微信</TableHead>
@@ -583,17 +751,30 @@ export function CustomersPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={11}>加载中…</TableCell>
+                <TableCell colSpan={12}>加载中…</TableCell>
               </TableRow>
             ) : list.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center text-muted-foreground">
+                <TableCell colSpan={12} className="text-center text-muted-foreground">
                   暂无客户，可点击「新建客户」或导入。
                 </TableCell>
               </TableRow>
             ) : (
               list.map((c) => (
                 <TableRow key={c.id}>
+                  <TableCell>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center"
+                      onClick={() => toggleSelect(c.id)}
+                    >
+                      {selectedIds.has(c.id) ? (
+                        <CheckSquare className="h-4 w-4 text-blue-600" />
+                      ) : (
+                        <Square className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
+                  </TableCell>
                   <TableCell className="font-medium">
                     <button
                       className="text-left hover:underline hover:text-primary transition-colors"
@@ -1126,6 +1307,176 @@ export function CustomersPage() {
           void load()
         }}
       />
+
+      {/* 导出对话框 */}
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>导出客户</DialogTitle>
+            <DialogDescription>
+              选择要导出的字段和格式。共 {total} 条客户满足当前筛选条件。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>导出格式</Label>
+              <div className="flex gap-3">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="radio" checked={exportFormat === 'xlsx'} onChange={() => setExportFormat('xlsx')} />
+                  Excel (.xlsx)
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="radio" checked={exportFormat === 'csv'} onChange={() => setExportFormat('csv')} />
+                  CSV (.csv)
+                </label>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>导出字段</Label>
+                <button
+                  type="button"
+                  className="text-xs text-blue-600 hover:underline"
+                  onClick={() =>
+                    setExportFields(availableExportFields.length === exportFields.length ? [] : [...availableExportFields])
+                  }
+                >
+                  {availableExportFields.length === exportFields.length ? '取消全选' : '全选'}
+                </button>
+              </div>
+              <div className="max-h-48 overflow-y-auto rounded-md border p-3">
+                <div className="grid grid-cols-2 gap-2">
+                  {availableExportFields.map((f) => (
+                    <label key={f} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={exportFields.includes(f)}
+                        onChange={() =>
+                          setExportFields((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]))
+                        }
+                      />
+                      {f}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExportOpen(false)}>取消</Button>
+            <Button onClick={() => void doExport()} disabled={exportLoading || exportFields.length === 0}>
+              {exportLoading ? '导出中…' : '开始导出'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 批量标签对话框 */}
+      <Dialog open={batchTagOpen} onOpenChange={setBatchTagOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>批量标签操作</DialogTitle>
+            <DialogDescription>为选中的 {selectedIds.size} 个客户添加或移除标签</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>选择标签</Label>
+              <div className="max-h-48 overflow-y-auto rounded-md border p-3">
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={`rounded-full px-3 py-1 text-xs transition-colors ${
+                        batchTagIds.includes(t.id) ? 'text-white' : 'border bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                      style={batchTagIds.includes(t.id) ? { backgroundColor: t.color || '#3b82f6' } : undefined}
+                      onClick={() =>
+                        setBatchTagIds((prev) => (prev.includes(t.id) ? prev.filter((x) => x !== t.id) : [...prev, t.id]))
+                      }
+                    >
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBatchTagOpen(false)}>取消</Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => void doBatchAction('tag_remove')} disabled={batchLoading || batchTagIds.length === 0}>
+                移除标签
+              </Button>
+              <Button onClick={() => void doBatchAction('tag_add')} disabled={batchLoading || batchTagIds.length === 0}>
+                添加标签
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 批量转移负责人对话框 */}
+      <Dialog open={batchAssignOpen} onOpenChange={setBatchAssignOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>批量转移负责人</DialogTitle>
+            <DialogDescription>将选中的 {selectedIds.size} 个客户转移给指定负责人</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>新负责人</Label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={batchAssignUserId}
+                onChange={(e) => setBatchAssignUserId(e.target.value)}
+              >
+                <option value="">请选择</option>
+                {users.map((u) => (
+                  <option key={u.id} value={String(u.id)}>{u.real_name || u.username}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBatchAssignOpen(false)}>取消</Button>
+            <Button onClick={() => void doBatchAction('assign_owner')} disabled={batchLoading || !batchAssignUserId}>
+              确认转移
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 批量变更阶段对话框 */}
+      <Dialog open={batchStageOpen} onOpenChange={setBatchStageOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>批量变更阶段</DialogTitle>
+            <DialogDescription>将选中的 {selectedIds.size} 个客户变更为指定阶段</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>目标阶段</Label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={batchStage}
+                onChange={(e) => setBatchStage(e.target.value)}
+              >
+                <option value="">请选择</option>
+                {stages.slice(0, 6).map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBatchStageOpen(false)}>取消</Button>
+            <Button onClick={() => void doBatchAction('change_stage')} disabled={batchLoading || !batchStage}>
+              确认变更
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

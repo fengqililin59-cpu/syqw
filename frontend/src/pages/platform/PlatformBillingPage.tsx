@@ -1,7 +1,7 @@
 /**
  * @file 平台方 · 全站订单确认与兑换码管理。
  */
-import { useCallback, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 import { getJson, postJson } from '@/api/client'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { PlatformContractOrderCard } from '@/components/PlatformContractOrderCard'
+import { PlatformInvoiceRequestsCard } from '@/components/PlatformInvoiceRequestsCard'
+import { PlatformContractAttachmentsPanel } from '@/components/PlatformContractAttachmentsPanel'
+import { PlatformPaymentReconcileCard } from '@/components/PlatformPaymentReconcileCard'
+import { PlatformTenantStatementsExportCard } from '@/components/PlatformTenantStatementsExportCard'
 
 type PaymentRow = {
   id: number
@@ -21,6 +26,7 @@ type PaymentRow = {
   out_trade_no: string
   created_at: string
   remark?: string | null
+  attachment_count?: number
 }
 
 type PromoRow = {
@@ -47,6 +53,7 @@ export function PlatformBillingPage() {
   const [promoMax, setPromoMax] = useState('1')
   const [promoNote, setPromoNote] = useState('')
   const [newCode, setNewCode] = useState<string | null>(null)
+  const [expandAttTradeNo, setExpandAttTradeNo] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     const [p1, p2, p3] = await Promise.all([
@@ -86,8 +93,16 @@ export function PlatformBillingPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">订单与兑换码</h1>
-        <p className="mt-1 text-sm text-muted-foreground">确认线下转账、生成推广兑换码。</p>
+        <p className="mt-1 text-sm text-muted-foreground">确认线下转账、合同年框开单、生成推广兑换码。</p>
       </div>
+
+      <PlatformContractOrderCard onCreated={() => void load()} />
+
+      <PlatformInvoiceRequestsCard />
+
+      <PlatformPaymentReconcileCard />
+
+      <PlatformTenantStatementsExportCard />
 
       <Card className="border-amber-200">
         <CardHeader>
@@ -103,27 +118,52 @@ export function PlatformBillingPage() {
                 <TableHead>套餐</TableHead>
                 <TableHead>金额</TableHead>
                 <TableHead>备注</TableHead>
+                <TableHead>合同</TableHead>
                 <TableHead>操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pending.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>{p.tenant?.name || `#${p.tenant_id}`}</TableCell>
-                  <TableCell>{fmt(p.created_at)}</TableCell>
-                  <TableCell>{p.plan?.name || '—'}</TableCell>
-                  <TableCell>¥{Number(p.amount).toLocaleString('zh-CN')}</TableCell>
-                  <TableCell className="max-w-[120px] truncate text-xs">{p.remark || '—'}</TableCell>
-                  <TableCell>
-                    <Button size="sm" onClick={() => void confirm(p.out_trade_no)}>
-                      确认收款
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                <Fragment key={p.id}>
+                  <TableRow>
+                    <TableCell>{p.tenant?.name || `#${p.tenant_id}`}</TableCell>
+                    <TableCell>{fmt(p.created_at)}</TableCell>
+                    <TableCell>{p.plan?.name || '—'}</TableCell>
+                    <TableCell>¥{Number(p.amount).toLocaleString('zh-CN')}</TableCell>
+                    <TableCell className="max-w-[120px] truncate text-xs">{p.remark || '—'}</TableCell>
+                    <TableCell>
+                      <button
+                        type="button"
+                        className="text-xs text-blue-700 hover:underline"
+                        onClick={() =>
+                          setExpandAttTradeNo((cur) => (cur === p.out_trade_no ? null : p.out_trade_no))
+                        }
+                      >
+                        {p.attachment_count ? `${p.attachment_count} 个` : '附件'}
+                      </button>
+                    </TableCell>
+                    <TableCell>
+                      <Button size="sm" onClick={() => void confirm(p.out_trade_no)}>
+                        确认收款
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                  {expandAttTradeNo === p.out_trade_no ? (
+                    <TableRow key={`${p.id}-att`}>
+                      <TableCell colSpan={7} className="bg-slate-50/80">
+                        <PlatformContractAttachmentsPanel
+                          outTradeNo={p.out_trade_no}
+                          compact
+                          onChange={() => void load()}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                </Fragment>
               ))}
               {pending.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     暂无待确认订单
                   </TableCell>
                 </TableRow>

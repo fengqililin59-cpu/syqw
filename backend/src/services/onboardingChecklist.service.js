@@ -2,7 +2,7 @@
  * @file 租户上线检查清单（管理员仪表盘）。
  */
 import { Op } from 'sequelize';
-import { Tenant, Flow, AutomationRule, Customer, User } from '../models/index.js';
+import { Tenant, Flow, AutomationRule, Customer, User, UsageStat } from '../models/index.js';
 import { WELCOME_FLOW_NAME } from './flowTemplates.service.js';
 import { isAdmin } from '../utils/permissions.js';
 import { env } from '../config/env.js';
@@ -16,7 +16,9 @@ export async function getOnboardingChecklist(auth) {
     attributes: ['id', 'wework_corp_id', 'wework_secret', 'wework_agent_id', 'name'],
   });
 
-  const [staffWithWework, customerCount, welcomeFlow, ruleCount, activeFlows] = await Promise.all([
+  const statMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+
+  const [staffWithWework, customerCount, welcomeFlow, ruleCount, activeFlows, usageRow] = await Promise.all([
     User.count({
       where: { tenant_id: tenantId, status: 1, wework_userid: { [Op.ne]: null } },
     }),
@@ -27,6 +29,7 @@ export async function getOnboardingChecklist(auth) {
     }),
     AutomationRule.count({ where: { tenant_id: tenantId, enabled: 1 } }),
     Flow.count({ where: { tenant_id: tenantId, status: 'active' } }),
+    UsageStat.findOne({ where: { tenant_id: tenantId, stat_month: statMonth }, attributes: ['ai_calls_used'] }),
   ]);
 
   const weworkOk = Boolean(tenant?.wework_corp_id && tenant?.wework_secret);
@@ -78,6 +81,20 @@ export async function getOnboardingChecklist(auth) {
       done: customerCount > 0,
       link: '/app/customers',
     },
+    {
+      key: 'ai_assistant',
+      label: '试用站内 AI 助手（生成一条销售话术）',
+      done: Number(usageRow?.ai_calls_used || 0) > 0,
+      link: '/app/ai-assistant',
+      hint: '侧栏「AI 智能」→ 智能助手，可复制到企微发送',
+    },
+    {
+      key: 'billing',
+      label: '查看套餐、试用剩余天数与升级方式',
+      done: true,
+      link: '/app/billing',
+      hint: '新注册 14 天专业版试用；支持微信支付 / 兑换码 / 线下转账',
+    },
   ];
 
   const cronHints = [];
@@ -85,6 +102,10 @@ export async function getOnboardingChecklist(auth) {
   if (!env.enableAutomationCron) cronHints.push('ENABLE_AUTOMATION_CRON=1（自动跟进扫描）');
   if (!env.enableInboxSlaCron) cronHints.push('ENABLE_INBOX_SLA_CRON=1（收件箱 SLA）');
   if (!env.enableFollowupDueCron) cronHints.push('ENABLE_FOLLOWUP_DUE_CRON=1（跟进到期提醒）');
+  if (!env.enableWeeklyDigestCron) cronHints.push('ENABLE_WEEKLY_DIGEST_CRON=1（每周价值战报）');
+  if (!env.enableTodayActionsCron) cronHints.push('ENABLE_TODAY_ACTIONS_CRON=1（每日今日必做企微推送）');
+  if (!env.enableAiAutoReplyDigestCron) cronHints.push('ENABLE_AI_AUTO_REPLY_DIGEST_CRON=1（每日 AI 自动回复摘要 18:00）');
+  if (!env.enableChurnAlertCron) cronHints.push('ENABLE_CHURN_ALERT_CRON=1（活跃流失预警）');
   if (env.autoCreateCustomerOnWeworkAdd === false) {
     cronHints.push('AUTO_CREATE_CUSTOMER_ON_WEWORK_ADD 已关闭');
   }

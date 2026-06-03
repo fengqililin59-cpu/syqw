@@ -167,8 +167,13 @@ export async function ingestPublicWebhook(tenantId, channelCode, body, authCtx =
   };
 
   const result = await ingestWebhook(auth, code, payload);
-  if (payload.direction === 'customer' && payload.content) {
-    maybeQueueInboxAutoDraft(tenantId, result.thread.id, payload.content);
+  if (payload.direction === 'customer' && payload.content && !result.deduplicated) {
+    maybeQueueInboxAutoDraft(
+      tenantId,
+      result.thread.id,
+      payload.content,
+      result.message?.id,
+    );
   }
   return result;
 }
@@ -273,7 +278,12 @@ export async function testPublicWebhookSimulation(auth, body = {}) {
 
   const result = await ingestWebhook(auth, code, ingestBody);
   if (ingestBody.direction === 'customer' && ingestBody.content && !result.deduplicated) {
-    maybeQueueInboxAutoDraft(auth.tenantId, result.thread.id, ingestBody.content);
+    maybeQueueInboxAutoDraft(
+      auth.tenantId,
+      result.thread.id,
+      ingestBody.content,
+      result.message?.id,
+    );
   }
   return { channel: code, normalized: ingestBody, ...result };
 }

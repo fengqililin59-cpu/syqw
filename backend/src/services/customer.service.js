@@ -380,19 +380,33 @@ export async function updateCustomer(auth, id, body) {
 
   await row.save();
 
+  let inbox_threads_synced = 0;
   if (stageChanging) {
     const nextStage = normalizeStage(row.stage);
     if (prevStage !== nextStage) {
-      syncInboxThreadsFromCustomerStage(auth.tenantId, row.id, nextStage).catch((err) =>
-        console.error('[stage-sync] inbox from crm', err),
-      );
+      await writeAuditLog(auth, {
+        action: 'customer_stage_change',
+        targetType: 'customer',
+        targetId: String(row.id),
+        detail: { from_stage: prevStage, to_stage: nextStage, source: 'manual' },
+      }).catch((err) => console.warn('[customer] stage audit log', err?.message));
+      try {
+        const syncR = await syncInboxThreadsFromCustomerStage(auth.tenantId, row.id, nextStage);
+        inbox_threads_synced = syncR.updated || 0;
+      } catch (err) {
+        console.error('[stage-sync] inbox from crm', err);
+      }
       dispatchStageChangedFlows(auth.tenantId, row.id, prevStage, nextStage).catch((err) =>
         console.error('[flow-engine] stage_changed dispatch', err),
       );
     }
   }
 
-  return getCustomer(auth, id);
+  const data = await getCustomer(auth, id);
+  if (inbox_threads_synced > 0) {
+    data.inbox_threads_synced = inbox_threads_synced;
+  }
+  return data;
 }
 
 export async function rollbackLatestAutoDeal(auth, id, body = {}, context = {}) {
@@ -840,34 +854,108 @@ export async function exportCustomers(auth, query, context = {}) {
     include: [{ model: User, as: 'owner', attributes: ['id', 'username', 'real_name'] }, tagInclude],
   });
 
+  // 加载该租户的自定义字段定义和值
+  const { CustomFieldDef, CustomerFieldValue } = await import('../models/customField.model.js');
+  const fieldDefs = await CustomFieldDef.findAll({
+    where: { tenant_id: auth.tenantId, is_active: true },
+    attributes: ['id', 'field_key', 'field_label'],
+    order: [['display_order', 'ASC']],
+    raw: true,
+  });
+
+  // 批量加载所有导出客户的自定义字段值
+  const customerIds = rows.map((r) => r.id);
+  let fieldValueMap = {}; // { customerId: { field_key: value } }
+  if (customerIds.length > 0) {
+    const fieldValues = await CustomerFieldValue.findAll({
+      where: { customer_id: { [Op.in]: customerIds } },
+      attributes: ['customer_id', 'field_id', 'value'],
+      raw: true,
+    });
+    // 构建 field_id → field_key 映射
+    const fieldIdToKey = {};
+    for (const def of fieldDefs) {
+      fieldIdToKey[def.id] = def.field_key;
+    }
+    for (const fv of fieldValues) {
+      const cid = fv.customer_id;
+      const key = fieldIdToKey[fv.field_id];
+      if (!key) continue;
+      if (!fieldValueMap[cid]) fieldValueMap[cid] = {};
+      // multi_select 值尝试解析 JSON 展示
+      let displayVal = fv.value || '';
+      try {
+        const parsed = JSON.parse(displayVal);
+        if (Array.isArray(parsed)) displayVal = parsed.join(', ');
+      } catch { /* keep as-is */ }
+      fieldValueMap[cid][key] = displayVal;
+    }
+  }
+
+  // 根据 fields 参数过滤要导出的字段
+  const selectedFields = query.fields ? String(query.fields).split(',').map((s) => s.trim()).filter(Boolean) : null;
+
   const data = rows.map((cust) => {
     const p = cust.get({ plain: true });
-    return {
+    const stageLabels = {
+      new: '新线索', intent_confirm: '意向确认', proposal: '方案报价',
+      negotiation: '商务谈判', deal: '成交', lost: '流失',
+      contacted: '已联系', intent: '有意向',
+    };
+    const baseRow = {
       客户名称: p.name ?? '',
       手机: p.phone ?? '',
       微信: p.wechat_id ?? '',
       公司: p.company ?? '',
+      职位: p.position ?? '',
       来源: p.source ?? '',
-      销售阶段: p.stage ?? '',
+      销售阶段: stageLabels[p.stage] || p.stage || '',
       意向度: p.intention_level ?? '',
       标签: (p.tags || []).map((t) => t.name).join(','),
       负责人: p.owner?.real_name || p.owner?.username || '',
       备注: p.remark ?? '',
+      创建时间: p.created_at ? new Date(p.created_at).toISOString().slice(0, 10) : '',
+      最近联系: p.last_contact_at ? new Date(p.last_contact_at).toISOString().slice(0, 10) : '',
     };
+
+    // 附加自定义字段值
+    const cfValues = fieldValueMap[p.id] || {};
+    const cfRow = {};
+    for (const def of fieldDefs) {
+      cfRow[def.field_label] = cfValues[def.field_key] ?? '';
+    }
+
+    const combined = { ...baseRow, ...cfRow };
+
+    // 如果有字段筛选，只保留选中的字段
+    if (selectedFields) {
+      const filtered = {};
+      for (const key of selectedFields) {
+        if (Object.prototype.hasOwnProperty.call(combined, key)) {
+          filtered[key] = combined[key];
+        }
+      }
+      return Object.keys(filtered).length > 0 ? filtered : combined;
+    }
+
+    return combined;
   });
 
+  const format = query.format === 'csv' ? 'csv' : 'xlsx';
   const ws = XLSX.utils.json_to_sheet(data.length ? data : [{ 客户名称: '' }]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'customers');
-  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+  const out = XLSX.write(wb, { bookType: format, type: 'buffer' });
   const file_base64 = Buffer.from(out).toString('base64');
-  const filename = `customers_export_${Date.now()}.xlsx`;
+  const ext = format === 'csv' ? 'csv' : 'xlsx';
+  const filename = `customers_export_${Date.now()}.${ext}`;
   await writeAuditLog(auth, {
     action: 'customer_export',
     targetType: 'customer',
     targetId: 'list',
     detail: {
       result_count: rows.length,
+      format,
       filters: {
         owner_id: query.owner_id ? Number(query.owner_id) : null,
         stage: query.stage ? String(query.stage) : null,
@@ -878,7 +966,185 @@ export async function exportCustomers(auth, query, context = {}) {
     ip: context.ip,
     userAgent: context.userAgent,
   });
-  return { filename, file_base64 };
+  return { filename, file_base64, row_count: rows.length, format };
+}
+
+/**
+ * 生成导入模板（含自定义字段列）。
+ * @param {object} auth
+ * @returns {{ filename: string, file_base64: string }}
+ */
+export async function generateImportTemplate(auth) {
+  const { CustomFieldDef } = await import('../models/customField.model.js');
+
+  // 标准字段
+  const standardHeaders = ['姓名', '手机', '公司', '职位', '微信号', '阶段', '来源', '标签', '备注'];
+
+  // 租户的自定义字段
+  const fieldDefs = await CustomFieldDef.findAll({
+    where: { tenant_id: auth.tenantId, is_active: true },
+    attributes: ['field_label', 'field_key', 'field_type'],
+    order: [['display_order', 'ASC']],
+    raw: true,
+  });
+
+  const cfHeaders = fieldDefs.map((d) => {
+    // 多选字段加提示
+    const suffix = d.field_type === 'multi_select' ? '（多选用逗号分隔）' : '';
+    return `${d.field_label}${suffix}`;
+  });
+
+  const allHeaders = [...standardHeaders, ...cfHeaders];
+
+  // 示例行
+  const exampleRow = [
+    '张三', '13800138000', '示例科技有限公司', '销售总监', 'zhangsan', '新客户',
+    '朋友介绍', '高意向,重点客户', '这是一位示例客户',
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet([allHeaders, exampleRow]);
+
+  // 设置列宽
+  ws['!cols'] = allHeaders.map(() => ({ wch: 16 }));
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '导入模板');
+  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+  const file_base64 = Buffer.from(out).toString('base64');
+
+  return {
+    filename: '客户导入模板.xlsx',
+    file_base64,
+    headers: allHeaders,
+    custom_field_count: fieldDefs.length,
+  };
+}
+
+/**
+ * 批量操作客户（打标签、分配负责人、变更阶段、删除）。
+ * @param {object} auth
+ * @param {object} body - { ids: number[], action: string, tag_ids?: number[], target_owner_id?: number, target_stage?: string }
+ */
+export async function batchOperateCustomers(auth, body) {
+  const { ids, action } = body || {};
+  if (!Array.isArray(ids) || ids.length === 0) {
+    throw new HttpError(400, '请选择至少一个客户', 400);
+  }
+  if (ids.length > 200) {
+    throw new HttpError(400, '单次最多操作 200 个客户', 400);
+  }
+
+  // 验证所有客户属于当前租户且用户有权限
+  const scope = customerWhereScope(auth);
+  const customers = await Customer.findAll({
+    where: { id: { [Op.in]: ids.map(Number) }, ...scope },
+    attributes: ['id', 'name', 'stage'],
+    raw: true,
+  });
+
+  if (customers.length !== ids.length) {
+    throw new HttpError(400, '部分客户不存在或无权操作', 400);
+  }
+
+  let affected = 0;
+  const customerIds = customers.map((c) => c.id);
+
+  switch (action) {
+    case 'tag_add': {
+      const tagIds = (body.tag_ids || []).map(Number).filter(Boolean);
+      if (tagIds.length === 0) throw new HttpError(400, '请选择标签', 400);
+      for (const cid of customerIds) {
+        for (const tid of tagIds) {
+          await CustomerTag.findOrCreate({
+            where: { customer_id: cid, tag_id: tid },
+            defaults: { created_by: auth.userId },
+          });
+        }
+      }
+      affected = customerIds.length;
+      break;
+    }
+
+    case 'tag_remove': {
+      const tagIds = (body.tag_ids || []).map(Number).filter(Boolean);
+      if (tagIds.length === 0) throw new HttpError(400, '请选择标签', 400);
+      await CustomerTag.destroy({
+        where: { customer_id: { [Op.in]: customerIds }, tag_id: { [Op.in]: tagIds } },
+      });
+      affected = customerIds.length;
+      break;
+    }
+
+    case 'assign_owner': {
+      const targetOwnerId = Number(body.target_owner_id);
+      if (!targetOwnerId) throw new HttpError(400, '请选择目标负责人', 400);
+      const owner = await User.findOne({
+        where: { id: targetOwnerId, tenant_id: auth.tenantId },
+        attributes: ['id'],
+      });
+      if (!owner) throw new HttpError(400, '负责人不存在', 400);
+      await Customer.update(
+        { owner_id: targetOwnerId },
+        { where: { id: { [Op.in]: customerIds } } },
+      );
+      affected = customerIds.length;
+
+      // 记录审计日志
+      await writeAuditLog(auth, {
+        action: 'customer_batch_assign',
+        targetType: 'customer',
+        targetId: customerIds.join(',').slice(0, 200),
+        detail: { count: customerIds.length, target_owner_id: targetOwnerId },
+      });
+      break;
+    }
+
+    case 'change_stage': {
+      const targetStage = String(body.target_stage || '').trim();
+      const validStages = ['new', 'intent_confirm', 'proposal', 'negotiation', 'deal', 'lost',
+        'contacted', 'intent'];
+      if (!validStages.includes(targetStage)) {
+        throw new HttpError(400, `无效的阶段: ${targetStage}`, 400);
+      }
+      await Customer.update(
+        { stage: targetStage },
+        { where: { id: { [Op.in]: customerIds } } },
+      );
+      affected = customerIds.length;
+
+      await writeAuditLog(auth, {
+        action: 'customer_batch_stage',
+        targetType: 'customer',
+        targetId: customerIds.join(',').slice(0, 200),
+        detail: { count: customerIds.length, target_stage: targetStage },
+      });
+      break;
+    }
+
+    case 'delete': {
+      // 软删除
+      await Customer.destroy({
+        where: { id: { [Op.in]: customerIds } },
+        individualHooks: false,
+      });
+      affected = customerIds.length;
+
+      await writeAuditLog(auth, {
+        action: 'customer_batch_delete',
+        targetType: 'customer',
+        targetId: customerIds.join(',').slice(0, 200),
+        detail: { count: customerIds.length },
+        ip: body._ip,
+        userAgent: body._ua,
+      });
+      break;
+    }
+
+    default:
+      throw new HttpError(400, `不支持的操作: ${action}`, 400);
+  }
+
+  return { action, affected, total: customerIds.length };
 }
 
 export async function listFollowUps(auth, customerId) {

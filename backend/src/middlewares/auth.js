@@ -38,9 +38,14 @@ export async function requireAuth(req, res, next) {
     if (!user) {
       return fail(res, 401, '用户不存在或已禁用', null, 401);
     }
-    if (permFromJwt.length === 0 && user.Role) {
+    if (user.Role) {
       const raw = rawPermissionsFromRole(user.Role);
-      permFromJwt = Array.isArray(raw) ? raw.map((x) => String(x)) : [];
+      const dbPerms = Array.isArray(raw) ? raw.map((x) => String(x)) : [];
+      if (permFromJwt.length === 0) {
+        permFromJwt = dbPerms;
+      } else if (dbPerms.length > 0) {
+        permFromJwt = normalizePermissionCodes([...permFromJwt, ...dbPerms]);
+      }
     }
     const dbRole = user.get ? user.get('role') : user.role ?? null;
     const effectiveLegacyRole = roleFromJwt !== undefined && roleFromJwt !== null ? roleFromJwt : dbRole;
@@ -54,6 +59,12 @@ export async function requireAuth(req, res, next) {
       permissions: normalizePermissionCodes(permFromJwt),
       isGuest,
     };
+
+    // 兼容旧代码：部分 controller/route 仍读取 req.tenantId / req.userId
+    // 统一在鉴权层注入，避免 Number(undefined) => NaN 进 SQL。
+    req.userId = req.auth.userId;
+    req.tenantId = req.auth.tenantId;
+
     req.user = user;
     req.user.perm_codes = permFromJwt;
     /** 与 JWT 同步的过渡 role（admin/sales），不写入数据库 */

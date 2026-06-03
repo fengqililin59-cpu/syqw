@@ -4,11 +4,17 @@
 import * as inboxService from '../services/inbox.service.js';
 import * as inboxFollowupService from '../services/inboxFollowup.service.js';
 import { runInboxSlaReminderOnce } from '../services/inboxSlaReminder.service.js';
+import * as inboxSlaBatchService from '../services/inboxSlaBatch.service.js';
 import * as ticketService from '../services/ticket.service.js';
 import { getPublicWebhookInfo, testPublicWebhookSimulation } from '../services/publicInboxIngest.service.js';
 import { HttpError } from '../utils/httpError.js';
 import { isAdmin } from '../utils/permissions.js';
 import { ok } from '../utils/response.js';
+import { getSalesStageMap } from '../services/salesStageSync.service.js';
+
+export async function salesStageMap(req, res) {
+  return ok(res, getSalesStageMap());
+}
 
 export async function listThreads(req, res) {
   const data = await inboxService.listThreads(req.auth, req.query);
@@ -74,6 +80,16 @@ export async function webhookTest(req, res) {
 export async function createTicketFromThread(req, res) {
   const data = await ticketService.createTicketFromThread(req.auth, req.params.id, req.body);
   return ok(res, data, '工单已创建');
+}
+
+export async function getSlaBatchSummary(req, res) {
+  const data = await inboxSlaBatchService.getInboxSlaBatchSummary(req.auth);
+  return ok(res, data);
+}
+
+export async function runSlaBatchAction(req, res) {
+  const data = await inboxSlaBatchService.runInboxSlaBatchAction(req.auth, req.body || {});
+  return ok(res, data, `已处理 ${data.updated} 个会话`);
 }
 
 export async function runSlaScan(req, res) {

@@ -28,6 +28,7 @@ import {
 import { createAiReplyDraft } from '@/api/aiEmployee'
 import { createTicketFromInbox } from '@/api/tickets'
 import type { InboxMessageRow, InboxThreadRow } from '@/api/types'
+import type { InboxThreadFilter } from '@/api/inbox'
 import { useAuthStore } from '@/store/authStore'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -35,6 +36,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { InboxStageSyncBar } from '@/components/InboxStageSyncBar'
+import { InboxSlaBatchBar } from '@/components/InboxSlaBatchBar'
+import { InboxFollowupAssistantPanel } from '@/components/InboxFollowupAssistantPanel'
 
 const statusLabel: Record<string, string> = {
   open: '进行中',
@@ -42,14 +46,12 @@ const statusLabel: Record<string, string> = {
   closed: '已关闭',
 }
 
-const salesStages = [
-  { value: 'new', label: '新客' },
-  { value: 'qualify', label: '需求确认' },
-  { value: 'proposal', label: '方案' },
-  { value: 'quote', label: '报价' },
-  { value: 'followup', label: '跟单' },
-  { value: 'deal', label: '成交' },
-  { value: 'after_sale', label: '售后' },
+const INBOX_FILTERS: InboxThreadFilter[] = [
+  'all',
+  'needs_reply',
+  'sla_overdue',
+  'pending_human',
+  'ai_auto_sent',
 ]
 
 const crmStageLabels: Record<string, string> = {
@@ -68,10 +70,17 @@ function customerLabel(t: InboxThreadRow) {
   return c?.name || c?.nickname || c?.phone || `会话 #${t.id}`
 }
 
+function aiAutoLabel(kind?: string | null) {
+  return kind === 'pricing' ? 'AI询价' : 'AI自动'
+}
+
 export function InboxPage() {
   const [searchParams] = useSearchParams()
   const customerIdParam = searchParams.get('customer_id')
+  const threadIdParam = searchParams.get('thread_id')
   const filterCustomerId = customerIdParam ? Number(customerIdParam) : undefined
+  const filterThreadId = threadIdParam ? Number(threadIdParam) : undefined
+  const filterParam = searchParams.get('filter')
 
   const hasPerm = useAuthStore((s) => s.hasPerm)
   const canSync = hasPerm('settings:manage') || hasPerm('inbox:manage')
@@ -92,10 +101,10 @@ export function InboxPage() {
   const [ticketTitle, setTicketTitle] = useState('')
   const [ticketDesc, setTicketDesc] = useState('')
   const [ticketType, setTicketType] = useState('consultation')
-  const [listFilter, setListFilter] = useState<'all' | 'needs_reply' | 'sla_overdue' | 'pending_human'>(
-    'all',
-  )
+  const [listFilter, setListFilter] = useState<InboxThreadFilter>('all')
   const [listSort, setListSort] = useState<'priority' | 'recent'>('priority')
+  const [selectedThreadIds, setSelectedThreadIds] = useState<number[]>([])
+  const batchMode = listFilter === 'sla_overdue'
 
   const loadThreads = useCallback(async () => {
     setLoading(true)
@@ -108,8 +117,22 @@ export function InboxPage() {
         sort: listSort,
         filter: listFilter,
       })
-      setThreads(data.list)
-      if (filterCustomerId && data.list[0]) {
+      let list = data.list
+      if (filterThreadId && !list.some((t) => t.id === filterThreadId)) {
+        const all = await fetchInboxThreads({
+          page: 1,
+          size: 50,
+          customer_id: filterCustomerId,
+          sort: listSort,
+          filter: 'all',
+        })
+        const hit = all.list.find((t) => t.id === filterThreadId)
+        if (hit) list = [hit, ...list.filter((t) => t.id !== hit.id)]
+      }
+      setThreads(list)
+      if (filterThreadId && data.list.some((t) => t.id === filterThreadId)) {
+        setActiveId(filterThreadId)
+      } else if (filterCustomerId && data.list[0]) {
         setActiveId(data.list[0].id)
       } else {
         setActiveId((prev) => prev ?? data.list[0]?.id ?? null)
@@ -120,7 +143,7 @@ export function InboxPage() {
     } finally {
       setLoading(false)
     }
-  }, [filterCustomerId, listFilter, listSort])
+  }, [filterCustomerId, filterThreadId, listFilter, listSort])
 
   const loadMessages = useCallback(async (threadId: number) => {
     setMsgLoading(true)
@@ -144,11 +167,21 @@ export function InboxPage() {
   }, [])
 
   useEffect(() => {
+    if (filterParam && INBOX_FILTERS.includes(filterParam as InboxThreadFilter)) {
+      setListFilter(filterParam as InboxThreadFilter)
+    }
+  }, [filterParam])
+
+  useEffect(() => {
     void loadThreads()
     fetchAiOpsStats({ days: 1 })
       .then((s) => setSlaOverdue(s.sla_overdue_threads ?? 0))
       .catch(() => setSlaOverdue(0))
   }, [loadThreads])
+
+  useEffect(() => {
+    if (!batchMode) setSelectedThreadIds([])
+  }, [batchMode, listFilter])
 
   useEffect(() => {
     if (activeId) {
@@ -195,11 +228,38 @@ export function InboxPage() {
         thread_id: activeId,
         message: lastCustomer?.content || undefined,
         trigger_message_id: lastCustomer?.id,
+        include_playbook_context: true,
       })
       setReply(data.draft_content)
-      if (data.requires_approval) {
-        setSendHint('草稿已生成，建议到 AI 审核台确认后再发')
+      const hints: string[] = []
+      if (data.risk_source && data.risk_source !== 'rule') {
+        hints.push(`风控：${data.risk_source}${data.must_human ? ' · 须人工' : ''}`)
       }
+      if (data.auto_sent) {
+        hints.push(
+          data.delivery_note ||
+            (data.customer_delivered === false
+              ? '已写入收件箱，但未送达客户企微'
+              : data.auto_sent_kind === 'pricing'
+                ? '已自动发送（简单询价，置信达标）'
+                : '已自动发送（FAQ 类，置信达标）'),
+        )
+        setReply('')
+        void loadMessages(activeId)
+        void loadThreads()
+      } else if (data.auto_send_skipped && data.auto_send_skip_message) {
+        hints.push(`未自动发送：${data.auto_send_skip_message}`)
+      } else if (data.auto_sent === false && data.delivery_note) {
+        hints.push(data.delivery_note)
+      } else if (data.playbook_used) {
+        hints.push(
+          `已结合跟进助手（${data.playbook_scripts_count ?? 0} 条话术库${data.playbook_has_intent_alert ? ' · 含意向升温' : ''}）`,
+        )
+      }
+      if (data.requires_approval) {
+        hints.push('建议到 AI 审核台确认后再发')
+      }
+      setSendHint(hints.length ? hints.join('；') : null)
     } catch (e) {
       setErr(e instanceof Error ? e.message : '生成草稿失败')
     } finally {
@@ -223,8 +283,27 @@ export function InboxPage() {
 
   async function onStageChange(stage: string) {
     if (!activeId) return
-    await updateInboxThread(activeId, { sales_stage: stage })
-    await loadThreads()
+    setBusy(true)
+    try {
+      const updated = await updateInboxThread(activeId, { sales_stage: stage })
+      if (updated.stage_sync?.updated) {
+        setSendHint(
+          `已同步 CRM 为「${updated.crm_stage_label || updated.stage_sync.crm_stage || ''}」`,
+        )
+      } else if (updated.Customer?.stage) {
+        setSendHint('收件箱阶段已更新')
+      } else {
+        setSendHint(null)
+      }
+      await loadThreads()
+      setThreads((prev) =>
+        prev.map((t) => (t.id === updated.id ? { ...t, ...updated } : t)),
+      )
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : '更新阶段失败')
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function onCreateTicket() {
@@ -292,9 +371,27 @@ export function InboxPage() {
         </p>
       ) : null}
 
-      {slaOverdue > 0 ? (
+      {batchMode ? (
+        <InboxSlaBatchBar
+          selectedIds={selectedThreadIds}
+          onSelectAll={() => setSelectedThreadIds(threads.map((t) => t.id))}
+          onClearSelection={() => setSelectedThreadIds([])}
+          onDone={() => {
+            setSelectedThreadIds([])
+            void loadThreads()
+          }}
+          canNotify={canSync}
+        />
+      ) : slaOverdue > 0 ? (
         <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-          当前有 <strong>{slaOverdue}</strong> 个会话客户消息超时未回复，请优先处理。
+          当前有 <strong>{slaOverdue}</strong> 个会话客户消息超时未回复。
+          <button
+            type="button"
+            className="ml-2 font-medium text-amber-900 underline"
+            onClick={() => setListFilter('sla_overdue')}
+          >
+            进入批量处理
+          </button>
         </p>
       ) : null}
 
@@ -316,6 +413,7 @@ export function InboxPage() {
                   ['needs_reply', '待回复'],
                   ['sla_overdue', 'SLA超时'],
                   ['pending_human', '待人工'],
+                  ['ai_auto_sent', 'AI已回'],
                 ] as const
               ).map(([value, label]) => (
                 <Button
@@ -323,7 +421,10 @@ export function InboxPage() {
                   type="button"
                   size="sm"
                   variant={listFilter === value ? 'default' : 'outline'}
-                  className="h-7 px-2 text-[11px]"
+                  className={cn(
+                    'h-7 px-2 text-[11px]',
+                    value === 'ai_auto_sent' && listFilter !== value && 'border-violet-300 text-violet-800',
+                  )}
                   onClick={() => setListFilter(value)}
                 >
                   {label}
@@ -342,23 +443,47 @@ export function InboxPage() {
           <CardContent className="max-h-[480px] space-y-1 overflow-y-auto p-2 pt-0">
             {loading ? <p className="p-2 text-xs text-muted-foreground">加载中…</p> : null}
             {!loading && threads.length === 0 ? (
-              <p className="p-2 text-xs text-muted-foreground">暂无会话。配置企微回调后新消息会自动出现；也可点「同步企微历史」。</p>
+              <p className="p-2 text-xs text-muted-foreground">
+                {listFilter === 'ai_auto_sent'
+                  ? '暂无含 AI 自动回复的会话。开启自动草稿与 FAQ/询价自动发送后，符合条件的消息会出现在此。'
+                  : '暂无会话。配置企微回调后新消息会自动出现；也可点「同步企微历史」。'}
+              </p>
             ) : null}
             {threads.map((t) => (
-              <button
+              <div
                 key={t.id}
-                type="button"
                 className={cn(
-                  'w-full rounded-lg border px-2 py-2 text-left text-sm transition-colors',
+                  'flex w-full gap-1 rounded-lg border px-1 py-1 transition-colors',
                   activeId === t.id ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-muted/60',
                 )}
-                onClick={() => {
-                  setActiveId(t.id)
-                }}
               >
+                {batchMode ? (
+                  <input
+                    type="checkbox"
+                    className="mt-2 ml-1 shrink-0"
+                    checked={selectedThreadIds.includes(t.id)}
+                    onChange={(e) => {
+                      e.stopPropagation()
+                      setSelectedThreadIds((prev) =>
+                        e.target.checked ? [...prev, t.id] : prev.filter((id) => id !== t.id),
+                      )
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : null}
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 rounded-md px-1 py-1 text-left text-sm"
+                  onClick={() => setActiveId(t.id)}
+                >
                 <div className="flex items-center justify-between gap-1">
                   <span className="truncate font-medium">{customerLabel(t)}</span>
                   <div className="flex shrink-0 flex-wrap justify-end gap-0.5">
+                    {t.is_public_channel ? (
+                      <Badge variant="outline" className="border-sky-300 bg-sky-50 text-[10px] text-sky-900">
+                        公域
+                      </Badge>
+                    ) : null}
                     {t.sla_overdue ? (
                       <Badge variant="destructive" className="text-[10px]">
                         SLA
@@ -367,15 +492,32 @@ export function InboxPage() {
                     {t.needs_reply && !t.sla_overdue ? (
                       <Badge className="bg-amber-500 text-[10px] hover:bg-amber-500">待回</Badge>
                     ) : null}
+                    {t.has_ai_auto_sent ? (
+                      <Badge
+                        variant="secondary"
+                        className="border-violet-300 bg-violet-100 text-[10px] text-violet-900 hover:bg-violet-100"
+                        title={
+                          t.ai_auto_sent_at
+                            ? `最近 AI 自动回复：${new Date(t.ai_auto_sent_at).toLocaleString()}`
+                            : '本会话曾有 AI 自动发送'
+                        }
+                      >
+                        AI已回
+                        {(t.ai_auto_sent_count ?? 0) > 1 ? `×${t.ai_auto_sent_count}` : ''}
+                      </Badge>
+                    ) : null}
                     <Badge variant="outline" className="text-[10px]">
                       {statusLabel[t.status] ?? t.status}
                     </Badge>
                   </div>
                 </div>
                 <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                  {t.channel?.name ?? '渠道'} · 线索分 {t.lead_score ?? 0}
+                  {t.channel?.name ?? '渠道'}
+                  {t.is_public_channel ? ' · 公域（勿依赖自动发）' : ''} · {t.inbox_stage_label || t.sales_stage}
+                  {t.crm_stage_label ? ` · CRM ${t.crm_stage_label}` : ''} · 分 {t.lead_score ?? 0}
                 </p>
-              </button>
+                </button>
+              </div>
             ))}
           </CardContent>
         </Card>
@@ -396,31 +538,30 @@ export function InboxPage() {
                   ) : null}
                 </CardTitle>
                 {active ? (
-                  <div className="flex flex-col items-end gap-0.5">
-                    <select
-                      className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
-                      value={active.sales_stage}
-                      onChange={(e) => void onStageChange(e.target.value)}
-                    >
-                      {salesStages.map((s) => (
-                        <option key={s.value} value={s.value}>
-                          {s.label}
-                        </option>
-                      ))}
-                    </select>
-                    {active.Customer?.stage ? (
-                      <p className="text-[10px] text-muted-foreground">
-                        CRM：{crmStageLabels[active.Customer.stage] || active.Customer.stage}
-                        {active.Customer.stage !== 'deal' && active.sales_stage === 'after_sale'
-                          ? ' · 售后视图'
-                          : ''}
-                      </p>
-                    ) : null}
+                  <div className="w-full min-w-[200px] max-w-sm">
+                    <InboxStageSyncBar
+                      inboxStage={active.sales_stage}
+                      crmStage={active.Customer?.stage}
+                      crmStageLabel={
+                        active.crm_stage_label ||
+                        (active.Customer?.stage
+                          ? crmStageLabels[active.Customer.stage] || active.Customer.stage
+                          : null)
+                      }
+                      onStageChange={(s) => void onStageChange(s)}
+                      busy={busy}
+                    />
                   </div>
                 ) : null}
               </div>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col gap-3 p-3">
+              {active?.is_public_channel ? (
+                <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-950">
+                  {active.channel_delivery_hint ||
+                    '公域会话：AI 不会自动发送到抖音/小红书，请在对应平台人工回复。'}
+                </p>
+              ) : null}
               <div className="min-h-[240px] flex-1 space-y-2 overflow-y-auto rounded-md border bg-muted/20 p-3">
                 {msgLoading ? <p className="text-xs text-muted-foreground">消息加载中…</p> : null}
                 {messages.map((m) => (
@@ -441,10 +582,17 @@ export function InboxPage() {
                       )}
                     >
                       {new Date(m.created_at).toLocaleString()} · {m.direction}
+                      {m.ai_auto ? ` · ${aiAutoLabel(m.ai_auto_kind)}` : ''}
+                      {m.inbox_only ? ' · 仅系统记录' : ''}
                     </p>
                   </div>
                 ))}
               </div>
+
+              <InboxFollowupAssistantPanel
+                customerId={active?.customer_id}
+                onApplyReply={(text) => setReply(text)}
+              />
 
               <div className="flex gap-2">
                 <Input
@@ -472,7 +620,13 @@ export function InboxPage() {
                 >
                   <Ticket className="h-4 w-4" />
                 </Button>
-                <Button type="button" variant="secondary" disabled={!activeId || busy} onClick={() => void onAiDraft()}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={!activeId || busy}
+                  title="AI 草稿（含跟进助手与话术库上下文）"
+                  onClick={() => void onAiDraft()}
+                >
                   <Bot className="h-4 w-4" />
                 </Button>
                 <Button type="button" disabled={!activeId || busy || !reply.trim()} onClick={() => void onSend()}>

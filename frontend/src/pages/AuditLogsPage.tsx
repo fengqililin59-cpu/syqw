@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { listAuditLogs, type AuditLogItem } from '@/api/settings'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -39,6 +40,12 @@ const ACTIONS = [
   { value: 'customer_export', label: '导出客户' },
   { value: 'broadcast_send', label: '广播发送' },
   { value: 'automation_rule_toggle', label: '规则启停' },
+  { value: 'inbox_ai_auto_sent', label: 'AI 自动发送' },
+  { value: 'inbox_ai_auto_send_skipped', label: 'AI 自动发送跳过' },
+  { value: 'inbox_ai_qa_passed', label: 'AI 抽检通过' },
+  { value: 'inbox_ai_qa_failed', label: 'AI 抽检有问题' },
+  { value: 'platform_inbox_ai_disabled', label: '平台关停AI自动发' },
+  { value: 'platform_inbox_ai_enabled', label: '平台恢复AI自动发' },
 ]
 
 function renderDetail(detail: Record<string, unknown> | null) {
@@ -52,6 +59,7 @@ function renderDetail(detail: Record<string, unknown> | null) {
 }
 
 export function AuditLogsPage() {
+  const [searchParams] = useSearchParams()
   const defaultEnd = useMemo(() => new Date(), [])
   const defaultStart = useMemo(() => new Date(Date.now() - 6 * 24 * 60 * 60 * 1000), [])
   const [startDate, setStartDate] = useState(fmtDate(defaultStart))
@@ -108,6 +116,11 @@ export function AuditLogsPage() {
   }
 
   useEffect(() => {
+    const a = searchParams.get('action')
+    if (a) setAction(a)
+  }, [searchParams])
+
+  useEffect(() => {
     void load(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -116,7 +129,9 @@ export function AuditLogsPage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">审计日志</h1>
-        <p className="text-muted-foreground">高危操作留痕：删客户、导出、广播发送、规则启停。</p>
+        <p className="text-muted-foreground">
+          高危操作留痕：删客户、导出、广播、规则启停、AI 自动发送及跳过原因。
+        </p>
       </div>
 
       <Card>

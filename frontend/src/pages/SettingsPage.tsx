@@ -30,6 +30,12 @@ type WeworkSettings = {
   wework_token: string | null
   wework_encoding_aes_key_set: boolean
   allow_auto_send: boolean
+  inbox_ai_auto_send: boolean
+  inbox_ai_auto_send_pricing: boolean
+  inbox_ai_notify_assignee_on_auto_send?: boolean
+  inbox_ai_auto_send_platform_enabled: boolean
+  inbox_ai_auto_send_notify_platform_enabled?: boolean
+  inbox_ai_platform_disabled?: boolean
 }
 
 type TcccConfig = {
@@ -75,6 +81,12 @@ export function SettingsPage() {
   const [encodingAesKey, setEncodingAesKey] = useState('')
   const [aesWasSet, setAesWasSet] = useState(false)
   const [allowAutoSend, setAllowAutoSend] = useState(false)
+  const [inboxAiAutoSend, setInboxAiAutoSend] = useState(false)
+  const [inboxAiAutoSendPricing, setInboxAiAutoSendPricing] = useState(false)
+  const [inboxAiNotifyAssignee, setInboxAiNotifyAssignee] = useState(true)
+  const [inboxAiAutoSendPlatform, setInboxAiAutoSendPlatform] = useState(true)
+  const [inboxAiNotifyPlatform, setInboxAiNotifyPlatform] = useState(true)
+  const [inboxAiPlatformDisabled, setInboxAiPlatformDisabled] = useState(false)
 
   const [testUserid, setTestUserid] = useState('')
   const [testContent, setTestContent] = useState('')
@@ -157,6 +169,12 @@ export function SettingsPage() {
       setAesWasSet(data.wework_encoding_aes_key_set)
       setEncodingAesKey('')
       setAllowAutoSend(Boolean(data.allow_auto_send))
+      setInboxAiAutoSend(Boolean(data.inbox_ai_auto_send))
+      setInboxAiAutoSendPricing(Boolean(data.inbox_ai_auto_send_pricing))
+      setInboxAiNotifyAssignee(data.inbox_ai_notify_assignee_on_auto_send !== false)
+      setInboxAiAutoSendPlatform(data.inbox_ai_auto_send_platform_enabled !== false)
+      setInboxAiNotifyPlatform(data.inbox_ai_auto_send_notify_platform_enabled !== false)
+      setInboxAiPlatformDisabled(data.inbox_ai_platform_disabled === true)
     } catch (e) {
       setErr(e instanceof Error ? e.message : '加载失败')
     } finally {
@@ -267,6 +285,9 @@ export function SettingsPage() {
         wework_corp_id: corpId,
         wework_agent_id: agentId,
         allow_auto_send: allowAutoSend,
+        inbox_ai_auto_send: inboxAiAutoSend,
+        inbox_ai_auto_send_pricing: inboxAiAutoSend && inboxAiAutoSendPricing,
+        inbox_ai_notify_assignee_on_auto_send: inboxAiNotifyAssignee,
         ...(secret.trim() ? { wework_secret: secret.trim() } : {}),
         ...(token.trim() !== '' ? { wework_token: token.trim() } : { wework_token: null }),
         ...(encodingAesKey.trim() ? { wework_encoding_aes_key: encodingAesKey.trim() } : {}),
@@ -867,6 +888,56 @@ export function SettingsPage() {
             placeholder="与企微后台一致时可填"
             autoComplete="off"
           />
+        </div>
+        {inboxAiPlatformDisabled ? (
+          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
+            平台已关闭本企业 AI 自动发送，如需开启请联系 ZhiFlow 运营。
+          </p>
+        ) : null}
+        <div className="flex items-center gap-2 rounded-md border border-dashed p-3">
+          <input
+            id="inboxAiAutoSend"
+            type="checkbox"
+            checked={inboxAiAutoSend}
+            disabled={!inboxAiAutoSendPlatform || inboxAiPlatformDisabled}
+            onChange={(e) => setInboxAiAutoSend(e.target.checked)}
+            className="h-4 w-4"
+          />
+          <Label htmlFor="inboxAiAutoSend" className="cursor-pointer font-normal leading-snug">
+            收件箱 FAQ 自动发送：资料/介绍类（p0，置信≥75%）自动回复；投诉类仍待人工。
+            {!inboxAiAutoSendPlatform ? (
+              <span className="mt-1 block text-xs text-amber-700">平台已禁用（INBOX_AI_AUTO_SEND=0）</span>
+            ) : null}
+          </Label>
+        </div>
+        <div className="flex items-center gap-2 rounded-md border border-dashed p-3">
+          <input
+            id="inboxAiAutoSendPricing"
+            type="checkbox"
+            checked={inboxAiAutoSendPricing}
+            disabled={!inboxAiAutoSendPlatform || !inboxAiAutoSend || inboxAiPlatformDisabled}
+            onChange={(e) => setInboxAiAutoSendPricing(e.target.checked)}
+            className="h-4 w-4"
+          />
+          <Label htmlFor="inboxAiAutoSendPricing" className="cursor-pointer font-normal leading-snug">
+            简单询价自动发送：客户问价格/多少钱（p1，置信≥85%）可自动回；出现合同、底价、返点等词一律转人工。
+          </Label>
+        </div>
+        <div className="flex items-center gap-2 rounded-md border border-dashed border-violet-200 bg-violet-50/40 p-3">
+          <input
+            id="inboxAiNotifyAssignee"
+            type="checkbox"
+            checked={inboxAiNotifyAssignee}
+            disabled={!inboxAiNotifyPlatform}
+            onChange={(e) => setInboxAiNotifyAssignee(e.target.checked)}
+            className="h-4 w-4"
+          />
+          <Label htmlFor="inboxAiNotifyAssignee" className="cursor-pointer font-normal leading-snug">
+            AI 自动回复后，企微提醒会话负责人/客户归属销售抽查（推荐开启）。
+            {!inboxAiNotifyPlatform ? (
+              <span className="mt-1 block text-xs text-amber-700">平台已禁用（INBOX_AI_AUTO_SEND_NOTIFY=0）</span>
+            ) : null}
+          </Label>
         </div>
         <div className="flex items-center gap-2 rounded-md border border-dashed p-3">
           <input

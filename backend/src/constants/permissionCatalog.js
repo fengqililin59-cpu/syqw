@@ -38,4 +38,5 @@ export const LEGACY_PERMISSION_ALIAS = {
   'dashboard:read': 'dashboard:view',
   'customer:read': 'customer:view',
   'customer:write': 'customer:edit',
+  'customer:manage': 'customer:edit',
 };

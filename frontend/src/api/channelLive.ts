@@ -31,6 +31,9 @@ export function createEmployeeChannel(body: {
   remark?: string | null
   skip_verify?: boolean
   style?: number
+  /** 绑定广告点击记录 id，活码 state 为 zfah{id}，加好友后自动回传 */
+  ad_hit?: number
+  click_key?: string
 }) {
   return postJson<WeworkChannelRow>('/channel-live/channels/employee', body)
 }

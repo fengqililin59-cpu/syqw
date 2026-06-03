@@ -1,0 +1,16 @@
+# 复制到支付宝开放平台 → 应用公钥（RSA2）
+# 应用 ID: 2021000106623328（wework全行业SaaS）
+# 路径: 开发设置 → 接口加签方式 → 设置/更换应用公钥
+#
+# 只粘贴下面 BEGIN/END 之间的内容，或整段 PEM 均可（按页面要求）。
+# 勿上传本目录的 app_private_key.pem；勿把「支付宝公钥」当「应用公钥」上传。
+
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAipcTBI3pbglu4IoK+IhB
+I5AzYD5hkyH+tu/9omb3iMh8e8jrmi02fbMeZLcP5pCUDu8a0OdK5vuphpohOX0
+dkmD7UE6Gv9iW2cmcDBFhOQMDajM2jaOJ6uD77GlLKYA1Wz4Sj2Dext3kGY0yIr
+7G2Dc/X1PUXchMQk/OW2xjSvkfzyJIPgLjVwX2sGa9FbyjTI9IUBvaFOSKFmk2s
+nCnwt/W8B1WyfcXK2KJaNufL4dOf00KUqsNhMsAe8F63TLXqNLfDWl67ElrDSCk
+F6s4/fs01/vAf5x+TbfL1U5dKENM3pdrb4/zTq+RiVcV+qdtcmfiesl9TlH370b
+KHiz4IQIDAQAB
+-----END PUBLIC KEY-----

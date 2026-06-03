@@ -8,7 +8,13 @@ export function fetchAiOpsStats(params?: { days?: number }) {
   return getJson<AiOpsStats>('/ai-employee/stats', { params })
 }
 
-export function fetchPendingAiReplies(params?: { page?: number; size?: number; status?: string }) {
+export function fetchPendingAiReplies(params?: {
+  page?: number
+  size?: number
+  status?: string
+  view?: 'draft' | 'auto_sent' | 'rejected'
+  days?: number
+}) {
   return getJson<{ list: AiReplyLogRow[]; total: number; page: number; size: number }>(
     '/ai-employee/reply-pending',
     { params },
@@ -19,6 +25,7 @@ export function createAiReplyDraft(body: {
   thread_id: number
   message?: string
   trigger_message_id?: number
+  include_playbook_context?: boolean
 }) {
   return postJson<{
     log_id: number
@@ -27,7 +34,46 @@ export function createAiReplyDraft(body: {
     confidence: number
     risk_level: string
     requires_approval: boolean
+    auto_sent?: boolean
+    auto_sent_kind?: string | null
+    auto_send_skipped?: string | null
+    auto_send_skip_message?: string | null
+    qa_status?: string | null
+    qa_note?: string | null
+    risk_source?: string
+    risk_reasons?: string[]
+    must_human?: boolean
+    customer_delivered?: boolean
+    delivery_note?: string | null
+    playbook_used?: boolean
+    playbook_scripts_count?: number
+    playbook_has_intent_alert?: boolean
   }>('/ai-employee/reply-draft', body)
+}
+
+export function pushAiAutoReplyDigest() {
+  return postJson<{
+    sent: number
+    skipped?: string
+    auto_sent_count?: number
+    threads_count?: number
+  }>('/ai-employee/push-auto-reply-digest', {})
+}
+
+export function fetchAiQaQueue(params?: { page?: number; size?: number; view?: string; days?: number }) {
+  return getJson<{
+    list: AiReplyLogRow[]
+    total: number
+    page: number
+    size: number
+    pending_count: number
+    sample_rate: number
+    days: number
+  }>('/ai-employee/qa-queue', { params })
+}
+
+export function submitAiQaReview(logId: number, body: { result: 'passed' | 'failed'; note?: string }) {
+  return postJson<{ log: AiReplyLogRow }>(`/ai-employee/qa-queue/${logId}/review`, body)
 }
 
 export function approveAiReply(body: {

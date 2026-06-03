@@ -35,6 +35,15 @@ export class Tenant extends Model {
         status: { type: DataTypes.TINYINT, allowNull: false, defaultValue: 1 },
         /** 是否允许流程等自动向客户直发企微消息 */
         allow_auto_send: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+        /** 收件箱 AI：仅 p0/高置信 FAQ 类自动发送，投诉等仍人工审核 */
+        inbox_ai_auto_send: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+        /** 收件箱 AI：p1 询价类高置信自动发送（合同/底价等关键词仍拦截） */
+        inbox_ai_auto_send_pricing: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+        /** AI 自动回复后企微提醒会话负责人 */
+        inbox_ai_notify_assignee_on_auto_send: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+        inbox_ai_platform_disabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+        /** 租户级收件箱自动草稿开关：新消息到达时自动生成AI草稿并尝试发送 */
+        inbox_auto_draft_enabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       },
       { sequelize, modelName: 'Tenant', tableName: 'tenants' }
     );

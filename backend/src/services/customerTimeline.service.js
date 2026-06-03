@@ -3,6 +3,9 @@
  */
 import { Op } from 'sequelize';
 import {
+  AuditLog,
+  AiGenerationLog,
+  AiReplyLog,
   CustomerFollowUp,
   WeworkCustomerMessage,
   InboxMessage,
@@ -12,11 +15,47 @@ import {
   CustomerOrder,
   CallRecord,
   SmsSendLog,
+  IntentAlert,
   User,
 } from '../models/index.js';
 import { getCustomer } from './customer.service.js';
 
 const PER_SOURCE = 60;
+
+const STAGE_LABELS = {
+  new: '新线索',
+  intent_confirm: '意向确认',
+  contacted: '意向确认',
+  intent: '意向确认',
+  proposal: '方案报价',
+  negotiation: '商务谈判',
+  deal: '成交',
+  won: '成交',
+  lost: '流失',
+};
+
+const AI_KIND_LABELS = {
+  reply_suggestions: 'AI 话术建议',
+  intent_score: 'AI 意向评分',
+  follow_up_draft: 'AI 跟进草稿',
+  script: 'AI 文案',
+};
+
+const STAGE_AUDIT_ACTIONS = [
+  'customer_stage_change',
+  'customer_stage_auto_change',
+  'customer_stage_rollback',
+];
+
+function truncateText(s, max = 160) {
+  const t = String(s || '').trim();
+  if (!t) return '';
+  return t.length > max ? `${t.slice(0, max)}…` : t;
+}
+
+function stageLabel(code) {
+  return STAGE_LABELS[String(code || '').trim()] || code || '—';
+}
 
 const FOLLOW_TYPE_LABELS = {
   call: '电话跟进',
@@ -187,6 +226,124 @@ function mapCall(row) {
   };
 }
 
+function mapCustomerCreated(customer) {
+  const at = pickTime(customer.created_at);
+  if (!at) return null;
+  return {
+    id: `customer_created:${customer.id}`,
+    type: 'customer_created',
+    at: at.toISOString(),
+    title: '客户建档',
+    summary: customer.source ? `来源：${customer.source}` : '客户已加入 CRM',
+    meta: { source: customer.source || null },
+  };
+}
+
+function mapAuditStage(row) {
+  const plain = row.get({ plain: true });
+  if (!STAGE_AUDIT_ACTIONS.includes(plain.action)) return null;
+  const at = pickTime(plain.created_at);
+  if (!at) return null;
+  const d = plain.detail_json || {};
+  const from = stageLabel(d.from_stage);
+  const to = stageLabel(d.to_stage);
+  const sourceMap = {
+    manual: '手动调整',
+    flow: '自动化流程',
+    order: '订单成交',
+  };
+  const source = sourceMap[d.source] || d.source || '';
+  const title =
+    plain.action === 'customer_stage_rollback'
+      ? '阶段回滚'
+      : plain.action === 'customer_stage_auto_change'
+        ? '阶段自动变更'
+        : '阶段变更';
+  return {
+    id: `audit:${plain.id}`,
+    type: 'stage_change',
+    at: at.toISOString(),
+    title,
+    summary: `${from} → ${to}${source ? ` · ${source}` : ''}`,
+    meta: {
+      from_stage: d.from_stage,
+      to_stage: d.to_stage,
+      source: d.source,
+      author: plain.actor?.real_name || plain.actor?.username,
+    },
+  };
+}
+
+function mapAiGeneration(row) {
+  const plain = row.get({ plain: true });
+  const at = pickTime(plain.created_at);
+  if (!at) return null;
+  const kindLabel = AI_KIND_LABELS[plain.kind] || 'AI 辅助';
+  let snippet = truncateText(plain.input_message, 120);
+  if (!snippet && plain.output_json) {
+    const o = plain.output_json;
+    if (typeof o.suggestion === 'string') snippet = truncateText(o.suggestion, 120);
+    else if (Array.isArray(o.suggestions) && o.suggestions[0]) {
+      snippet = truncateText(String(o.suggestions[0]), 120);
+    }
+  }
+  return {
+    id: `ai_generation:${plain.id}`,
+    type: 'ai',
+    at: at.toISOString(),
+    title: kindLabel,
+    summary: snippet || '已生成 AI 内容',
+    meta: {
+      kind: plain.kind,
+      author: plain.User?.real_name || plain.User?.username,
+    },
+  };
+}
+
+function mapIntentAlert(row) {
+  const plain = row.get({ plain: true });
+  const at = pickTime(plain.created_at, plain.sent_at);
+  if (!at) return null;
+  return {
+    id: `intent_alert:${plain.id}`,
+    type: 'intent_alert',
+    at: at.toISOString(),
+    title: '意向分跃升',
+    summary: `${plain.score_before} → ${plain.score_after}（+${plain.score_delta}）`,
+    meta: {
+      score_before: plain.score_before,
+      score_after: plain.score_after,
+      status: plain.status,
+    },
+  };
+}
+
+function mapAiReply(row) {
+  const plain = row.get({ plain: true });
+  const at = pickTime(plain.updated_at, plain.created_at);
+  if (!at) return null;
+  const statusLabel =
+    plain.status === 'approved' || plain.status === 'sent'
+      ? 'AI 草稿已采纳'
+      : plain.status === 'rejected'
+        ? 'AI 草稿已驳回'
+        : 'AI 回复草稿';
+  const content = plain.final_content || plain.draft_content;
+  return {
+    id: `ai_reply:${plain.id}`,
+    type: 'ai',
+    at: at.toISOString(),
+    title: statusLabel,
+    summary: truncateText(content, 160),
+    meta: {
+      thread_id: plain.thread_id,
+      status: plain.status,
+      risk_level: plain.risk_level,
+      author: plain.approver?.real_name || plain.approver?.username,
+    },
+  };
+}
+
 function mapSms(row) {
   const plain = row.get({ plain: true });
   const at = pickTime(plain.sent_at, plain.created_at);
@@ -215,10 +372,37 @@ function mapSms(row) {
  * @param {number|string} customerId
  * @param {{ limit?: number }} query
  */
+function buildTimelineSummary(items, customer) {
+  const lastAt = items[0]?.at || customer.created_at;
+  const lastMs = lastAt ? new Date(lastAt).getTime() : null;
+  const daysSince =
+    lastMs && !Number.isNaN(lastMs)
+      ? Math.max(0, Math.floor((Date.now() - lastMs) / (24 * 60 * 60 * 1000)))
+      : null;
+  const counts = {};
+  for (const it of items) {
+    counts[it.type] = (counts[it.type] || 0) + 1;
+  }
+  return {
+    last_touch_at: lastAt ? new Date(lastAt).toISOString() : null,
+    days_since_touch: daysSince,
+    counts,
+    total_events: items.length,
+    customer_created_at: customer.created_at,
+    current_stage: customer.stage,
+  };
+}
+
 export async function getCustomerTimeline(auth, customerId, query = {}) {
   const customer = await getCustomer(auth, customerId);
   const cid = Number(customerId);
   const limit = Math.min(200, Math.max(1, Number(query.limit) || 80));
+  const typeFilter = query.types
+    ? String(query.types)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : null;
   const tenantId = auth.tenantId;
 
   const smsWhere = { tenant_id: tenantId };
@@ -236,6 +420,10 @@ export async function getCustomerTimeline(auth, customerId, query = {}) {
     orders,
     calls,
     smsLogs,
+    auditLogs,
+    aiGenerations,
+    intentAlerts,
+    aiReplies,
   ] = await Promise.all([
     CustomerFollowUp.findAll({
       where: { customer_id: cid },
@@ -283,9 +471,45 @@ export async function getCustomerTimeline(auth, customerId, query = {}) {
       order: [['created_at', 'DESC']],
       limit: PER_SOURCE,
     }),
+    AuditLog.findAll({
+      where: {
+        tenant_id: tenantId,
+        target_type: 'customer',
+        target_id: String(cid),
+        action: STAGE_AUDIT_ACTIONS,
+      },
+      order: [['created_at', 'DESC']],
+      limit: PER_SOURCE,
+      include: [{ model: User, as: 'actor', attributes: ['id', 'username', 'real_name'] }],
+    }).catch(() => []),
+    AiGenerationLog.findAll({
+      where: { tenant_id: tenantId, customer_id: cid },
+      order: [['created_at', 'DESC']],
+      limit: PER_SOURCE,
+      include: [{ model: User, attributes: ['id', 'username', 'real_name'] }],
+    }).catch(() => []),
+    IntentAlert.findAll({
+      where: { tenant_id: tenantId, customer_id: cid },
+      order: [['created_at', 'DESC']],
+      limit: PER_SOURCE,
+    }).catch(() => []),
+    AiReplyLog.findAll({
+      order: [['created_at', 'DESC']],
+      limit: PER_SOURCE,
+      include: [
+        {
+          model: InboxThread,
+          required: true,
+          where: { tenant_id: tenantId, customer_id: cid },
+          attributes: ['id'],
+        },
+        { model: User, as: 'approver', attributes: ['id', 'username', 'real_name'], required: false },
+      ],
+    }).catch(() => []),
   ]);
 
-  const items = [
+  const merged = [
+    mapCustomerCreated(customer),
     ...followUps.map(mapFollowUp),
     ...weworkMsgs.map(mapWeworkMsg),
     ...inboxMsgs.map(mapInboxMsg),
@@ -293,10 +517,21 @@ export async function getCustomerTimeline(auth, customerId, query = {}) {
     ...orders.map(mapOrder),
     ...calls.map(mapCall),
     ...smsLogs.map(mapSms),
+    ...auditLogs.map(mapAuditStage),
+    ...aiGenerations.map(mapAiGeneration),
+    ...intentAlerts.map(mapIntentAlert),
+    ...aiReplies.map(mapAiReply),
   ]
     .filter(Boolean)
-    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
-    .slice(0, limit);
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 
-  return { list: items, total: items.length };
+  const summary = buildTimelineSummary(merged, customer);
+
+  let items = merged;
+  if (typeFilter?.length) {
+    items = items.filter((it) => typeFilter.includes(it.type));
+  }
+  items = items.slice(0, limit);
+
+  return { list: items, total: items.length, summary };
 }

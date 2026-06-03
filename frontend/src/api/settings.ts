@@ -65,6 +65,35 @@ export type IntentAlertListResult = {
   size: number
 }
 
+export type IntentAlertPlaybook = {
+  alert: {
+    id: number | null
+    score_before: number
+    score_after: number
+    score_delta: number
+    ai_script: string | null
+    created_at: string
+  }
+  customer: {
+    id: number
+    name: string
+    stage?: string | null
+    stage_label?: string | null
+    intent_score?: number | null
+  }
+  recommended_scripts: { id: number; title: string; category: string; body: string; body_preview: string }[]
+  ai_prompt: string
+  links: {
+    customer: string
+    ai_assistant: string
+    script_library: string
+  }
+}
+
+export async function fetchIntentAlertPlaybook(alertId: number) {
+  return getJson<IntentAlertPlaybook>(`/settings/intent-alerts/${alertId}/playbook`)
+}
+
 export async function listIntentAlerts(params: {
   page?: number
   size?: number

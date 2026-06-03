@@ -1,14 +1,14 @@
 /**
- * @file 广告监测与归因（Phase 2）：点击入库、302 跳转、转化上报占位。
- * @description 与各广告平台 POST conversions 对接需在拿到广告主 token 后实现 reportConversion。
+ * @file 广告监测与归因：点击入库、302 跳转、多平台转化回传。
  */
 import { URL } from 'url';
 import { Op, fn, col } from 'sequelize';
 import { HttpError } from '../utils/httpError.js';
-import { AdClickRecord, AdConversionEvent, AdSpendDaily, Tenant } from '../models/index.js';
+import { AdClickRecord, AdConversionEvent, AdSpendDaily, Tenant, WeworkChannel } from '../models/index.js';
 import { env } from '../config/env.js';
 import { recordServerMarketingEvent } from './marketingEvent.service.js';
 import * as aggRollup from './aggregationRollup.service.js';
+import { reportToAdPlatform, listSupportedConversionPlatforms } from './adPlatformConversion/index.js';
 
 /** @param {Record<string, unknown>} query */
 export function inferPlatform(query) {
@@ -17,16 +17,20 @@ export function inferPlatform(query) {
   if (['gdt', 'tencent', 'ams'].includes(ex)) return 'gdt';
   if (['ocean', 'byte', 'douyin'].includes(ex)) return 'ocean';
   if (['baidu', 'bd'].includes(ex)) return 'baidu';
-  if (q.gdt_vid || q.click_id || q.__CALLBACK__) return 'gdt';
+  if (['kuaishou', 'ks'].includes(ex)) return 'kuaishou';
+  if (['xhs', 'xiaohongshu', 'redbook'].includes(ex)) return 'xhs';
+  if (['zhihu', 'zh'].includes(ex)) return 'zhihu';
   if (q.clickid) return 'ocean';
+  if (q.gdt_vid || q.click_id) return 'gdt';
   if (q.bd_vid) return 'baidu';
+  if (q.ks_callback) return 'kuaishou';
   return 'unknown';
 }
 
 /** @param {Record<string, unknown>} query */
 export function extractClickKey(query) {
   const q = query || {};
-  const keys = ['click_id', 'clickid', 'gdt_vid', 'bd_vid'];
+  const keys = ['click_id', 'clickid', 'gdt_vid', 'bd_vid', 'track_id', 'req_id'];
   for (const k of keys) {
     const v = q[k];
     if (v != null && String(v).trim() !== '') {
@@ -34,6 +38,10 @@ export function extractClickKey(query) {
     }
   }
   return null;
+}
+
+export function getSupportedConversionPlatforms() {
+  return listSupportedConversionPlatforms();
 }
 
 /**
@@ -128,7 +136,19 @@ export async function handleAdRedirect(req) {
   const record = await storeClickRecord({ query: flat, tenantHint });
 
   const dest = new URL(landing);
-  const passthrough = ['click_id', 'clickid', 'gdt_vid', 'bd_vid', '__CALLBACK__', 'state'];
+  const passthrough = [
+    'click_id',
+    'clickid',
+    'gdt_vid',
+    'bd_vid',
+    '__CALLBACK__',
+    'callback',
+    'ks_callback',
+    'track_id',
+    'req_id',
+    'state',
+    'platform',
+  ];
   for (const k of passthrough) {
     const v = flat[k];
     if (v != null && v !== '' && !dest.searchParams.has(k)) {
@@ -148,20 +168,20 @@ export async function handleAdRedirect(req) {
 }
 
 /**
- * 转化上报占位：按平台调用对应 API（需广告主账户与 token）
- * @param {{ clickKey: string; platform?: string; eventType: string; meta?: object }} _payload
+ * 转化上报：按平台分发至腾讯 / 巨量 / 百度 / 快手 / 小红书等适配器。
+ * @param {{ clickKey?: string; adHit?: number; platform?: string; eventType?: string; eventValue?: number }} _payload
  */
 export async function reportConversion(_payload) {
   const payload = _payload || {};
-  const clickKey = String(payload.clickKey || '').trim();
-  const adHit = payload.adHit ? Number(payload.adHit) : null;
-  const eventType = String(payload.eventType || 'register').slice(0, 64);
-  const eventValue = Number(payload.eventValue || 0);
+  const clickKey = String(payload.clickKey || payload.click_key || '').trim();
+  const adHit = payload.adHit != null ? Number(payload.adHit) : payload.ad_hit != null ? Number(payload.ad_hit) : null;
+  const eventType = String(payload.eventType || payload.event_type || 'register').slice(0, 64);
+  const eventValue = Number(payload.eventValue ?? payload.event_value ?? 0);
   if (!clickKey && !(adHit && Number.isFinite(adHit))) {
     throw new HttpError(400, '缺少 clickKey 或 adHit', 400);
   }
 
-  const where = adHit ? { id: adHit } : { click_key: clickKey };
+  const where = adHit && Number.isFinite(adHit) ? { id: adHit } : { click_key: clickKey };
   const click = await AdClickRecord.findOne({ where, order: [['id', 'DESC']] });
   if (!click) throw new HttpError(404, '未找到对应广告点击记录', 404);
   const plain = click.get({ plain: true });
@@ -176,44 +196,18 @@ export async function reportConversion(_payload) {
     report_status: 'pending',
   });
 
-  let reportStatus = 'skipped';
-  let reportResponse = 'platform_not_supported';
-  if (plain.platform === 'gdt') {
-    if (!env.tencentAds.enabled) {
-      reportStatus = 'skipped';
-      reportResponse = 'tencent_ads_disabled';
-    } else if (!env.tencentAds.accessToken || !env.tencentAds.accountId) {
-      reportStatus = 'failed';
-      reportResponse = 'missing_tencent_ads_credentials';
-    } else {
-      const body = {
-        account_id: env.tencentAds.accountId,
-        click_id: plain.click_key,
-        conversion_type: eventType,
-        conversion_time: Math.floor(Date.now() / 1000),
-        value: Number.isFinite(eventValue) ? eventValue : 0,
-      };
-      const resp = await fetch(env.tencentAds.endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${env.tencentAds.accessToken}`,
-        },
-        body: JSON.stringify(body),
-      });
-      const data = await resp.text();
-      if (resp.ok) {
-        reportStatus = 'reported';
-        reportResponse = data.slice(0, 2000);
-      } else {
-        reportStatus = 'failed';
-        reportResponse = `${resp.status}:${data}`.slice(0, 2000);
-      }
-    }
-  }
+  const platformResult = await reportToAdPlatform({
+    clickRecord: plain,
+    eventType,
+    eventValue: Number.isFinite(eventValue) ? eventValue : 0,
+  });
+  const reportStatus = platformResult.status;
+  const reportResponse = String(platformResult.response || '').slice(0, 2000);
 
   await conv.update({ report_status: reportStatus, report_response: reportResponse });
-  await click.update({ status: reportStatus === 'reported' ? 'reported' : plain.status === 'pending' ? 'converted' : plain.status });
+  await click.update({
+    status: reportStatus === 'reported' ? 'reported' : plain.status === 'pending' ? 'converted' : plain.status,
+  });
 
   await recordServerMarketingEvent({
     tenant_id: plain.tenant_id,
@@ -232,9 +226,161 @@ export async function reportConversion(_payload) {
     click_id: Number(plain.id),
     click_key: plain.click_key,
     platform: plain.platform,
+    provider: platformResult.provider || plain.platform,
     report_status: reportStatus,
     report_response: reportResponse,
   };
+}
+
+/**
+ * 留资等场景：根据 URL 归因参数自动回传（不抛错，仅记日志）。
+ * @param {object} body
+ */
+/** 企微「联系我」state 上限 */
+const WEWORK_STATE_MAX = 30;
+
+/**
+ * 为广告点击生成企微活码 state（≤30 字符），回调时解析为 ad_hit。
+ * @param {number} adHit
+ */
+export function buildAdContactWayState(adHit) {
+  const id = Number(adHit);
+  if (!Number.isFinite(id) || id < 1) return null;
+  return `zfah${Math.floor(id)}`.slice(0, WEWORK_STATE_MAX);
+}
+
+/**
+ * 从企微回调 state 解析广告归因。
+ * @param {string | null | undefined} state
+ * @returns {{ adHit?: number; clickKey?: string } | null}
+ */
+export function parseAdAttributionFromState(state) {
+  const s = String(state || '').trim();
+  if (!s) return null;
+  let m = /^zfah(\d{1,20})$/i.exec(s);
+  if (m) return { adHit: Number(m[1]) };
+  m = /^zf_ad_(\d{1,20})$/i.exec(s);
+  if (m) return { adHit: Number(m[1]) };
+  m = /^zfck([a-zA-Z0-9_-]{4,26})$/i.exec(s);
+  if (m) return { clickKey: m[1] };
+  if (/^\d{1,20}$/.test(s)) return { adHit: Number(s) };
+  if (s.length >= 6 && s.length <= WEWORK_STATE_MAX && !s.startsWith('t')) {
+    return { clickKey: s };
+  }
+  return null;
+}
+
+/**
+ * 企微加好友：从 state / 活码配置 / click_key 解析归因。
+ * @param {{ tenantId: number; state?: string | null; channelId?: number | null }} payload
+ */
+export async function resolveAdAttributionFromWeworkAdd(payload) {
+  const tenantId = Number(payload.tenantId);
+  if (!Number.isFinite(tenantId) || tenantId < 1) return null;
+
+  const fromState = parseAdAttributionFromState(payload.state);
+  if (fromState?.adHit || fromState?.clickKey) {
+    return fromState;
+  }
+
+  if (payload.channelId) {
+    const ch = await WeworkChannel.findOne({
+      where: { id: Number(payload.channelId), tenant_id: tenantId },
+      attributes: ['config'],
+    });
+    const cfg = ch?.config && typeof ch.config === 'object' ? ch.config : {};
+    const adHitRaw = cfg.ad_hit ?? cfg.adHit;
+    if (adHitRaw != null && Number.isFinite(Number(adHitRaw))) {
+      return { adHit: Number(adHitRaw) };
+    }
+    const ck = cfg.click_key ?? cfg.clickid ?? cfg.click_id ?? cfg.gdt_vid ?? cfg.bd_vid;
+    if (ck && String(ck).trim()) {
+      return { clickKey: String(ck).trim() };
+    }
+  }
+
+  const state = String(payload.state || '').trim();
+  if (state) {
+    const click = await AdClickRecord.findOne({
+      where: { tenant_id: tenantId, click_key: state },
+      order: [['id', 'DESC']],
+    });
+    if (click) {
+      return { adHit: Number(click.id), clickKey: click.click_key };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 校验 ad_hit 属于租户，并返回可用于企微活码的 state。
+ * @param {{ tenantId: number; adHit: number }} opts
+ */
+export async function getWeworkStateForAdHit(opts) {
+  const tenantId = Number(opts.tenantId);
+  const adHit = Number(opts.adHit);
+  if (!Number.isFinite(tenantId) || tenantId < 1 || !Number.isFinite(adHit) || adHit < 1) {
+    throw new HttpError(400, '缺少 tenant_id 或 ad_hit', 400);
+  }
+  const click = await AdClickRecord.findOne({
+    where: { id: adHit, tenant_id: tenantId },
+  });
+  if (!click) {
+    throw new HttpError(404, '广告点击记录不存在或不属于该企业', 404);
+  }
+  const state = buildAdContactWayState(adHit);
+  if (!state) {
+    throw new HttpError(400, '无法生成 state', 400);
+  }
+  return { ad_hit: adHit, state, platform: click.platform, click_key: click.click_key };
+}
+
+/**
+ * 企微加好友后自动转化回传（事件 wework_add）。
+ * @param {{ tenantId: number; state?: string | null; channelId?: number | null }} payload
+ */
+export async function tryAutoReportConversionOnWeworkAdd(payload) {
+  if (!env.adConversion?.autoOnWeworkAdd) return null;
+  const attr = await resolveAdAttributionFromWeworkAdd(payload);
+  if (!attr) return null;
+  try {
+    const result = await reportConversion({
+      adHit: attr.adHit,
+      clickKey: attr.clickKey,
+      eventType: 'wework_add',
+      eventValue: 0,
+    });
+    if (result.report_status === 'reported' && attr.clickKey) {
+      markAttributedByClickKey(attr.clickKey, 'attributed').catch(() => {});
+    }
+    return result;
+  } catch (err) {
+    console.error('[ads] auto conversion on wework add', err?.message || err);
+    return null;
+  }
+}
+
+export async function tryAutoReportConversionOnLead(body) {
+  if (!env.adConversion?.autoOnLead) return null;
+  const value = body || {};
+  let adHit = value.ad_hit != null ? Number(value.ad_hit) : null;
+  if (adHit != null && !Number.isFinite(adHit)) adHit = null;
+  const clickKey = String(
+    value.clickid || value.click_id || value.gdt_vid || value.bd_vid || '',
+  ).trim();
+  if (!adHit && !clickKey) return null;
+  try {
+    return await reportConversion({
+      adHit: adHit || undefined,
+      clickKey: clickKey || undefined,
+      eventType: 'lead_submit',
+      eventValue: 0,
+    });
+  } catch (err) {
+    console.error('[ads] auto conversion on lead', err?.message || err);
+    return null;
+  }
 }
 
 /**

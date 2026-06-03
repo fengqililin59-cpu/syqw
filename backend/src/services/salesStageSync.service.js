@@ -135,3 +135,25 @@ export function crmStageLabel(crmStage) {
 export function inboxStageLabel(inboxStage) {
   return INBOX_STAGE_LABELS[String(inboxStage || '').trim()] || String(inboxStage || '—');
 }
+
+/** 前端展示阶段映射与联动说明 */
+export function getSalesStageMap() {
+  const mappings = Object.keys(INBOX_STAGE_LABELS).map((inboxStage) => {
+    const crmStage = inboxStageToCrmStage(inboxStage);
+    return {
+      inbox_stage: inboxStage,
+      inbox_label: INBOX_STAGE_LABELS[inboxStage],
+      crm_stage: crmStage,
+      crm_label: crmStageLabel(crmStage),
+    };
+  });
+  return {
+    mappings,
+    crm_to_inbox: Object.keys(CRM_STAGE_LABELS).map((crmStage) => ({
+      crm_stage: crmStage,
+      crm_label: CRM_STAGE_LABELS[crmStage],
+      inbox_stage: crmStageToInboxStage(crmStage),
+      inbox_label: inboxStageLabel(crmStageToInboxStage(crmStage)),
+    })),
+  };
+}

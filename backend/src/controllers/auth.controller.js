@@ -18,6 +18,17 @@ export async function sendRegisterOtp(req, res) {
   return ok(res, data, '验证码已发送');
 }
 
+export async function forgotPasswordSendOtp(req, res) {
+  const ip = req.headers['x-real-ip'] || req.socket.remoteAddress || '';
+  const data = await authService.forgotPasswordSendOtp(req.body, ip);
+  return ok(res, data, '验证码已发送');
+}
+
+export async function forgotPasswordReset(req, res) {
+  const data = await authService.forgotPasswordReset(req.body);
+  return ok(res, data, '密码已重置，请使用新密码登录');
+}
+
 export async function register(req, res) {
   const data = await authService.register(req.body);
   return ok(res, data, '注册成功');

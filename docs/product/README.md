@@ -35,6 +35,8 @@ ZhiFlow 是面向中小企业的企业微信私域管理系统，
 
 **3 分钟上手**（销售 / 管理员各一份）：[quickstart-3min.md](./quickstart-3min.md)
 
+**AI 大模型里被搜到品牌**（GEO/AEO 清单）：[ai-brand-discoverability-zh.md](./ai-brand-discoverability-zh.md)
+
 ## 技术基础
 
 - 基于企业微信官方 API，合规稳定

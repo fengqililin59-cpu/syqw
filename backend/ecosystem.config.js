@@ -32,7 +32,7 @@ export default {
       // 生产环境不在此处硬编码敏感值，依赖 .env 文件或系统环境变量
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3000,
+        // 勿在此写 PORT：PM2 环境变量会覆盖 backend/.env，导致 Nginx 指 3002 而进程监听 3000
       },
 
       // ── 日志配置 ────────────────────────────────────────────

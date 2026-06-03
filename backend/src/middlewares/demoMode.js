@@ -40,6 +40,8 @@ export async function demoModeMiddleware(req, res, next) {
       tenantId: DEMO_TENANT_ID,
       isDemo: true,
     };
+    // 兼容旧代码：确保 req.tenantId 与 req.auth.tenantId 同步
+    req.tenantId = req.auth.tenantId;
     req.user.demo_mode = true;
     res.setHeader('X-Demo-Mode', '1');
     return next();

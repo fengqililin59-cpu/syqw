@@ -51,6 +51,7 @@ export function ChannelLiveCodePage() {
   const [codeRemark, setCodeRemark] = useState('')
   const [codeStyle, setCodeStyle] = useState(1)
   const [codeSkip, setCodeSkip] = useState(true)
+  const [codeAdHit, setCodeAdHit] = useState('')
   const [codeFormError, setCodeFormError] = useState('')
   const [codeSaving, setCodeSaving] = useState(false)
 
@@ -108,6 +109,7 @@ export function ChannelLiveCodePage() {
     setCodeRemark('')
     setCodeStyle(1)
     setCodeSkip(true)
+    setCodeAdHit('')
     setCodeFormError('')
     setCodeOpen(true)
   }
@@ -124,6 +126,11 @@ export function ChannelLiveCodePage() {
       )
       return
     }
+    const adHitNum = codeAdHit.trim() ? Number(codeAdHit.trim()) : undefined
+    if (codeAdHit.trim() && (!Number.isFinite(adHitNum) || (adHitNum ?? 0) < 1)) {
+      setCodeFormError('广告点击 ID（ad_hit）须为正整数，可在广告 ROI 或监测落地 URL 中查看')
+      return
+    }
     setCodeSaving(true)
     try {
       await createEmployeeChannel({
@@ -133,6 +140,7 @@ export function ChannelLiveCodePage() {
         remark: codeRemark || undefined,
         skip_verify: codeSkip,
         style: codeStyle,
+        ad_hit: adHitNum,
       })
       setCodeOpen(false)
       await loadAll()
@@ -170,7 +178,8 @@ export function ChannelLiveCodePage() {
         <p className="text-sm text-muted-foreground">
           员工活码即「联系我」二维码：同一活码对外图案不变，后台可随时<strong>换接线成员/备注</strong>（凭{' '}
           <code className="text-xs">config_id</code> 更新）；渠道归因依赖≤30字符的 <code className="text-xs">state</code>
-          ，回调中原样带回。请填写<strong>成员在企业微信内的 userid</strong>。
+          ，回调中原样带回。投流专用码可绑定 <code className="text-xs">ad_hit</code>，加好友后自动向广告平台回传{' '}
+          <code className="text-xs">wework_add</code>。请填写<strong>成员在企业微信内的 userid</strong>。
         </p>
       </div>
 
@@ -198,7 +207,7 @@ export function ChannelLiveCodePage() {
                 <TableRow>
                   <TableHead>名称</TableHead>
                   <TableHead>分组</TableHead>
-                  <TableHead>State（追踪）</TableHead>
+                  <TableHead>State / 投流</TableHead>
                   <TableHead>config_id</TableHead>
                   <TableHead>二维码</TableHead>
                   <TableHead className="text-right">操作</TableHead>
@@ -218,11 +227,22 @@ export function ChannelLiveCodePage() {
                 ) : (
                   channels.map((c) => {
                     const qr = typeof c.config?.qr_code === 'string' ? c.config.qr_code : ''
+                    const adHit =
+                      typeof c.config?.ad_hit === 'number'
+                        ? c.config.ad_hit
+                        : typeof c.config?.ad_hit === 'string'
+                          ? Number(c.config.ad_hit)
+                          : null
                     return (
                       <TableRow key={c.id}>
                         <TableCell className="font-medium">{c.name}</TableCell>
                         <TableCell>{c.group?.name ?? '—'}</TableCell>
-                        <TableCell className="max-w-[140px] truncate text-xs text-muted-foreground">{c.state ?? '—'}</TableCell>
+                        <TableCell className="max-w-[160px] text-xs text-muted-foreground">
+                          <div className="truncate">{c.state ?? '—'}</div>
+                          {adHit && Number.isFinite(adHit) ? (
+                            <div className="mt-0.5 text-[10px] text-primary">ad_hit={adHit}</div>
+                          ) : null}
+                        </TableCell>
                         <TableCell className="max-w-[100px] truncate text-xs">{c.wework_config_id ?? '—'}</TableCell>
                         <TableCell>
                           {qr ? (
@@ -387,6 +407,21 @@ export function ChannelLiveCodePage() {
             <div className="space-y-2">
               <Label>备注（展示在二维码名片上）</Label>
               <Input value={codeRemark} onChange={(e) => setCodeRemark(e.target.value)} placeholder="可选" />
+            </div>
+            <div className="space-y-2">
+              <Label>绑定广告点击 ID（ad_hit，可选）</Label>
+              <Input
+                value={codeAdHit}
+                onChange={(e) => {
+                  setCodeAdHit(e.target.value.replace(/\D/g, ''))
+                  setCodeFormError('')
+                }}
+                placeholder="监测落地 URL 中的 ad_hit，如 12345"
+                inputMode="numeric"
+              />
+              <p className="text-xs text-muted-foreground">
+                填写后活码 state 为 zfah{'{id}'}，客户扫码加好友将自动回传转化；留资页与监测链须为同一 ad_hit。
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">

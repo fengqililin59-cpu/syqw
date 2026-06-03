@@ -19,6 +19,10 @@ export class AiReplyLog extends Model {
         status: { type: DataTypes.STRING(24), allowNull: false, defaultValue: 'draft' },
         model: { type: DataTypes.STRING(64), allowNull: true },
         approved_by: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+        qa_status: { type: DataTypes.STRING(16), allowNull: true },
+        qa_reviewed_at: { type: DataTypes.DATE, allowNull: true },
+        qa_reviewed_by: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+        qa_note: { type: DataTypes.STRING(500), allowNull: true },
       },
       {
         sequelize,

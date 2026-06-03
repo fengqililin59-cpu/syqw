@@ -29,6 +29,22 @@ router.post(
 );
 
 router.get(
+  '/sales-stage-map',
+  requireAnyPerm('inbox:view', 'customer:view'),
+  asyncHandler(inboxController.salesStageMap),
+);
+router.get(
+  '/sla/summary',
+  requireAnyPerm('inbox:view', 'customer:view'),
+  asyncHandler(inboxController.getSlaBatchSummary),
+);
+router.post(
+  '/sla/batch',
+  requireAnyPerm('inbox:reply', 'inbox:manage', 'customer:edit'),
+  asyncHandler(inboxController.runSlaBatchAction),
+);
+
+router.get(
   '/threads',
   requireAnyPerm('inbox:view', 'customer:view'),
   asyncHandler(inboxController.listThreads),

@@ -32,6 +32,8 @@ const otpLimiter = rateLimit({
 router.get('/register/options', asyncHandler(authController.registerOptions));
 router.post('/register/send-otp', otpLimiter, asyncHandler(authController.sendRegisterOtp));
 router.post('/register', loginLimiter, asyncHandler(authController.register));
+router.post('/forgot-password/send-otp', otpLimiter, asyncHandler(authController.forgotPasswordSendOtp));
+router.post('/forgot-password/reset', loginLimiter, asyncHandler(authController.forgotPasswordReset));
 router.post('/login', loginLimiter, asyncHandler(authController.login));
 router.post('/guest-login', asyncHandler(authController.guestLogin));
 router.post('/logout', asyncHandler(authController.logout));

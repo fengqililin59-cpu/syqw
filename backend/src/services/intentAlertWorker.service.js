@@ -3,6 +3,8 @@ import { env } from '../config/env.js';
 import { IntentAlert, Customer, User, Tenant } from '../models/index.js';
 import { generateCopywriting } from './aiContent.service.js';
 import { sendAgentTextMessage } from './wework.service.js';
+import { getCustomerIntentPlaybook } from './intentAlert.service.js';
+import { normalizePermissionCodes } from '../utils/permissions.js';
 
 const FALLBACK_SCRIPT = '暂无推荐话术，请根据客户情况自行判断';
 
@@ -15,16 +17,38 @@ function buildAiPrompt(customer, scoreBefore, scoreAfter) {
 只输出消息正文，不要任何解释。`;
 }
 
-function buildOwnerMessage({ customer, alert, aiScript }) {
+function buildOwnerMessage({ customer, alert, aiScript, scriptLibraryHint }) {
   const appUrl = String(env.appUrl || '').replace(/\/$/, '');
-  return `⚡ 意向预警
-客户：${customer.name || `#${customer.id}`}
-意向分：${alert.score_before} → ${alert.score_after}（+${alert.score_delta}）
-建议现在跟进，推荐话术：
+  const lines = [
+    '⚡ 意向预警',
+    `客户：${customer.name || `#${customer.id}`}`,
+    `意向分：${alert.score_before} → ${alert.score_after}（+${alert.score_delta}）`,
+    '建议现在跟进，推荐话术：',
+    '',
+    aiScript,
+  ];
+  if (scriptLibraryHint) {
+    lines.push('', scriptLibraryHint);
+  }
+  lines.push(
+    '',
+    `👉 客户详情 / 跟进助手：${appUrl}/app/customers/${customer.id}`,
+    `👉 收件箱回复：${appUrl}/app/inbox?customer_id=${customer.id}`,
+    `👉 意向预警列表：${appUrl}/app/intent-alerts`,
+  );
+  return lines.join('\n');
+}
 
-${aiScript}
-
-👉 点击查看客户详情：${appUrl}/app/customers/${customer.id}`;
+function buildOwnerAuth(alert, owner) {
+  return {
+    tenantId: Number(alert.tenant_id),
+    userId: Number(owner.id),
+    legacyRole: owner.role === 'admin' ? 'admin' : 'sales',
+    roleName: owner.role === 'admin' ? '管理员' : null,
+    permissions: normalizePermissionCodes(
+      owner.role === 'admin' ? ['*'] : ['customer:view', 'dashboard:view', 'ai:use'],
+    ),
+  };
 }
 
 async function markStalePendingAsFailed() {
@@ -49,7 +73,11 @@ export async function runIntentAlertWorkerOnce(batchSize = 10) {
     },
     include: [
       { model: Customer, attributes: ['id', 'name', 'company', 'stage'] },
-      { model: User, as: 'owner', attributes: ['id', 'username', 'real_name', 'wework_userid'] },
+      {
+        model: User,
+        as: 'owner',
+        attributes: ['id', 'username', 'real_name', 'wework_userid', 'role'],
+      },
       { model: Tenant, attributes: ['id', 'wework_corp_id', 'wework_secret', 'wework_agent_id'] },
     ],
     order: [['created_at', 'ASC']],
@@ -76,17 +104,58 @@ export async function runIntentAlertWorkerOnce(batchSize = 10) {
     }
 
     let aiScript = FALLBACK_SCRIPT;
+    let scriptLibraryHint = '';
+    let usedLibraryPrimary = false;
+
     try {
-      aiScript = await generateCopywriting(
-        buildAiPrompt(customer, alert.score_before, alert.score_after),
-        '私域销售',
-        alert.tenant_id,
-      );
+      const auth = buildOwnerAuth(alert, owner);
+      const playbook = await getCustomerIntentPlaybook(auth, customer.id);
+      if (playbook.show_assistant !== false && playbook.recommended_scripts?.length) {
+        const top = playbook.recommended_scripts.slice(0, 2);
+        scriptLibraryHint = `📚 话术库：${top.map((s) => `「${s.title}」${String(s.body).slice(0, 60)}…`).join(' ')}`;
+        if (top[0]?.body) {
+          aiScript = String(top[0].body).slice(0, 500);
+          usedLibraryPrimary = true;
+        }
+      }
+      if (playbook.ai_prompt && playbook.show_assistant !== false) {
+        try {
+          const aiEnhanced = await generateCopywriting(
+            `${buildAiPrompt(customer, alert.score_before, alert.score_after)}\n${playbook.ai_prompt}`,
+            '私域销售',
+            alert.tenant_id,
+          );
+          if (aiEnhanced?.trim()) {
+            aiScript = aiEnhanced.trim().slice(0, 800);
+          }
+        } catch (e) {
+          console.error('[intent-alert] ai generate failed', e);
+        }
+      } else if (!usedLibraryPrimary) {
+        try {
+          aiScript = await generateCopywriting(
+            buildAiPrompt(customer, alert.score_before, alert.score_after),
+            '私域销售',
+            alert.tenant_id,
+          );
+        } catch (e) {
+          console.error('[intent-alert] ai generate failed', e);
+        }
+      }
     } catch (e) {
-      console.error('[intent-alert] ai generate failed', e);
+      console.error('[intent-alert] playbook load failed', e);
+      try {
+        aiScript = await generateCopywriting(
+          buildAiPrompt(customer, alert.score_before, alert.score_after),
+          '私域销售',
+          alert.tenant_id,
+        );
+      } catch (err) {
+        console.error('[intent-alert] ai generate failed', err);
+      }
     }
 
-    const msgText = buildOwnerMessage({ customer, alert, aiScript });
+    const msgText = buildOwnerMessage({ customer, alert, aiScript, scriptLibraryHint });
     try {
       // 注意：预警是发给销售 owner，不是发给客户。
       await sendAgentTextMessage(tenant, { touser: owner.wework_userid, content: msgText });

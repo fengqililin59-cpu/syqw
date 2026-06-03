@@ -5,6 +5,7 @@
   const ATTR_KEY = 'attribution_token'
   const UTM_KEY = 'zf_utm_bundle'
   const LANDING_KEY = 'zf_landing_attribution'
+  const AD_KEY = 'zf_ad_attribution'
 
   function randomHex(bytes) {
     const arr = new Uint8Array(bytes)
@@ -126,6 +127,65 @@
     }
   }
 
+  function persistAdParamsFromQuery() {
+    const q = new URLSearchParams(global.location.search)
+    const ad = {}
+    const adHit = q.get('ad_hit')?.trim()
+    if (adHit && /^\d+$/.test(adHit)) ad.ad_hit = adHit
+    for (const k of ['clickid', 'click_id', 'gdt_vid', 'bd_vid']) {
+      const v = q.get(k)?.trim()
+      if (v) ad[k] = v.slice(0, 512)
+    }
+    if (Object.keys(ad).length) {
+      try {
+        global.sessionStorage.setItem(AD_KEY, JSON.stringify(ad))
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    return ad
+  }
+
+  function getStoredAdParams() {
+    try {
+      const raw = global.sessionStorage.getItem(AD_KEY)
+      return raw ? JSON.parse(raw) : {}
+    } catch {
+      return {}
+    }
+  }
+
+  function appendAdParamsToUrl(url) {
+    const ad = { ...getStoredAdParams(), ...persistAdParamsFromQuery() }
+    if (ad.ad_hit) url.searchParams.set('ad_hit', ad.ad_hit)
+    const clickid = ad.clickid || ad.click_id
+    if (clickid) {
+      url.searchParams.set('clickid', clickid)
+      url.searchParams.set('click_id', clickid)
+    }
+    if (ad.gdt_vid) url.searchParams.set('gdt_vid', ad.gdt_vid)
+    if (ad.bd_vid) url.searchParams.set('bd_vid', ad.bd_vid)
+    return url
+  }
+
+  async function trackAdLandingIfPresent() {
+    const q = new URLSearchParams(global.location.search)
+    const raw = q.get('ad_hit')?.trim()
+    if (!raw || !/^\d+$/.test(raw)) return
+    const tenantRaw = q.get('tenant') || q.get('tenant_id')
+    const body = {
+      event_key: 'ad_landing',
+      ad_hit: Number(raw),
+      session_id: getOrCreateSessionId(),
+    }
+    if (tenantRaw && /^\d+$/.test(tenantRaw)) body.tenant_id = Number(tenantRaw)
+    try {
+      await postJson('/track/event', body)
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
   function buildLeadFormUrl(tenantId, extra) {
     const to = new URL('/lead-form.html', global.location.origin)
     to.searchParams.set('tenant', String(tenantId))
@@ -137,6 +197,7 @@
     if (land.from) to.searchParams.set('from', land.from)
     if (land.variant) to.searchParams.set('variant', land.variant)
     if (extra?.cta) to.searchParams.set('cta', extra.cta)
+    appendAdParamsToUrl(to)
     return to.toString()
   }
 
@@ -150,6 +211,9 @@
     getLandingAttribution,
     trackEvent,
     trackVisitIfUtm,
+    persistAdParamsFromQuery,
+    getStoredAdParams,
+    trackAdLandingIfPresent,
     buildLeadFormUrl,
   }
 })(window)

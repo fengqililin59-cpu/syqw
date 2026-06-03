@@ -10,10 +10,12 @@ import { env } from '../config/env.js';
 import { HttpError } from '../utils/httpError.js';
 import { sequelize, Tenant, Role, User, Plan, Subscription } from '../models/index.js';
 import * as registrationOtp from './registrationOtp.service.js';
+import * as passwordResetOtp from './passwordResetOtp.service.js';
 import { bindVisitToUser } from './pageTracking.service.js';
 import { bindMarketingEventsToUser, recordServerMarketingEvent } from './marketingEvent.service.js';
 import * as billingService from './billing.service.js';
 import { rawPermissionsFromRole } from '../utils/permissions.js';
+import { patchSystemAdminInboxAiPermsForTenant } from './role.service.js';
 
 const registerSchemaBase = {
   tenant_name: Joi.string().trim().min(1).max(100).required(),
@@ -34,7 +36,51 @@ const registerSchemaOtpFields = {
   otp_code: Joi.string().trim().length(6).pattern(/^\d+$/).required(),
 };
 
-const registerSchema = Joi.object({ ...registerSchemaBase, ...registerSchemaOtpFields });
+function buildRegisterSchema() {
+  if (registrationOtp.isRegisterOtpEnabled()) {
+    return Joi.object({ ...registerSchemaBase, ...registerSchemaOtpFields });
+  }
+  return Joi.object(registerSchemaBase);
+}
+
+/** 邮箱账号统一小写，避免注册/登录大小写不一致 */
+function normalizeLoginUsername(username, registerChannel) {
+  const raw = String(username || '').trim();
+  if (!raw) return raw;
+  if (registerChannel === 'email' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
+    return raw.toLowerCase();
+  }
+  return raw;
+}
+
+function mapRegisterUniqueConstraintError(err) {
+  const fields = err?.fields || err?.parent?.fields || {};
+  const fieldNames = Object.keys(fields);
+  const msg = String(err?.parent?.sqlMessage || err?.message || '');
+  if (fieldNames.includes('tenant_id') || /subscriptions.*tenant_id|tenant_id.*subscriptions/i.test(msg)) {
+    return new HttpError(
+      500,
+      '企业订阅数据异常（历史残留），请联系管理员清理后重试，或使用其他企业名称重新注册',
+      500,
+    );
+  }
+  if (fieldNames.includes('username') || /uk_users_tenant_username/i.test(msg)) {
+    return new HttpError(409, '该企业下账号已存在', 409);
+  }
+  return new HttpError(409, '注册冲突，请更换企业名称或账号后重试', 409);
+}
+
+const forgotPasswordSendOtpSchema = Joi.object({
+  phone: Joi.string().trim().min(3).max(50).required(),
+  tenant_id: Joi.number().integer().positive().optional(),
+});
+
+const forgotPasswordResetSchema = Joi.object({
+  phone: Joi.string().trim().min(3).max(50).required(),
+  tenant_id: Joi.number().integer().positive().optional(),
+  otp_code: Joi.string().trim().length(6).pattern(/^\d+$/).required(),
+  password: Joi.string().min(6).max(72).required(),
+});
 
 const loginSchema = Joi.object({
   tenant_id: Joi.number()
@@ -87,27 +133,29 @@ function stripPassword(user) {
 }
 
 export async function register(body) {
-  const { error, value } = registerSchema.validate(body, { abortEarly: false, stripUnknown: true });
+  const { error, value } = buildRegisterSchema().validate(body, { abortEarly: false, stripUnknown: true });
   if (error) {
     throw new HttpError(400, '参数校验失败', 400, error.details);
   }
 
-  const ch = value.register_channel;
-  const target = value.register_target.trim();
-  const uname = value.username.trim();
-  if (ch === 'email') {
-    const em = target.toLowerCase();
-    if (uname.toLowerCase() !== em) {
-      throw new HttpError(400, '管理员账号须与接收验证码的邮箱一致', 400);
+  if (registrationOtp.isRegisterOtpEnabled()) {
+    const ch = value.register_channel;
+    const target = value.register_target.trim();
+    const uname = value.username.trim();
+    if (ch === 'email') {
+      const em = target.toLowerCase();
+      if (uname.toLowerCase() !== em) {
+        throw new HttpError(400, '管理员账号须与接收验证码的邮箱一致', 400);
+      }
+    } else if (uname.replace(/\D/g, '') !== target.replace(/\D/g, '')) {
+      throw new HttpError(400, '管理员账号须与接收验证码的手机号一致', 400);
     }
-  } else if (uname.replace(/\D/g, '') !== target.replace(/\D/g, '')) {
-    throw new HttpError(400, '管理员账号须与接收验证码的手机号一致', 400);
+    await registrationOtp.consumeRegisterOtpIfValid({
+      channel: ch,
+      target,
+      code: value.otp_code,
+    });
   }
-  await registrationOtp.consumeRegisterOtpIfValid({
-    channel: ch,
-    target,
-    code: value.otp_code,
-  });
 
   const t = await sequelize.transaction();
   try {
@@ -134,10 +182,10 @@ export async function register(body) {
     if (!role) {
       throw new HttpError(500, '创建默认角色失败，请确认已执行 database/037_rbac_seed_roles.sql', 500);
     }
+    await patchSystemAdminInboxAiPermsForTenant(tenant.id, { transaction: t });
 
     const password_hash = await bcrypt.hash(value.password, 10);
-    const loginUsername =
-      value.register_channel === 'email' ? value.username.trim().toLowerCase() : value.username.trim();
+    const loginUsername = normalizeLoginUsername(value.username, value.register_channel);
     const user = await User.create(
       {
         tenant_id: tenant.id,
@@ -209,10 +257,44 @@ export async function register(body) {
       await t.rollback();
     }
     if (e.name === 'SequelizeUniqueConstraintError') {
-      throw new HttpError(409, '该企业下账号已存在', 409);
+      throw mapRegisterUniqueConstraintError(e);
     }
     throw e;
   }
+}
+
+export async function forgotPasswordSendOtp(body, clientIp) {
+  const { error, value } = forgotPasswordSendOtpSchema.validate(body, { abortEarly: false, stripUnknown: true });
+  if (error) {
+    throw new HttpError(400, '参数校验失败', 400, error.details);
+  }
+  return passwordResetOtp.sendPasswordResetOtp(
+    { phone: value.phone, tenant_id: value.tenant_id },
+    String(clientIp || ''),
+  );
+}
+
+export async function forgotPasswordReset(body) {
+  const { error, value } = forgotPasswordResetSchema.validate(body, { abortEarly: false, stripUnknown: true });
+  if (error) {
+    throw new HttpError(400, '参数校验失败', 400, error.details);
+  }
+
+  const tid = value.tenant_id != null ? Number(value.tenant_id) : null;
+  const { users } = await passwordResetOtp.resolveUsersForPasswordReset({
+    phone: value.phone,
+    tenant_id: tid ?? undefined,
+  });
+
+  await passwordResetOtp.consumePasswordResetOtpIfValid({
+    phone: value.phone,
+    code: value.otp_code,
+  });
+
+  const password_hash = await bcrypt.hash(value.password, 10);
+  await Promise.all(users.map((u) => u.update({ password_hash })));
+
+  return { ok: true, updated: users.length };
 }
 
 export async function login(body) {
@@ -237,63 +319,61 @@ export async function login(body) {
   }
   const identityWhere = { [Op.or]: identityOr };
 
-  let user = null;
-  if (value.tenant_id != null) {
-    const tenantCandidates = await User.findAll({
-      where: { tenant_id: value.tenant_id, status: 1, ...identityWhere },
-      include: [{ model: Role, attributes: ['id', 'name', 'permissions', 'perm_codes'] }],
-      limit: 20,
-    });
-    const matched = [];
-    for (const c of tenantCandidates) {
-      // eslint-disable-next-line no-await-in-loop
-      const okPwd = await bcrypt.compare(value.password, c.password_hash);
-      if (okPwd) matched.push(c);
-    }
-    if (matched.length === 1) {
-      user = matched[0];
-    } else if (matched.length > 1) {
-      throw new HttpError(409, '该登录标识在同一企业匹配到多个账号，请联系管理员处理', 409);
-    }
-  } else {
-    const candidates = await User.findAll({
-      where: { status: 1, ...identityWhere },
-      include: [
-        { model: Role, attributes: ['id', 'name', 'permissions', 'perm_codes'] },
-        { model: Tenant, attributes: ['id', 'name'] },
-      ],
-      limit: 20,
-    });
-    if (candidates.length === 1) {
-      user = candidates[0];
-    } else if (candidates.length > 1) {
-      const matched = [];
-      for (const c of candidates) {
-        // eslint-disable-next-line no-await-in-loop
-        const okPwd = await bcrypt.compare(value.password, c.password_hash);
-        if (okPwd) matched.push(c);
-      }
-      if (matched.length === 1) {
-        user = matched[0];
-      } else if (matched.length > 1) {
-        throw new HttpError(
-          409,
-          '该账号存在于多个企业，请选择企业后登录',
-          409,
-          matched.map((x) => ({
-            tenant_id: Number(x.tenant_id),
-            tenant_name: x.Tenant?.name || '',
-          })),
-        );
-      }
+  const candidates = await User.findAll({
+    where: { status: 1, ...identityWhere },
+    include: [
+      { model: Role, attributes: ['id', 'name', 'permissions', 'perm_codes'] },
+      { model: Tenant, attributes: ['id', 'name'] },
+    ],
+    limit: 50,
+  });
+
+  const pwdMatched = [];
+  for (const c of candidates) {
+    // eslint-disable-next-line no-await-in-loop
+    if (await bcrypt.compare(value.password, c.password_hash)) {
+      pwdMatched.push(c);
     }
   }
-  if (!user) {
+
+  if (pwdMatched.length === 0) {
+    if (candidates.length > 0) {
+      throw new HttpError(401, '密码错误', 401);
+    }
     throw new HttpError(401, '账号或密码错误', 401);
   }
 
-  const match = await bcrypt.compare(value.password, user.password_hash);
-  if (!match) {
+  let pool = pwdMatched;
+  if (value.tenant_id != null) {
+    const tid = Number(value.tenant_id);
+    pool = pwdMatched.filter((c) => Number(c.tenant_id) === tid);
+    if (pool.length === 0) {
+      throw new HttpError(
+        409,
+        '密码正确，但不在所填企业下，请清空企业 ID 自动识别或选择下列企业',
+        409,
+        pwdMatched.map((x) => ({
+          tenant_id: Number(x.tenant_id),
+          tenant_name: x.Tenant?.name || '',
+        })),
+      );
+    }
+  }
+
+  let user = null;
+  if (pool.length === 1) {
+    user = pool[0];
+  } else if (pool.length > 1) {
+    throw new HttpError(
+      409,
+      '该账号存在于多个企业，请选择企业后登录',
+      409,
+      pool.map((x) => ({
+        tenant_id: Number(x.tenant_id),
+        tenant_name: x.Tenant?.name || '',
+      })),
+    );
+  } else {
     throw new HttpError(401, '账号或密码错误', 401);
   }
 
@@ -303,8 +383,13 @@ export async function login(body) {
   }
 
   await user.update({ last_login_at: new Date() });
+  await patchSystemAdminInboxAiPermsForTenant(effectiveTenantId).catch(() => {});
 
   const tenant = await Tenant.findByPk(effectiveTenantId, { attributes: ['id', 'name'] });
+
+  if (user.Role) {
+    await user.Role.reload();
+  }
 
   const token = signSessionJwt(user);
   const u = stripPassword(user);
@@ -352,11 +437,44 @@ const GUEST_PERM_CODES = [
   'intent:view',
 ];
 
-export async function guestLogin() {
-  const guestUser = await User.findOne({
+/** 本地库若未跑 052_demo_seed，自动补齐演示访客（id=9998） */
+async function ensureGuestUser() {
+  const tenant = await Tenant.findByPk(DEMO_TENANT_ID, { attributes: ['id'] });
+  if (!tenant) {
+    throw new HttpError(503, '演示环境暂不可用', 503);
+  }
+
+  const [row] = await User.findOrCreate({
+    where: { id: GUEST_USER_ID },
+    defaults: {
+      tenant_id: DEMO_TENANT_ID,
+      username: 'guest',
+      real_name: '访客体验',
+      password_hash: 'GUEST_NOT_LOGIN',
+      role: 'sales',
+      demo_mode: 1,
+      status: 1,
+    },
+  });
+
+  if (Number(row.tenant_id) !== DEMO_TENANT_ID || row.status !== 1) {
+    await row.update({
+      tenant_id: DEMO_TENANT_ID,
+      status: 1,
+      demo_mode: 1,
+      username: 'guest',
+      real_name: '访客体验',
+    });
+  }
+
+  return User.findOne({
     where: { id: GUEST_USER_ID, tenant_id: DEMO_TENANT_ID, status: 1 },
     include: [{ model: Role, attributes: ['id', 'name', 'permissions', 'perm_codes'] }],
   });
+}
+
+export async function guestLogin() {
+  const guestUser = await ensureGuestUser();
 
   if (!guestUser) {
     throw new HttpError(503, '演示环境暂不可用', 503);

@@ -23,7 +23,9 @@ import {
 import {
   syncCustomerStageFromInboxThread,
   crmStageLabel,
+  inboxStageLabel,
 } from './salesStageSync.service.js';
+import { cancelInboxAutoDraft } from './inboxAutoDraft.service.js';
 
 async function getThreadScoped(auth, threadId) {
   const thread = await InboxThread.findOne({
@@ -92,13 +94,29 @@ export async function listThreads(auth, query) {
 
   let plain = rows.map((r) => r.get({ plain: true }));
   plain = await enrichThreads(plain, auth.tenantId);
+  plain = plain.map((t) => {
+    const code = t.channel?.code || '';
+    return {
+      ...t,
+      is_public_channel: code !== '' && code !== 'wework',
+      channel_delivery_hint:
+        code !== '' && code !== 'wework' ? '公域会话：AI 仅草稿，不会自动发到抖音/小红书' : null,
+    };
+  });
   plain = filterEnrichedThreads(plain, filter);
   plain = sortEnrichedThreads(plain, sort);
 
   const total = usePriority ? plain.length : dbCount;
   const list = usePriority ? plain.slice((page - 1) * size, page * size) : plain;
+  const enrichedList = list.map((t) => {
+    if (t.Customer?.stage) {
+      t.crm_stage_label = crmStageLabel(t.Customer.stage);
+    }
+    t.inbox_stage_label = inboxStageLabel(t.sales_stage);
+    return t;
+  });
 
-  return paginated(list, total, page, size);
+  return paginated(enrichedList, total, page, size);
 }
 
 async function customerIdsForUser(auth) {
@@ -118,19 +136,34 @@ export async function getThreadMessages(auth, threadId, query) {
     order: [['created_at', 'DESC']],
     limit,
   });
-  return { list: rows.map((r) => r.get({ plain: true })).reverse() };
+  const list = rows.map((r) => r.get({ plain: true })).reverse();
+  return {
+    list: list.map((m) => {
+      const raw = m.raw_payload && typeof m.raw_payload === 'object' ? m.raw_payload : {};
+      const ai_auto = Boolean(raw.ai_auto) || m.sender_role === 'ai';
+      const weworkSend = raw.wework_send && typeof raw.wework_send === 'object' ? raw.wework_send : null;
+      return {
+        ...m,
+        ai_auto,
+        ai_auto_kind: ai_auto ? raw.ai_auto_kind || null : null,
+        wework_delivered: Boolean(weworkSend?.sent),
+        inbox_only: Boolean(ai_auto && weworkSend?.skipped),
+      };
+    }),
+  };
 }
 
 const replySchema = Joi.object({
   content: Joi.string().trim().min(1).max(4000).required(),
 }).unknown(false);
 
-export async function replyThread(auth, threadId, body) {
+export async function replyThread(auth, threadId, body, opts = {}) {
   const { error, value } = replySchema.validate(body, { abortEarly: false, stripUnknown: true });
   if (error) {
     throw new HttpError(400, '参数校验失败', 400, error.details);
   }
   const thread = await getThreadScoped(auth, threadId);
+  cancelInboxAutoDraft(auth.tenantId, thread.id);
   const now = new Date();
   const channelMsgId = `staff:${auth.userId}:${now.getTime()}`;
   let weworkSend = null;
@@ -148,11 +181,17 @@ export async function replyThread(auth, threadId, body) {
     thread_id: thread.id,
     channel_message_id: channelMsgId,
     direction: 'staff',
-    sender_role: 'staff',
+    sender_role: opts.auto ? 'ai' : 'staff',
     content: value.content,
     msg_type: 'text',
     risk_level: 'p0',
-    raw_payload: { user_id: auth.userId, manual: true, wework_send: weworkSend },
+    raw_payload: {
+      user_id: auth.userId,
+      manual: !opts.auto,
+      ai_auto: Boolean(opts.auto),
+      ai_auto_kind: opts.auto_kind || null,
+      wework_send: weworkSend,
+    },
   });
   await thread.update({
     last_message_at: now,
@@ -301,6 +340,7 @@ export async function updateThread(auth, threadId, body) {
   if (plain.Customer?.stage) {
     plain.crm_stage_label = crmStageLabel(plain.Customer.stage);
   }
+  plain.inbox_stage_label = inboxStageLabel(plain.sales_stage);
   if (stageSync) plain.stage_sync = stageSync;
   return plain;
 }

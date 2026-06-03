@@ -5,6 +5,7 @@ import { env } from '../config/env.js';
 import { HttpError } from '../utils/httpError.js';
 import { AiGenerationLog, Customer, Tag, WeworkCustomerMessage } from '../models/index.js';
 import { getCustomer } from './customer.service.js';
+import { buildPlaybookDraftContext } from './intentAlert.service.js';
 import * as billingService from './billing.service.js';
 
 function bumpAiUsage(tenantId) {
@@ -242,6 +243,11 @@ export async function generateSalesReplySuggestions(auth, body) {
   const started = Date.now();
   const customer = await getCustomer(auth, body.customer_id);
 
+  let playbookMeta = null;
+  if (body.include_playbook_context !== false) {
+    playbookMeta = await buildPlaybookDraftContext(auth, body.customer_id);
+  }
+
   const recent = await WeworkCustomerMessage.findAll({
     where: {
       tenant_id: auth.tenantId,
@@ -271,6 +277,10 @@ export async function generateSalesReplySuggestions(auth, body) {
     .filter(Boolean)
     .join('；');
 
+  const playbookBlock = playbookMeta?.context_block
+    ? `\n\n【跟进助手背景】\n${playbookMeta.context_block}`
+    : '';
+
   const userPrompt = `客户与企业相关信息：
 ${profileHint || '（无额外画像）'}
 
@@ -278,7 +288,7 @@ ${profileHint || '（无额外画像）'}
 ${historyBlock}
 
 客户刚才说：
-"${body.message.trim()}"
+"${body.message.trim()}"${playbookBlock}
 
 请生成 3 条不同风格的回复话术，用于微信私域沟通：
 要求：
@@ -314,13 +324,21 @@ ${historyBlock}
       meta_json: {
         duration_ms: Date.now() - started,
         provider,
+        playbook_used: Boolean(playbookMeta),
+        playbook_scripts_count: playbookMeta?.scripts_count ?? 0,
+        playbook_has_intent_alert: playbookMeta?.has_intent_alert ?? false,
       },
     });
   } catch (e) {
     console.error('[ai_generation_logs] persist failed', e);
   }
 
-  return { replies };
+  return {
+    replies,
+    playbook_used: Boolean(playbookMeta),
+    playbook_scripts_count: playbookMeta?.scripts_count ?? 0,
+    playbook_has_intent_alert: playbookMeta?.has_intent_alert ?? false,
+  };
 }
 
 /**
@@ -332,6 +350,11 @@ ${historyBlock}
 export async function generateContextualSalesChat(auth, body) {
   const started = Date.now();
   const customer = await getCustomer(auth, body.customer_id);
+
+  let playbookMeta = null;
+  if (body.include_playbook_context !== false) {
+    playbookMeta = await buildPlaybookDraftContext(auth, body.customer_id);
+  }
 
   const history = await buildWeworkHistoryChatMessages(auth.tenantId, body.customer_id, 20);
 
@@ -356,7 +379,11 @@ export async function generateContextualSalesChat(auth, body) {
 1. 每条约 20～40 字，口语化，引导下一步行动，避免长篇解释。
 2. 三条依次为：强成交推进、中等引导、软性沟通。
 3. 只输出一个 JSON 对象，键为 stage 与 replies，不要 Markdown、不要其它文字。
-格式示例：{"stage":"犹豫阶段","replies":["","",""]}`;
+格式示例：{"stage":"犹豫阶段","replies":["","",""]}${
+    playbookMeta?.context_block
+      ? `\n\n【跟进助手背景（请融入话术，勿生硬复述）】\n${playbookMeta.context_block}`
+      : ''
+  }`;
 
   const messages = [
     { role: 'system', content: systemContent },
@@ -385,13 +412,22 @@ export async function generateContextualSalesChat(auth, body) {
         duration_ms: Date.now() - started,
         provider,
         history_turns: history.length,
+        playbook_used: Boolean(playbookMeta),
+        playbook_scripts_count: playbookMeta?.scripts_count ?? 0,
+        playbook_has_intent_alert: playbookMeta?.has_intent_alert ?? false,
       },
     });
   } catch (e) {
     console.error('[ai_generation_logs] persist failed', e);
   }
 
-  return { stage, replies };
+  return {
+    stage,
+    replies,
+    playbook_used: Boolean(playbookMeta),
+    playbook_scripts_count: playbookMeta?.scripts_count ?? 0,
+    playbook_has_intent_alert: playbookMeta?.has_intent_alert ?? false,
+  };
 }
 
 const AUTOMATION_VARIANT_HINT = {
@@ -674,6 +710,65 @@ headline（12字内）、subheading（20字内）、cta（8字内）。
   return { headline, subheading, cta, poster_svg: svg, poster_data_url };
 }
 
+const ASSISTANT_SCENES = {
+  general:
+    '你是 ZhiFlow 私域智能助手，帮助销售团队解答私域运营、客户跟进、话术与文案问题。回答简洁实用，可分段落。',
+  sales: '你是顶级微信私域销售教练，擅长成交话术、破冰、逼单与异议处理。回答要可直接复制使用。',
+  copy: '你是营销文案专家，擅长朋友圈、小红书、群发短文案。输出可直接投放的正文。',
+  followup: '你是客户跟进顾问，根据场景给出下一步跟进策略与具体话术。',
+  objection: '你是异议处理专家，针对客户顾虑给出 2～3 种应对话术，语气自然不生硬。',
+};
+
+/**
+ * 站内 AI 助手：多轮自由对话（计入 ai_calls 配额）。
+ * @param {{ tenantId: number; userId: number }} auth
+ * @param {{ messages: Array<{ role: 'user'|'assistant'; content: string }>; scene?: string }} body
+ */
+export async function generateAssistantChat(auth, body) {
+  const started = Date.now();
+  const sceneKey = body.scene && ASSISTANT_SCENES[body.scene] ? body.scene : 'general';
+  const history = (body.messages || [])
+    .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && m.content)
+    .slice(-24)
+    .map((m) => ({
+      role: m.role,
+      content: String(m.content).trim().slice(0, 8000),
+    }));
+
+  const lastUser = [...history].reverse().find((m) => m.role === 'user');
+  if (!lastUser) {
+    throw new HttpError(400, '请提供用户消息', 400);
+  }
+
+  const messages = [
+    { role: 'system', content: ASSISTANT_SCENES[sceneKey] },
+    ...history,
+  ];
+
+  const { rawText, model, provider } = await invokeChatCompletions(messages, {
+    max_tokens: 2000,
+    temperature: 0.72,
+  });
+  bumpAiUsage(auth.tenantId);
+
+  try {
+    await AiGenerationLog.create({
+      tenant_id: auth.tenantId,
+      user_id: auth.userId,
+      customer_id: null,
+      kind: 'assistant_chat',
+      input_message: lastUser.content.slice(0, 2000),
+      output_json: { reply: rawText.slice(0, 4000), scene: sceneKey },
+      model,
+      meta_json: { duration_ms: Date.now() - started, provider, turns: history.length },
+    });
+  } catch (e) {
+    console.error('[ai_generation_logs] assistant_chat persist failed', e);
+  }
+
+  return { reply: rawText, scene: sceneKey };
+}
+
 export async function generateSidebarScripts(tenantId, customerId) {
   const customer = await Customer.findOne({
     where: { id: Number(customerId), tenant_id: Number(tenantId), deleted_at: null },
@@ -737,4 +832,157 @@ export async function generateSidebarScripts(tenantId, customerId) {
 
   bumpAiUsage(tenantId);
   return { scripts };
+}
+
+/**
+ * AI 客户画像摘要：一句话概括客户核心特征 + 下一步建议。
+ * GET /customers/:id/summary
+ */
+export async function generateCustomerSummary(tenantId, customerId) {
+  const customer = await Customer.findOne({
+    where: { id: Number(customerId), tenant_id: Number(tenantId), deleted_at: null },
+    include: [
+      {
+        model: Tag,
+        as: 'tags',
+        through: { attributes: [] },
+        attributes: ['name'],
+      },
+    ],
+  });
+  if (!customer) throw new HttpError(404, '客户不存在', 404);
+
+  // 获取最近3条跟进记录
+  const { CustomerFollowUp } = await import('../models/index.js');
+  const recentFollowUps = await CustomerFollowUp.findAll({
+    where: { customer_id: Number(customerId), tenant_id: Number(tenantId) },
+    order: [['created_at', 'DESC']],
+    limit: 3,
+    attributes: ['type', 'content'],
+  });
+
+  const followUpBlock = recentFollowUps.length > 0
+    ? recentFollowUps.map((f) => `[${f.type}] ${String(f.content || '').slice(0, 200)}`).join('\n')
+    : '暂无跟进记录';
+
+  const tagNames = (customer.tags ?? []).map((t) => t.name).join('、') || '无';
+  const stageMap = {
+    new: '新客户', following: '跟进中', negotiating: '谈判中', won: '已成交', lost: '已流失',
+    intent_confirm: '意向确认', proposal: '方案报价', negotiation: '商务谈判', deal: '成交',
+  };
+
+  const prompt = `你是顶级销售教练，请根据客户信息生成一句话画像摘要（50字以内），包含：客户核心特征、当前阶段判断、1条下一步行动建议。
+用自然中文，像老销售对新人说的一句话建议。
+
+客户信息：
+- 姓名：${customer.name || '未知'}
+- 公司：${customer.company || '未知'}
+- 阶段：${stageMap[customer.stage] ?? customer.stage ?? '未知'}
+- 意向分：${customer.intent_score ?? '-'}分
+- 来源：${customer.source || '未知'}
+- 标签：${tagNames}
+
+最近跟进记录：
+${followUpBlock}
+
+只输出一句话（50字以内），不要编号、不要解释、不要换行。`;
+
+  const { rawText } = await invokeChatCompletions(
+    [
+      { role: 'system', content: '你是销售教练。输出一句精准的客户画像摘要，50字以内，像老销售的口吻。' },
+      { role: 'user', content: prompt },
+    ],
+    { max_tokens: 160, temperature: 0.5 },
+  );
+
+  const summary = String(rawText || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+  bumpAiUsage(tenantId);
+  return {
+    summary: summary || '该客户暂无足够信息生成画像，建议先补充关键字段并完成首次跟进。',
+    stage: stageMap[customer.stage] ?? customer.stage,
+    intent_score: customer.intent_score,
+  };
+}
+
+/**
+ * 员工活动 AI 教练建议
+ * 根据员工今日/昨日活动数据、KPI进度、30天趋势，生成个性化改善建议
+ */
+export async function generateCoachingInsight(tenantId, employeeData) {
+  const started = Date.now();
+
+  const {
+    name,
+    today,
+    yesterday,
+    kpi,
+    trend30,
+    rankings,
+  } = employeeData;
+
+  // 计算环比变化
+  const growth = (field) => {
+    const t = today?.[field] || 0;
+    const y = yesterday?.[field] || 0;
+    if (y === 0) return t > 0 ? '新增' : '持平';
+    const pct = Math.round(((t - y) / y) * 100);
+    return pct >= 0 ? `↑${pct}%` : `↓${Math.abs(pct)}%`;
+  };
+
+  const userPrompt = `你是销售团队教练，请根据以下员工今日数据给出个性化建议。
+
+员工：${name || '未知'}
+
+今日数据：
+- 跟进次数：${today?.followups || 0} 次（较昨日 ${growth('followups')}）
+- 通话次数：${today?.calls || 0} 次（较昨日 ${growth('calls')}）
+- 通话时长：${Math.round((today?.call_duration_sec || 0) / 60)} 分钟
+- 成交订单：${today?.orders || 0} 笔（较昨日 ${growth('orders')}）
+- 成交金额：¥${(today?.revenue || 0).toLocaleString()}
+- 新客开发：${today?.new_customers || 0} 个
+- 收件箱回复：${today?.inbox_replies || 0} 条
+
+KPI 完成度：
+${kpi ? `- 跟进：${kpi.followups ?? '-'}% 通话：${kpi.calls ?? '-'}% 订单：${kpi.orders ?? '-'}% 成交额：${kpi.revenue ?? '-'}%` : '（未设置 KPI）'}
+
+近30天活跃趋势：${trend30 ? trend30.slice(-7).map((d) => `${d.date.slice(5)}:${d.count}次`).join('、') : '无数据'}
+
+排行参考：
+${rankings ? rankings.map((r) => `${r.dimension}: 第${r.rank || '-'}名`).join('，') : '无排行数据'}
+
+请生成一段教练建议，要求：
+1. 先一句话评价整体表现（客观、数据驱动）
+2. 指出 1-2 个具体可改进的方向（如果各项都很好，可以说「保持优势，尝试突破」）
+3. 给一句正向鼓励（真诚、不浮夸）
+4. 总计控制在 80 字以内
+5. 只输出纯文本，不要编号、不要 JSON、不要 Markdown`;
+
+  const { rawText, model, provider } = await invokeChatCompletions(
+    [
+      {
+        role: 'system',
+        content: '你是销售团队教练，说话简洁、务实、有数据支撑。只输出一段纯文本建议，80字以内。',
+      },
+      { role: 'user', content: userPrompt },
+    ],
+    { max_tokens: 300, temperature: 0.7 },
+  );
+
+  bumpAiUsage(tenantId);
+
+  try {
+    const { AiGenerationLog } = await import('../models/aiGenerationLog.model.js');
+    await AiGenerationLog.create({
+      tenant_id: tenantId,
+      kind: 'employee_coaching',
+      input_message: JSON.stringify({ name, today }),
+      output_json: { insight: rawText },
+      model,
+      meta_json: { duration_ms: Date.now() - started, provider },
+    });
+  } catch (e) {
+    console.error('[ai_generation_logs] coaching persist failed', e);
+  }
+
+  return { insight: rawText || '暂无足够数据生成建议，请确保已完成至少一次跟进或通话。', model, provider };
 }

@@ -14,6 +14,18 @@ export async function conversion(req, res) {
   return ok(res, data);
 }
 
+export async function conversionPlatforms(req, res) {
+  return ok(res, adTrackingService.getSupportedConversionPlatforms());
+}
+
+/** 公开：根据 ad_hit 生成企微活码 state（用于投流落地页绑定活码） */
+export async function weworkState(req, res) {
+  const tenantId = Number(req.query.tenant_id || req.query.tenant);
+  const adHit = Number(req.query.ad_hit);
+  const data = await adTrackingService.getWeworkStateForAdHit({ tenantId, adHit });
+  return ok(res, data);
+}
+
 export async function roi(req, res) {
   const data = await adTrackingService.getRoiSummary({
     tenantId: req.auth?.tenantId || null,

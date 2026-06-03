@@ -6,7 +6,16 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
 import timezone from 'dayjs/plugin/timezone.js';
 import { fn, col, Op, QueryTypes } from 'sequelize';
-import { sequelize, User, Customer, CustomerFollowUp, WeworkCustomerAddRecord } from '../models/index.js';
+import {
+  sequelize,
+  User,
+  Customer,
+  CustomerFollowUp,
+  WeworkCustomerAddRecord,
+  UsageStat,
+  Subscription,
+  Plan,
+} from '../models/index.js';
 import { isAdmin, customerWhereScope } from '../utils/permissions.js';
 import { getRevenueSummary } from './orderRevenue.service.js';
 import { countOverdueTicketsForTenant } from './ticketSlaReminder.service.js';
@@ -325,10 +334,27 @@ export async function getStats(auth) {
     }),
     countPendingAt(todayCutoff),
     countPendingAt(weekAgoCutoff),
-    countOverdueTicketsForTenant(auth),
+    countOverdueTicketsForTenant(auth).catch(() => 0),
   ]);
 
   const revenue = await getRevenueSummary(auth);
+
+  const statMonth = dayjs().tz('Asia/Shanghai').format('YYYY-MM');
+  const [usageRow, subscriptionRow] = await Promise.all([
+    UsageStat.findOne({
+      where: { tenant_id: tenantId, stat_month: statMonth },
+      attributes: ['ai_calls_used', 'broadcasts_used'],
+    }),
+    Subscription.findOne({
+      where: { tenant_id: tenantId },
+      include: [{ model: Plan, as: 'plan', attributes: ['ai_calls_monthly', 'name', 'code'], required: false }],
+    }),
+  ]);
+  const aiCallsUsed = Number(usageRow?.ai_calls_used || 0);
+  const aiLimit = subscriptionRow?.plan?.ai_calls_monthly ?? -1;
+  const aiUsagePercent =
+    aiLimit > 0 && aiLimit !== -1 ? Math.min(100, Math.round((aiCallsUsed / aiLimit) * 100)) : null;
+  const minutesPerAiCall = 3;
 
   const result = {
     today_new_count: todayNewCount,
@@ -350,6 +376,17 @@ export async function getStats(auth) {
     stage_distribution,
     funnel,
     revenue,
+    roi_summary: {
+      ai_calls_used: aiCallsUsed,
+      ai_calls_limit: aiLimit,
+      ai_usage_percent: aiUsagePercent,
+      follow_ups_last_7d: followUpsLast7d,
+      pending_followup: pendingFollowupCurrent,
+      estimated_minutes_saved: aiCallsUsed * minutesPerAiCall,
+      plan_name: subscriptionRow?.plan?.name || null,
+      plan_code: subscriptionRow?.plan?.code || null,
+      note: '按每次 AI 约节省 3 分钟撰写话术估算，仅供参考',
+    },
   };
 
   // 演示模式：覆盖环比数据为预设值，避免因演示数据分布不均导致负值
@@ -369,6 +406,17 @@ export async function getStats(auth) {
       { key: 'in_pipeline', label: '推进中', count: 18, conversion_from_prev_percent: 47.4 },
       { key: 'deal', label: '累计成交', count: 5, conversion_from_prev_percent: 27.8 },
     ];
+    result.roi_summary = {
+      ai_calls_used: 128,
+      ai_calls_limit: 2000,
+      ai_usage_percent: 6,
+      follow_ups_last_7d: 24,
+      pending_followup: 7,
+      estimated_minutes_saved: 384,
+      plan_name: '专业版',
+      plan_code: 'pro',
+      note: '按每次 AI 约节省 3 分钟撰写话术估算，仅供参考',
+    };
   }
 
   return result;

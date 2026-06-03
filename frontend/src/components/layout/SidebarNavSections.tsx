@@ -7,14 +7,17 @@ import { ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   buildSidebarNavGroups,
+  type NavItemDef,
   type SidebarNavContext,
 } from '@/components/layout/sidebarNavConfig'
 
-const navCls = ({ isActive }: { isActive: boolean }) =>
-  cn(
+function navCls({ isActive, featured }: { isActive: boolean; featured?: boolean }) {
+  return cn(
     'zf-nav-item mb-0.5 flex items-center gap-2 rounded-lg px-2.5 py-[7px] text-[12.5px] transition-colors duration-150',
     isActive ? 'font-medium zf-nav-active' : '',
+    featured && !isActive ? 'zf-nav-featured' : '',
   )
+}
 
 const STORAGE_KEY = 'zf_sidebar_groups_v1'
 
@@ -31,6 +34,21 @@ function readGroupOpenState(): Record<string, boolean> {
 type SidebarNavSectionsProps = SidebarNavContext & {
   onNavigate?: () => void
   className?: string
+}
+
+function NavItemRow({ item, onNavigate }: { item: NavItemDef; onNavigate?: () => void }) {
+  return (
+    <NavLink
+      to={item.to}
+      end={item.end}
+      className={({ isActive }) => navCls({ isActive, featured: item.featured })}
+      onClick={onNavigate}
+    >
+      <item.icon className="h-4 w-4 shrink-0" />
+      <span className="truncate">{item.label}</span>
+      {item.badge ? <span className="zf-nav-badge">{item.badge}</span> : null}
+    </NavLink>
+  )
 }
 
 export function SidebarNavSections({ onNavigate, className, ...ctx }: SidebarNavSectionsProps) {
@@ -54,7 +72,7 @@ export function SidebarNavSections({ onNavigate, className, ...ctx }: SidebarNav
   }
 
   return (
-    <div className={cn('flex flex-col gap-3', className)}>
+    <div className={cn('zf-sidebar-shell flex flex-col gap-3', className)}>
       {groups.map((group) => {
         const open = isGroupOpen(group)
         const canToggle = group.collapsible && group.items.length > 0
@@ -68,31 +86,24 @@ export function SidebarNavSections({ onNavigate, className, ...ctx }: SidebarNav
                 onClick={() => toggleGroup(group.id, group.defaultOpen !== false)}
               >
                 {open ? (
-                  <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
+                  <ChevronDown className="zf-sidebar-group-chevron h-3 w-3 shrink-0" />
                 ) : (
-                  <ChevronRight className="h-3 w-3 shrink-0 opacity-60" />
+                  <ChevronRight className="zf-sidebar-group-chevron h-3 w-3 shrink-0" />
                 )}
-                <span className="text-[10px] font-bold uppercase tracking-wide opacity-70">{group.title}</span>
+                <span className="zf-sidebar-group-title text-[10px] font-bold uppercase tracking-wide">
+                  {group.title}
+                </span>
               </button>
             ) : (
               <div className="mb-1 px-2">
-                <p className="text-[10px] font-bold uppercase tracking-wide opacity-70">{group.title}</p>
-                {group.hint ? <p className="text-[10px] opacity-50">{group.hint}</p> : null}
+                <p className="zf-sidebar-group-title text-[10px] font-bold uppercase tracking-wide">{group.title}</p>
+                {group.hint ? <p className="zf-sidebar-group-hint text-[10px]">{group.hint}</p> : null}
               </div>
             )}
             {open ? (
               <div>
                 {group.items.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    end={item.end}
-                    className={navCls}
-                    onClick={onNavigate}
-                  >
-                    <item.icon className="h-4 w-4 shrink-0" />
-                    {item.label}
-                  </NavLink>
+                  <NavItemRow key={`${item.to}-${item.label}`} item={item} onNavigate={onNavigate} />
                 ))}
               </div>
             ) : null}

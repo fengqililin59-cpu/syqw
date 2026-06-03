@@ -2,10 +2,11 @@
 # 在 ECS 上解压 Workbench 包后执行（与 pack-workbench-upload.sh 配套）
 set -euo pipefail
 
-BACKEND_DIR="${BACKEND_DIR:-/var/www/wework-saas/backend}"
-FRONTEND_DIR="${FRONTEND_DIR:-/var/www/wework}"
-PM2_APP="${PM2_APP:-wework-api}"
-HEALTH_PORT="${HEALTH_PORT:-3010}"
+# ZhiFlow 生产默认（wework-saas 旧栈请自行 export 覆盖）
+BACKEND_DIR="${BACKEND_DIR:-/var/www/zhiflow/backend}"
+FRONTEND_DIR="${FRONTEND_DIR:-/var/www/zhiflow/frontend/dist}"
+PM2_APP="${PM2_APP:-zhiflow-api}"
+HEALTH_PORT="${HEALTH_PORT:-3002}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [[ ! -d "$SCRIPT_DIR/backend/src" ]]; then
@@ -42,13 +43,31 @@ if [[ -f "$SCRIPT_DIR/database/061_tenant_public_webhook_settings.sql" ]]; then
   echo "    mysql ... < $SCRIPT_DIR/database/061_tenant_public_webhook_settings.sql"
 fi
 
+echo "==> 同步 PM2 ecosystem（若包内带有）..."
+if [[ -f "$SCRIPT_DIR/backend/ecosystem.config.cjs" ]]; then
+  cp "$SCRIPT_DIR/backend/ecosystem.config.cjs" "$BACKEND_DIR/ecosystem.config.cjs"
+fi
+if [[ -f "$SCRIPT_DIR/backend/ecosystem.config.js" ]]; then
+  cp "$SCRIPT_DIR/backend/ecosystem.config.js" "$BACKEND_DIR/ecosystem.config.js"
+fi
+
 echo "==> 安装依赖并重启 PM2 ..."
 cd "$BACKEND_DIR"
 npm ci --omit=dev
+ECO_FILE=""
+if [[ -f "$BACKEND_DIR/ecosystem.config.cjs" ]]; then
+  ECO_FILE="$BACKEND_DIR/ecosystem.config.cjs"
+elif [[ -f "$BACKEND_DIR/ecosystem.config.js" ]]; then
+  ECO_FILE="$BACKEND_DIR/ecosystem.config.js"
+fi
 if pm2 describe "$PM2_APP" >/dev/null 2>&1; then
   pm2 restart "$PM2_APP" --update-env
+elif [[ -n "$ECO_FILE" ]]; then
+  pm2 start "$ECO_FILE" --env production --only "$PM2_APP"
+  pm2 save
 else
-  pm2 start src/app.js --name "$PM2_APP" --cwd "$BACKEND_DIR"
+  pm2 start src/app.js --name "$PM2_APP" --cwd "$BACKEND_DIR" --env production
+  pm2 save
 fi
 
 echo "==> 健康检查 ..."

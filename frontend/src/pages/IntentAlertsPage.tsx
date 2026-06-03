@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Sparkles } from 'lucide-react'
 import { listIntentAlerts, type IntentAlertItem } from '@/api/settings'
+import { IntentAlertPlaybookDialog } from '@/components/IntentAlertPlaybookDialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -51,6 +54,8 @@ export function IntentAlertsPage() {
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
+  const [playbookAlertId, setPlaybookAlertId] = useState<number | null>(null)
+  const [playbookOpen, setPlaybookOpen] = useState(false)
 
   const totalPages = Math.max(1, Math.ceil(total / size))
 
@@ -84,11 +89,18 @@ export function IntentAlertsPage() {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
   }
 
+  function openPlaybook(alertId: number) {
+    setPlaybookAlertId(alertId)
+    setPlaybookOpen(true)
+  }
+
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">意向预警</h1>
-        <p className="text-muted-foreground">客户意向分显著上涨时的预警记录与推送状态。</p>
+        <p className="text-muted-foreground">
+          客户意向分显著上涨时的预警记录；点击「一键跟进」可匹配话术库并跳转 AI 写跟进。
+        </p>
       </div>
 
       <Card>
@@ -146,6 +158,7 @@ export function IntentAlertsPage() {
                 <TableHead>发送状态</TableHead>
                 <TableHead>AI 话术</TableHead>
                 <TableHead>发送时间</TableHead>
+                <TableHead className="text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -156,7 +169,18 @@ export function IntentAlertsPage() {
                 return (
                   <TableRow key={r.id}>
                     <TableCell>{new Date(r.created_at).toLocaleString()}</TableCell>
-                    <TableCell>{r.customer?.name || `#${r.customer?.id ?? ''}`}</TableCell>
+                    <TableCell>
+                      {r.customer?.id ? (
+                        <Link
+                          to={`/app/customers/${r.customer.id}`}
+                          className="text-primary hover:underline"
+                        >
+                          {r.customer?.name || `#${r.customer.id}`}
+                        </Link>
+                      ) : (
+                        r.customer?.name || '—'
+                      )}
+                    </TableCell>
                     <TableCell>{r.owner?.real_name || r.owner?.username || '—'}</TableCell>
                     <TableCell className="font-medium text-emerald-600 dark:text-emerald-400">
                       {r.score_before} → {r.score_after} (+{r.score_delta})
@@ -181,12 +205,18 @@ export function IntentAlertsPage() {
                       )}
                     </TableCell>
                     <TableCell>{r.sent_at ? new Date(r.sent_at).toLocaleString() : '—'}</TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" onClick={() => openPlaybook(r.id)}>
+                        <Sparkles className="mr-1 h-3.5 w-3.5" />
+                        一键跟进
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 )
               })}
               {!loading && rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground">
                     暂无数据
                   </TableCell>
                 </TableRow>
@@ -214,6 +244,12 @@ export function IntentAlertsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <IntentAlertPlaybookDialog
+        alertId={playbookAlertId}
+        open={playbookOpen}
+        onOpenChange={setPlaybookOpen}
+      />
     </div>
   )
 }

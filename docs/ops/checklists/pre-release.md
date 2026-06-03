@@ -17,7 +17,8 @@
 
 ## C. 数据库迁移
 
-- [ ] `npm run migrate:status` 可执行。
+> **说明**：本仓库暂无 `npm run migrate:status` / `migrate:up`。请按编号手动执行 `database/*.sql`；对照 [production-checklist.md §4.2](../../deploy/production-checklist.md#42-执行迁移按顺序) 与 [go-live-ai-inbox.md §三](../../deploy/go-live-ai-inbox.md#三数据库迁移增量库必跑)（收件箱 AI `072`～`076`）。发布前可在仓库根目录执行 `./scripts/deploy-check.sh`。
+
 - [ ] 本次迁移脚本已确认（名称、影响范围、回滚方式）。
 - [ ] 迁移期间有回滚预案（应用降级开关已准备）。
 
@@ -25,7 +26,7 @@
 
 - [ ] 后端发布命令已准备：
   - `npm ci`
-  - `npm run migrate:up`
+  - 手动执行本次 `database/*.sql`（见上文 C 节）
   - `pm2 restart wework-api --update-env`
 - [ ] 前端发布命令已准备：
   - `npm run build`

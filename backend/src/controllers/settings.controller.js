@@ -28,6 +28,11 @@ export async function listIntentAlerts(req, res) {
   return ok(res, data, 'ok');
 }
 
+export async function getIntentAlertPlaybook(req, res) {
+  const data = await intentAlertService.getIntentAlertPlaybook(req.auth, req.params.alertId);
+  return ok(res, data);
+}
+
 export async function getLeadAssignment(req, res) {
   const data = await leadAssignmentService.getLeadAssignmentSettings(req.auth);
   return ok(res, data);

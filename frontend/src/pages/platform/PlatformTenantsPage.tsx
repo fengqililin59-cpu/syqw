@@ -3,6 +3,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Bot } from 'lucide-react'
 import { getJson } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,25 +23,33 @@ type TenantRow = {
     plan_name: string | null
     days_remaining: number | null
   } | null
+  inbox_ai?: {
+    platform_disabled: boolean
+    auto_send_faq: boolean
+    auto_send_pricing: boolean
+    anomaly_level: 'warn' | 'critical' | null
+  }
 }
 
 export function PlatformTenantsPage() {
   const [q, setQ] = useState('')
   const [search, setSearch] = useState('')
+  const [anomalyOnly, setAnomalyOnly] = useState(false)
   const [list, setList] = useState<TenantRow[]>([])
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await getJson<{ list: TenantRow[] }>(
-        `/platform/tenants?page=1&size=50${search ? `&q=${encodeURIComponent(search)}` : ''}`,
-      )
+      const params = new URLSearchParams({ page: '1', size: '50' })
+      if (search) params.set('q', search)
+      if (anomalyOnly) params.set('inbox_ai_anomaly', '1')
+      const data = await getJson<{ list: TenantRow[] }>(`/platform/tenants?${params}`)
       setList(data.list || [])
     } finally {
       setLoading(false)
     }
-  }, [search])
+  }, [search, anomalyOnly])
 
   useEffect(() => {
     void load()
@@ -73,6 +82,18 @@ export function PlatformTenantsPage() {
         <Button type="button" onClick={() => setSearch(q.trim())}>
           搜索
         </Button>
+        <Button
+          type="button"
+          variant={anomalyOnly ? 'default' : 'outline'}
+          className={!anomalyOnly ? 'border-violet-300 text-violet-900' : ''}
+          onClick={() => setAnomalyOnly((v) => !v)}
+        >
+          <Bot className="mr-1 h-4 w-4" />
+          仅 AI 异常
+        </Button>
+        <Button type="button" variant="ghost" size="sm" asChild>
+          <Link to="/app/platform/inbox-ai-anomalies">异常名单</Link>
+        </Button>
       </div>
 
       {loading ? (
@@ -87,6 +108,7 @@ export function PlatformTenantsPage() {
                 <TableHead>管理员</TableHead>
                 <TableHead>套餐</TableHead>
                 <TableHead>状态</TableHead>
+                <TableHead>AI 自动发</TableHead>
                 <TableHead>客户数</TableHead>
                 <TableHead>操作</TableHead>
               </TableRow>
@@ -106,6 +128,28 @@ export function PlatformTenantsPage() {
                       <span className="ml-1 text-xs text-muted-foreground">{row.subscription.days_remaining} 天</span>
                     ) : null}
                   </TableCell>
+                  <TableCell>
+                    {row.inbox_ai?.platform_disabled ? (
+                      <Badge variant="destructive">平台关停</Badge>
+                    ) : row.inbox_ai?.anomaly_level ? (
+                      <Badge
+                        variant={row.inbox_ai.anomaly_level === 'critical' ? 'destructive' : 'secondary'}
+                        className={
+                          row.inbox_ai.anomaly_level === 'warn'
+                            ? 'border-amber-300 bg-amber-50 text-amber-900'
+                            : ''
+                        }
+                      >
+                        异常·{row.inbox_ai.anomaly_level === 'critical' ? '严重' : '关注'}
+                      </Badge>
+                    ) : row.inbox_ai?.auto_send_faq || row.inbox_ai?.auto_send_pricing ? (
+                      <Badge variant="outline" className="border-violet-300 text-violet-900">
+                        已开启
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">未开启</span>
+                    )}
+                  </TableCell>
                   <TableCell>{row.customers_count}</TableCell>
                   <TableCell>
                     <Button size="sm" variant="outline" asChild>
@@ -116,7 +160,7 @@ export function PlatformTenantsPage() {
               ))}
               {list.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground">
                     无匹配租户
                   </TableCell>
                 </TableRow>

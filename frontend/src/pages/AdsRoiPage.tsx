@@ -43,6 +43,14 @@ type EventReportRow = {
   count: number
 }
 
+const AD_EVENT_LABELS: Record<string, string> = {
+  lead_submit: '留资提交',
+  wework_add: '企微加好友',
+  register: '注册',
+  form: '表单',
+  purchase: '付费',
+}
+
 type RoiDetailRow = {
   id: number
   platform: string
@@ -546,7 +554,7 @@ export function AdsRoiPage() {
               {detailRows.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>{r.id}</TableCell>
-                  <TableCell>{r.event_type}</TableCell>
+                  <TableCell>{AD_EVENT_LABELS[r.event_type] ?? r.event_type}</TableCell>
                   <TableCell className="text-right">{r.event_value}</TableCell>
                   <TableCell>{r.report_status}</TableCell>
                   <TableCell className="max-w-[160px] truncate font-mono text-xs">{r.click_key}</TableCell>

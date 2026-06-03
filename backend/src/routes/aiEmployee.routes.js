@@ -30,6 +30,21 @@ router.post(
   asyncHandler(aiEmployeeController.replyDraft),
 );
 router.post(
+  '/push-auto-reply-digest',
+  requirePerm('ai:approve'),
+  asyncHandler(aiEmployeeController.pushAutoReplyDigest),
+);
+router.get(
+  '/qa-queue',
+  requirePerm('ai:approve'),
+  asyncHandler(aiEmployeeController.qaQueue),
+);
+router.post(
+  '/qa-queue/:id/review',
+  requirePerm('ai:approve'),
+  asyncHandler(aiEmployeeController.qaReview),
+);
+router.post(
   '/reply-approve',
   requirePerm('ai:approve'),
   asyncHandler(aiEmployeeController.replyApprove),

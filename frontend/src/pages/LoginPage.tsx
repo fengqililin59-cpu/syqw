@@ -2,8 +2,8 @@
  * @file 登录页：租户 ID + 账号密码，成功后写入全局登录态。
  */
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { getJson, postJson } from '@/api/client'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { getJson, getJsonWithToken, postJson } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,6 +13,7 @@ import { useAuthStore, type AuthUser } from '@/store/authStore'
 import { getAttributionToken, getLandingAttribution, saveLandingAttributionFromUrl } from '@/utils/attribution'
 import { permListFromMeResponse, type MePermissionsResponse } from '@/lib/permApi'
 import ZhiFlowLogo from '@/components/ZhiFlowLogo'
+import { SiteLegalFooter } from '@/components/SiteLegalFooter'
 
 type LoginRes = {
   token: string
@@ -41,6 +42,7 @@ function parseTenantId(raw: string): number | null {
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const setSession = useAuthStore((s) => s.setSession)
   const setIsDemo = useAuthStore((s) => s.setIsDemo)
@@ -84,7 +86,8 @@ export function LoginPage() {
       landing_variant: getLandingAttribution().variant,
       landing_cta: getLandingAttribution().cta,
     })
-    const perm = await getJson<MyPermRes>('/auth/me/permissions')
+    useAuthStore.setState({ token: data.token })
+    const perm = await getJsonWithToken<MyPermRes>('/auth/me/permissions', data.token)
     localStorage.setItem('last_tenant_id', String(data.tenant.id))
     setSession({
       token: data.token,
@@ -99,6 +102,26 @@ export function LoginPage() {
   useEffect(() => {
     saveLandingAttributionFromUrl()
   }, [])
+
+  useEffect(() => {
+    const st = location.state as { resetOk?: boolean } | null
+    if (st?.resetOk) {
+      setErr(null)
+      const el = document.createElement('div')
+      el.textContent = '密码已重置，请使用新密码登录'
+      el.style.cssText = `
+        position:fixed;top:16px;
+        left:50%;transform:translateX(-50%);
+        background:#16a34a;color:white;
+        padding:10px 20px;border-radius:8px;
+        z-index:9999;font-size:14px;
+        box-shadow:0 4px 12px rgba(0,0,0,.15)
+      `
+      document.body.appendChild(el)
+      setTimeout(() => el.remove(), 4000)
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [location, navigate])
 
   useEffect(() => {
     const code = searchParams.get('error')
@@ -143,6 +166,13 @@ export function LoginPage() {
         )
         setTenantPickerOpen(true)
         setErr('同一账号归属多个企业，请先选择企业')
+      } else if (e?.status === 401) {
+        const msg = ex instanceof Error ? ex.message : '登录失败'
+        setErr(
+          tenantId.trim()
+            ? `${msg}。可尝试清空「企业 ID」后重试，或使用「忘记密码」`
+            : msg,
+        )
       } else {
         setErr(ex instanceof Error ? ex.message : '登录失败')
       }
@@ -175,7 +205,7 @@ export function LoginPage() {
     try {
       const data = await postJson<LoginRes>('/auth/guest-login', {})
       useAuthStore.setState({ token: data.token })
-      const perm = await getJson<MyPermRes>('/auth/me/permissions')
+      const perm = await getJsonWithToken<MyPermRes>('/auth/me/permissions', data.token)
       localStorage.setItem('last_tenant_id', String(data.tenant.id))
       setSession({
         token: data.token,
@@ -234,7 +264,12 @@ export function LoginPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">密码</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">密码</Label>
+                <Link to="/forgot-password" className="text-xs text-[#2d5fa8] hover:underline">
+                  忘记密码？
+                </Link>
+              </div>
               <div className="login-input">
                 <Input
                   id="password"
@@ -306,7 +341,17 @@ export function LoginPage() {
                 免费体验演示系统（无需注册）
               </button>
             </div>
-            <p className="mt-2 text-center text-[11px] text-[#8aabb8]">© 2026 ZhiFlow · 私域增长平台</p>
+            <p className="w-full text-center text-[11px] leading-relaxed text-[#8aabb8]">
+              登录即表示同意
+              <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#5b8dd9]">
+                《服务条款》
+              </a>
+              和
+              <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#5b8dd9]">
+                《隐私政策》
+              </a>
+            </p>
+            <SiteLegalFooter className="mt-2" showProductTagline />
           </CardFooter>
         </form>
       </Card>

@@ -40,3 +40,22 @@ export async function updateScriptLibraryItem(
 export async function deleteScriptLibraryItem(id: number) {
   return deleteJson<{ id: number }>(`/script-library/${id}`)
 }
+
+export type IndustryScriptPack = {
+  id: string
+  name: string
+  description: string
+  item_count: number
+  imported?: boolean
+}
+
+export async function fetchIndustryScriptPacks() {
+  return getJson<IndustryScriptPack[]>('/script-library/industry-packs')
+}
+
+export async function importIndustryScriptPack(packId: string) {
+  return postJson<{ pack_name: string; created: number; skipped: number }>(
+    '/script-library/industry-packs/import',
+    { pack_id: packId },
+  )
+}

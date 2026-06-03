@@ -148,7 +148,7 @@ export async function upsertFromWeworkMessage(payload) {
         : 'system';
 
   try {
-    await InboxMessage.create({
+    const msg = await InboxMessage.create({
       tenant_id: payload.tenant_id,
       thread_id: thread.id,
       channel_message_id: `wework:${payload.msg_id}`,
@@ -159,15 +159,14 @@ export async function upsertFromWeworkMessage(payload) {
       risk_level: 'p0',
       raw_payload: { source: 'wework_customer_messages' },
     });
+    if (isCustomer && payload.content) {
+      maybeQueueInboxAutoDraft(payload.tenant_id, thread.id, payload.content, msg.id);
+    }
   } catch (e) {
     if (e?.name === 'SequelizeUniqueConstraintError') {
       return { synced: false, reason: 'duplicate', thread_id: thread.id };
     }
     throw e;
-  }
-
-  if (isCustomer && payload.content) {
-    maybeQueueInboxAutoDraft(payload.tenant_id, thread.id, payload.content);
   }
 
   return { synced: true, thread_id: thread.id };

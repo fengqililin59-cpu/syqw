@@ -19,11 +19,21 @@ interface SidebarCustomerData {
   }>
 }
 
+type PlaybookScript = { id: number; title: string; body_preview: string; body: string }
+
+type SidebarPlaybook = {
+  show_assistant?: boolean
+  ai_prompt?: string
+  recommended_scripts?: PlaybookScript[]
+  links?: { ai_assistant?: string; script_library?: string }
+}
+
 export default function SidebarCustomer() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const externalUserId = params.get('uid')
   const [customer, setCustomer] = useState<SidebarCustomerData | null>(null)
+  const [playbook, setPlaybook] = useState<SidebarPlaybook | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
@@ -39,6 +49,7 @@ export default function SidebarCustomer() {
     try {
       setLoading(true)
       setNotFound(false)
+      setPlaybook(null)
       const token = getSidebarToken()
       if (!token) {
         throw new Error('未检测到登录态')
@@ -55,8 +66,25 @@ export default function SidebarCustomer() {
         throw new Error(payload?.message || '拉取客户信息失败')
       }
       setCustomer(payload.data)
+
+      if (payload.data?.id && Number(payload.data.intent_score) >= 65) {
+        const pbRes = await sidebarFetch(`/api/v1/customers/${payload.data.id}/intent-playbook`)
+        const pbJson = await pbRes.json()
+        if (pbRes.ok && pbJson?.code === 0 && pbJson.data?.show_assistant !== false) {
+          setPlaybook(pbJson.data)
+        }
+      }
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function copyText(text: string) {
+    try {
+      await navigator.clipboard.writeText(text)
+      window.alert('已复制')
+    } catch {
+      window.alert('复制失败')
     }
   }
 
@@ -86,6 +114,8 @@ export default function SidebarCustomer() {
   }
 
   if (!customer) return <div style={{ padding: 20, color: '#666' }}>暂无客户信息</div>
+
+  const topScripts = playbook?.recommended_scripts?.slice(0, 2) ?? []
 
   return (
     <div
@@ -148,6 +178,53 @@ export default function SidebarCustomer() {
         </div>
       </div>
 
+      {playbook && topScripts.length > 0 ? (
+        <div
+          style={{
+            margin: '12px 16px',
+            padding: 12,
+            borderRadius: 8,
+            background: 'linear-gradient(135deg,#f5f3ff,#fff)',
+            border: '1px solid #ddd6fe',
+          }}
+        >
+          <p style={{ fontSize: 13, fontWeight: 600, margin: '0 0 8px', color: '#5b21b6' }}>
+            ✨ 推荐跟进话术
+          </p>
+          {topScripts.map((s) => (
+            <div
+              key={s.id}
+              style={{
+                marginBottom: 8,
+                padding: 8,
+                background: '#fff',
+                borderRadius: 6,
+                border: '1px solid #ede9fe',
+              }}
+            >
+              <p style={{ fontSize: 12, fontWeight: 600, margin: '0 0 4px' }}>{s.title}</p>
+              <p style={{ fontSize: 11, color: '#666', margin: '0 0 6px', lineHeight: 1.4 }}>
+                {s.body_preview}…
+              </p>
+              <button
+                type="button"
+                onClick={() => void copyText(s.body)}
+                style={{
+                  fontSize: 11,
+                  padding: '4px 8px',
+                  border: '1px solid #c4b5fd',
+                  borderRadius: 4,
+                  background: '#faf5ff',
+                  color: '#6d28d9',
+                }}
+              >
+                复制
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       <div style={{ padding: '12px 16px' }}>
         <h3 style={{ fontSize: 13, color: '#999', margin: '0 0 8px', fontWeight: 500 }}>最近跟进</h3>
         {(customer.recent_followups || []).length === 0 ? (
@@ -176,6 +253,7 @@ export default function SidebarCustomer() {
         }}
       >
         <button
+          type="button"
           style={{
             flex: 1,
             padding: '12px 0',
@@ -189,7 +267,31 @@ export default function SidebarCustomer() {
           客户画像
         </button>
         <button
-          onClick={() => navigate(`/sidebar/script?uid=${encodeURIComponent(externalUserId || '')}&cid=${customer.id}`)}
+          type="button"
+          onClick={() => {
+            if (playbook?.links?.ai_assistant) {
+              window.open(`${window.location.origin}${playbook.links.ai_assistant}`, '_blank')
+              return
+            }
+            navigate(`/sidebar/script?uid=${encodeURIComponent(externalUserId || '')}&cid=${customer.id}`)
+          }}
+          style={{
+            flex: 1,
+            padding: '12px 0',
+            border: 'none',
+            background: '#faf5ff',
+            color: '#6d28d9',
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          AI 跟进
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            navigate(`/sidebar/script?uid=${encodeURIComponent(externalUserId || '')}&cid=${customer.id}`)
+          }
           style={{
             flex: 1,
             padding: '12px 0',
@@ -199,7 +301,7 @@ export default function SidebarCustomer() {
             fontSize: 13,
           }}
         >
-          AI 话术
+          话术
         </button>
       </div>
     </div>

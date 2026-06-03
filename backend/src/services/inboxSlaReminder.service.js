@@ -5,6 +5,7 @@ import { Op } from 'sequelize';
 import { InboxThread, InboxMessage, User, Customer, Tenant } from '../models/index.js';
 import { env } from '../config/env.js';
 import { sendAgentTextMessage } from './wework.service.js';
+import { isThreadSlaSnoozed } from './inboxThreadEnrich.service.js';
 
 function slaMinutes() {
   return Math.max(5, Number(env.inboxSlaMinutes) || 30);
@@ -66,6 +67,11 @@ export async function runInboxSlaReminderOnce(limitPerRun = 20) {
   for (const thread of threads) {
     if (notified >= limitPerRun) break;
     scanned += 1;
+
+    if (isThreadSlaSnoozed(thread.get ? thread.get({ plain: true }) : thread)) {
+      skipped += 1;
+      continue;
+    }
 
     const customerAt = new Date(thread.last_customer_message_at);
     if (alreadyNotifiedFor(thread, customerAt)) {

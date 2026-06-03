@@ -12,13 +12,19 @@ import {
   Users,
   Menu,
   X,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/store/authStore'
 import { canManageStaffUser } from '@/lib/roles'
 import ZhiFlowLogo from '@/components/ZhiFlowLogo'
 import DemoBanner from '@/components/DemoBanner'
+import { SubscriptionExpiryBanner } from '@/components/SubscriptionExpiryBanner'
+import { AiFirstUseGuideDialog } from '@/components/AiFirstUseGuideDialog'
 import { SidebarNavSections } from '@/components/layout/SidebarNavSections'
+import { AiFloatingEntry } from '@/components/AiFloatingEntry'
+import { SiteLegalFooter } from '@/components/SiteLegalFooter'
+import { NotificationBell } from '@/components/layout/NotificationBell'
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin'
 
 export function DashboardLayout() {
@@ -121,13 +127,25 @@ export function DashboardLayout() {
       '/app/inbox': '统一收件箱',
       '/app/ai-review': 'AI 审核台',
       '/app/knowledge-base': 'AI 知识库',
+      '/app/ai-assistant': 'AI 智能助手',
       '/app/ai-ops': 'AI 运营看板',
       '/app/service-desk': '服务台',
+      '/app/acquisition-wizard': '获客向导',
+      '/app/ai-employee-playbook': 'AI 员工启动',
       '/app/guide-templates': '获客指南',
+      '/app/notifications': '通知中心',
+      '/app/analytics': '销售分析',
+      '/app/approvals': '审批中心',
+      '/app/approval-templates': '审批模板',
+      '/app/products': '产品目录',
       '/app/help': '使用帮助',
       '/app/platform': '平台运营',
       '/app/platform/tenants': '租户管理',
       '/app/platform/billing': '订单与兑换码',
+      '/app/platform/inbox-ai-anomalies': 'AI 自动发异常',
+      '/app/platform/churn-risks': '流失风险',
+      '/app/platform/subscriptions/expiring': '即将到期',
+      '/app/platform/ops-followups': '待平台回访',
     }),
     [],
   )
@@ -219,20 +237,26 @@ export function DashboardLayout() {
             <span className="mx-2">·</span>
             <span>{displayName}</span>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onLogout}
-            className="gap-1 border border-[#d8e8f5] bg-[#eef3fa] text-[#7a9ab8] hover:bg-[#e6eef8]"
-          >
-            <LogOut className="h-4 w-4 text-[#7a9ab8]" />
-            退出
-          </Button>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onLogout}
+              className="gap-1 border border-[#c5d9ef] bg-white text-[#3d6a9a] shadow-sm hover:bg-[#eef4ff] hover:text-[#1e4a7a]"
+            >
+              <LogOut className="h-4 w-4" />
+              退出
+            </Button>
+          </div>
         </header>
         <main className="min-h-screen bg-[var(--zf-content-bg)] pb-16 pt-14 md:ml-56 md:pb-0 md:pt-0">
           <DemoBanner />
           <div className="p-4 md:p-6">
+            <SubscriptionExpiryBanner />
+            <AiFirstUseGuideDialog />
             <Outlet />
+            <SiteLegalFooter className="mt-8" />
           </div>
         </main>
       </div>
@@ -284,6 +308,17 @@ export function DashboardLayout() {
           <span>群发</span>
         </NavLink>
         <NavLink
+          to="/app/ai-assistant"
+          className={({ isActive }) =>
+            `flex flex-col items-center gap-0.5 rounded-lg px-3 py-1 text-xs transition-colors ${
+              isActive ? 'text-[#5b8dd9]' : 'text-gray-400'
+            }`
+          }
+        >
+          <Sparkles className="h-5 w-5" />
+          <span>AI</span>
+        </NavLink>
+        <NavLink
           to="/app/settings"
           className={({ isActive }) =>
             `flex flex-col items-center gap-0.5 rounded-lg px-3 py-1 text-xs transition-colors ${
@@ -295,6 +330,7 @@ export function DashboardLayout() {
           <span>设置</span>
         </NavLink>
       </nav>
+      <AiFloatingEntry />
     </div>
   )
 }

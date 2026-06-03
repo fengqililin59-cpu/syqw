@@ -1,0 +1,17 @@
+# ============================================
+#  crontab — SYQW 生产环境定时任务
+#  安装: crontab deploy/scripts/crontab.txt
+#  查看: crontab -l
+# ============================================
+
+# 数据库备份 — 每天凌晨 3:00
+0 3 * * * /bin/bash /opt/syqw/deploy/scripts/backup.sh >> /var/log/syqw/backup.log 2>&1
+
+# SSL 证书续期检查 — 每天凌晨 2:00
+0 2 * * * certbot renew --quiet --post-hook "systemctl reload nginx" >> /var/log/letsencrypt/renew.log 2>&1
+
+# 日志清理 — 每周日 4:00
+0 4 * * 0 find /var/log/syqw/ -name "*.log" -mtime +30 -delete
+
+# PM2 日志清理 — 每周日 4:30
+30 4 * * 0 pm2 flush syqw-api

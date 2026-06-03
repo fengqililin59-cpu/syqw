@@ -18,6 +18,21 @@ const posterSchema = Joi.object({
 const replySuggestionsSchema = Joi.object({
   customer_id: Joi.number().integer().positive().required(),
   message: Joi.string().trim().min(1).max(2000).required(),
+  include_playbook_context: Joi.boolean().optional(),
+}).unknown(false);
+
+const assistantChatSchema = Joi.object({
+  messages: Joi.array()
+    .items(
+      Joi.object({
+        role: Joi.string().valid('user', 'assistant').required(),
+        content: Joi.string().trim().min(1).max(8000).required(),
+      }),
+    )
+    .min(1)
+    .max(30)
+    .required(),
+  scene: Joi.string().valid('general', 'sales', 'copy', 'followup', 'objection').optional(),
 }).unknown(false);
 
 export async function generateCopy(req, res) {
@@ -52,6 +67,16 @@ export async function contextChat(req, res) {
     throw new HttpError(400, '参数校验失败', 400, error.details);
   }
   const data = await aiContentService.generateContextualSalesChat(req.auth, value);
+  return ok(res, data, 'ok');
+}
+
+/** POST /ai/assistant — 站内 AI 助手多轮对话 */
+export async function assistantChat(req, res) {
+  const { error, value } = assistantChatSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
+  if (error) {
+    throw new HttpError(400, '参数校验失败', 400, error.details);
+  }
+  const data = await aiContentService.generateAssistantChat(req.auth, value);
   return ok(res, data, 'ok');
 }
 

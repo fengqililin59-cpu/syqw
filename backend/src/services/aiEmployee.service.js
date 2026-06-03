@@ -9,29 +9,128 @@ import {
   InboxMessage,
   InboxFollowupTask,
   Customer,
+  Tenant,
 } from '../models/index.js';
 import { HttpError } from '../utils/httpError.js';
 import * as aiContentService from './aiContent.service.js';
 import { env } from '../config/env.js';
 import { replyThread } from './inbox.service.js';
 import { countSlaOverdueThreads } from './inboxSlaReminder.service.js';
+import { notifyAssigneeOnInboxAiAutoSend } from './inboxAiAutoSendNotify.service.js';
+import { assessInboxReplyRisk } from './inboxAiRisk.service.js';
+import { getInboxAiAutoSendGuard, getInboxAiAutoSendUsageToday } from './inboxAiAutoSendGuard.service.js';
+import { auditInboxAiAutoSent, auditInboxAiAutoSendSkipped } from './inboxAiAudit.service.js';
+import { maybeEnqueueAiAutoSendQa } from './inboxAiQa.service.js';
 import { countOpenTickets } from './ticket.service.js';
 import { formatKbContext } from './kbSearch.service.js';
+import { buildPlaybookDraftContext } from './intentAlert.service.js';
 
 const CONFIDENCE_AUTO_THRESHOLD = 0.75;
+const CONFIDENCE_PRICING_AUTO_THRESHOLD = 0.85;
+const PRICING_AUTO_BLOCK = /合同|底价|返点|发票|条款|签约|折扣码|返佣/;
 
-function classifyRisk(text) {
-  const t = String(text || '').toLowerCase();
-  if (/退款|投诉|举报|律师|工商|诈骗|违法/.test(t)) {
-    return { risk: 'p2', intent: 'complaint' };
+/**
+ * @param {{ risk_level?: string; confidence?: number; intent?: string }} payload
+ * @param {{ faqEnabled?: boolean; pricingEnabled?: boolean; triggerText?: string }} opts
+ */
+export function qualifiesForInboxAutoSend(payload, opts = {}) {
+  if (opts.must_human) return false;
+  const risk = String(payload.risk_level || 'p1');
+  const confidence = Number(payload.confidence) || 0;
+  const intent = String(payload.intent || 'general');
+  const text = String(opts.triggerText || '');
+
+  if (risk === 'p2') return false;
+  if (PRICING_AUTO_BLOCK.test(text)) return false;
+
+  if (risk === 'p0' && opts.faqEnabled && confidence >= CONFIDENCE_AUTO_THRESHOLD) {
+    return true;
   }
-  if (/价格|多少钱|优惠|折扣|合同|报价|底价|返点/.test(t)) {
-    return { risk: 'p1', intent: 'pricing' };
+  if (
+    risk === 'p1' &&
+    intent === 'pricing' &&
+    opts.pricingEnabled &&
+    confidence >= CONFIDENCE_PRICING_AUTO_THRESHOLD
+  ) {
+    return true;
   }
-  if (/资料|介绍|怎么用|是什么|有没有/.test(t)) {
-    return { risk: 'p0', intent: 'faq' };
+  return false;
+}
+
+async function getTenantInboxAutoSendFlags(tenantId) {
+  if (!env.inboxAiAutoSendEnabled) {
+    return { faqEnabled: false, pricingEnabled: false };
   }
-  return { risk: 'p1', intent: 'general' };
+  const tenant = await Tenant.findByPk(tenantId, {
+    attributes: [
+      'inbox_ai_auto_send',
+      'inbox_ai_auto_send_pricing',
+      'inbox_ai_platform_disabled',
+    ],
+  });
+  if (tenant?.inbox_ai_platform_disabled) {
+    return { faqEnabled: false, pricingEnabled: false, platformDisabled: true };
+  }
+  return {
+    faqEnabled: Boolean(tenant?.inbox_ai_auto_send),
+    pricingEnabled: Boolean(tenant?.inbox_ai_auto_send_pricing),
+    platformDisabled: false,
+  };
+}
+
+/**
+ * 低风险 FAQ / 简单询价：自动审核并发送。
+ * @param {object} auth
+ * @param {{ log_id: number; risk_level?: string; confidence?: number; intent?: string; thread_id?: number; triggerText?: string }} payload
+ */
+export async function tryInboxAiAutoSend(auth, payload) {
+  const flags = await getTenantInboxAutoSendFlags(auth.tenantId);
+  if (flags.platformDisabled) {
+    return {
+      auto_sent: false,
+      auto_send_skipped: 'platform_disabled',
+      auto_send_skip_message: '平台已关闭本企业 AI 自动发送',
+    };
+  }
+  if (!flags.faqEnabled && !flags.pricingEnabled) return null;
+
+  if (
+    !qualifiesForInboxAutoSend(payload, {
+      ...flags,
+      triggerText: payload.triggerText,
+    })
+  ) {
+    return null;
+  }
+
+  let threadId = payload.thread_id;
+  if (!threadId && payload.log_id) {
+    const logRow = await AiReplyLog.findOne({
+      where: { id: payload.log_id, tenant_id: auth.tenantId },
+      attributes: ['thread_id'],
+    });
+    threadId = logRow?.thread_id;
+  }
+  if (!threadId) return null;
+
+  const guard = await getInboxAiAutoSendGuard(auth.tenantId, threadId);
+  if (!guard.ok) {
+    auditInboxAiAutoSendSkipped(auth, {
+      log_id: payload.log_id,
+      thread_id: threadId,
+      reason: guard.reason,
+      message: guard.message,
+      channel_code: guard.channel_code,
+    }).catch(() => {});
+    return {
+      auto_sent: false,
+      auto_send_skipped: guard.reason,
+      auto_send_skip_message: guard.message,
+      channel_code: guard.channel_code,
+    };
+  }
+
+  return approveReply(auth, { log_id: payload.log_id, action: 'approve' }, { auto: true });
 }
 
 async function kbSnippet(tenantId, queryText, limit = 3) {
@@ -42,6 +141,7 @@ const draftSchema = Joi.object({
   thread_id: Joi.number().integer().positive().required(),
   message: Joi.string().trim().min(1).max(2000).optional(),
   trigger_message_id: Joi.number().integer().positive().optional(),
+  include_playbook_context: Joi.boolean().optional(),
 }).unknown(false);
 
 export async function createReplyDraft(auth, body) {
@@ -74,11 +174,16 @@ export async function createReplyDraft(auth, body) {
     triggerMsgId = triggerMsgId ?? last?.id ?? null;
   }
 
-  const { risk, intent } = classifyRisk(triggerText);
+  const assessment = await assessInboxReplyRisk(triggerText, auth.tenantId);
+  const { risk, intent, confidence: assessedConfidence, source: riskSource, must_human: mustHuman, reasons: riskReasons } =
+    assessment;
   const kb = await kbSnippet(auth.tenantId, triggerText);
   let draft = '';
-  let confidence = 0.72;
-  let model = 'template';
+  let confidence = assessedConfidence;
+  let model = riskSource === 'rule' ? 'template' : 'risk-llm';
+
+  let playbookMeta = null;
+  const usePlaybook = value.include_playbook_context !== false;
 
   if (thread.customer_id) {
     const cust = thread.Customer;
@@ -92,17 +197,35 @@ export async function createReplyDraft(auth, body) {
       .filter(Boolean)
       .join('；');
 
+    if (usePlaybook) {
+      playbookMeta = await buildPlaybookDraftContext(auth, Number(thread.customer_id));
+    }
+
+    const messageParts = [triggerText];
+    if (profileHint) messageParts.push(`（客户画像：${profileHint}）`);
+    if (playbookMeta?.context_block) {
+      messageParts.push(`（${playbookMeta.context_block}）`);
+    }
+    const messageForAi = messageParts.join('\n');
+
     try {
       const data = await aiContentService.generateSalesReplySuggestions(auth, {
         customer_id: Number(thread.customer_id),
-        message: profileHint ? `${triggerText}\n（客户画像：${profileHint}）` : triggerText,
+        message: messageForAi,
       });
       draft = data.replies?.[1] || data.replies?.[0] || '';
-      confidence = 0.82;
-      model = 'sales_reply_suggestions';
+      confidence = playbookMeta ? 0.86 : 0.82;
+      model = playbookMeta ? 'sales_reply_suggestions+playbook' : 'sales_reply_suggestions';
     } catch {
-      draft = `您好，收到您的消息「${triggerText.slice(0, 40)}」。我这边为您整理一下方案，方便留个常用联系方式吗？`;
-      confidence = 0.55;
+      if (playbookMeta?.context_block && thread.Customer) {
+        const name = thread.Customer.name || thread.Customer.nickname || '您';
+        draft = `您好${name}，感谢留言。我们注意到您近期关注度提升，这边给您准备了一份简要说明，您看方便什么时候聊 10 分钟？`;
+        confidence = 0.62;
+        model = 'playbook_fallback';
+      } else {
+        draft = `您好，收到您的消息「${triggerText.slice(0, 40)}」。我这边为您整理一下方案，方便留个常用联系方式吗？`;
+        confidence = 0.55;
+      }
     }
   } else {
     draft = `您好，已收到您的咨询。${kb ? `参考说明：${kb.slice(0, 120)}…` : '稍后由顾问为您详细解答。'}`;
@@ -114,7 +237,7 @@ export async function createReplyDraft(auth, body) {
   }
 
   const requiresApproval = risk !== 'p0' || confidence < CONFIDENCE_AUTO_THRESHOLD;
-  if (risk === 'p2') {
+  if (risk === 'p2' || mustHuman) {
     await thread.update({ status: 'pending_human' });
   }
 
@@ -123,14 +246,14 @@ export async function createReplyDraft(auth, body) {
     thread_id: thread.id,
     trigger_message_id: triggerMsgId,
     intent,
-    confidence,
+    confidence: Math.min(assessedConfidence, confidence),
     risk_level: risk,
     draft_content: draft,
     status: requiresApproval ? 'draft' : 'draft',
-    model,
+    model: `${model}:${riskSource}`,
   });
 
-  return {
+  const result = {
     log_id: log.id,
     draft_content: draft,
     intent,
@@ -138,7 +261,75 @@ export async function createReplyDraft(auth, body) {
     risk_level: risk,
     requires_approval: requiresApproval,
     thread_status: thread.status,
+    playbook_used: Boolean(playbookMeta),
+    playbook_scripts_count: playbookMeta?.scripts_count ?? 0,
+    playbook_has_intent_alert: Boolean(playbookMeta?.has_intent_alert),
+    auto_sent: false,
+    auto_sent_kind: null,
+    auto_send_skipped: null,
+    auto_send_skip_message: null,
+    risk_source: riskSource,
+    risk_reasons: riskReasons,
+    must_human: mustHuman,
   };
+
+  const flags = await getTenantInboxAutoSendFlags(auth.tenantId);
+  if (
+    !mustHuman &&
+    qualifiesForInboxAutoSend(
+      { risk_level: risk, confidence: assessedConfidence, intent },
+      { ...flags, triggerText, must_human: mustHuman },
+    )
+  ) {
+    try {
+      const sent = await tryInboxAiAutoSend(auth, {
+        log_id: log.id,
+        risk_level: risk,
+        confidence,
+        intent,
+        thread_id: thread.id,
+        triggerText,
+      });
+      if (sent?.auto_sent) {
+        result.auto_sent = true;
+        result.auto_sent_kind = risk === 'p1' ? 'pricing' : 'faq';
+        result.requires_approval = false;
+        result.sent_message = sent.sent_message;
+        result.thread_status = 'open';
+        result.customer_delivered = sent.customer_delivered;
+        result.delivery_note = sent.delivery_note;
+        auditInboxAiAutoSent(auth, {
+          log_id: log.id,
+          thread_id: thread.id,
+          risk_level: risk,
+          intent,
+          confidence: assessedConfidence,
+          risk_source: riskSource,
+          preview: (sent.sent_message?.content || draft).slice(0, 200),
+          customer_delivered: sent.customer_delivered,
+        }).catch(() => {});
+        if (sent.customer_delivered) {
+          maybeEnqueueAiAutoSendQa(log.id).catch(() => {});
+        }
+      } else if (sent?.auto_send_skipped) {
+        result.auto_send_skipped = sent.auto_send_skipped;
+        result.auto_send_skip_message = sent.auto_send_skip_message;
+        result.requires_approval = true;
+        auditInboxAiAutoSendSkipped(auth, {
+          log_id: log.id,
+          thread_id: thread.id,
+          reason: sent.auto_send_skipped,
+          message: sent.auto_send_skip_message,
+          risk_level: risk,
+          confidence,
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.error('[ai-employee] inbox auto send failed', e?.message || e);
+    }
+  }
+
+  return result;
 }
 
 const approveSchema = Joi.object({
@@ -147,7 +338,7 @@ const approveSchema = Joi.object({
   edited_content: Joi.string().trim().max(4000).allow('', null).optional(),
 }).unknown(false);
 
-export async function approveReply(auth, body) {
+export async function approveReply(auth, body, internal = {}) {
   const { error, value } = approveSchema.validate(body, { abortEarly: false, stripUnknown: true });
   if (error) {
     throw new HttpError(400, '参数校验失败', 400, error.details);
@@ -169,7 +360,29 @@ export async function approveReply(auth, body) {
       approved_by: auth.userId,
       final_content: value.edited_content || null,
     });
-    return log.get({ plain: true });
+    return { log: log.get({ plain: true }), auto_sent: false };
+  }
+
+  const auto = Boolean(internal.auto);
+  if (auto) {
+    const guard = await getInboxAiAutoSendGuard(auth.tenantId, log.thread_id);
+    if (!guard.ok) {
+      auditInboxAiAutoSendSkipped(auth, {
+        log_id: log.id,
+        thread_id: log.thread_id,
+        reason: guard.reason,
+        message: guard.message,
+        channel_code: guard.channel_code,
+        phase: 'approve',
+      }).catch(() => {});
+      return {
+        log: log.get({ plain: true }),
+        auto_sent: false,
+        auto_send_skipped: guard.reason,
+        auto_send_skip_message: guard.message,
+        channel_code: guard.channel_code,
+      };
+    }
   }
 
   const finalText = (value.edited_content || log.draft_content || '').trim();
@@ -179,26 +392,66 @@ export async function approveReply(auth, body) {
 
   await log.update({
     status: 'approved',
-    approved_by: auth.userId,
+    approved_by: auto ? null : auth.userId,
     final_content: finalText,
   });
 
-  const sent = await replyThread(auth, log.thread_id, { content: finalText });
-  await log.update({ status: 'approved' });
+  const sent = await replyThread(auth, log.thread_id, { content: finalText }, {
+    auto,
+    auto_kind: auto ? (log.risk_level === 'p1' ? 'pricing' : 'faq') : null,
+  });
+
+  const customerDelivered = Boolean(sent?.wework_send?.sent);
+
+  if (auto && customerDelivered) {
+    notifyAssigneeOnInboxAiAutoSend(auth.tenantId, log.thread_id, {
+      kind: log.risk_level === 'p1' ? 'pricing' : 'faq',
+      preview: finalText,
+      logId: log.id,
+    }).catch(() => {});
+    auditInboxAiAutoSent(auth, {
+      log_id: log.id,
+      thread_id: log.thread_id,
+      risk_level: log.risk_level,
+      intent: log.intent,
+      confidence: Number(log.confidence),
+      preview: finalText.slice(0, 200),
+      customer_delivered: true,
+    }).catch(() => {});
+    maybeEnqueueAiAutoSendQa(log.id).catch(() => {});
+  }
 
   return {
     log: log.get({ plain: true }),
     sent_message: sent,
+    auto_sent: auto,
+    customer_delivered: customerDelivered,
+    delivery_note:
+      auto && !customerDelivered && sent?.wework_send?.skipped
+        ? '消息已记入收件箱，未送达客户（非企微或缺少客户 external_userid）'
+        : null,
   };
 }
 
 export async function listPendingReplies(auth, query) {
   const page = Math.max(1, Number(query.page) || 1);
   const size = Math.min(50, Math.max(1, Number(query.size) || 20));
-  const where = {
-    tenant_id: auth.tenantId,
-    status: query.status ? String(query.status) : 'draft',
-  };
+  const view = String(query.view || '').trim();
+  const days = Math.min(90, Math.max(1, Number(query.days) || 7));
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const where = { tenant_id: auth.tenantId };
+  if (view === 'auto_sent') {
+    where.status = 'approved';
+    where.approved_by = null;
+    where.created_at = { [Op.gte]: since };
+  } else if (view === 'rejected') {
+    where.status = 'rejected';
+    where.created_at = { [Op.gte]: since };
+  } else {
+    where.status = query.status ? String(query.status) : 'draft';
+  }
+
   const { rows, count } = await AiReplyLog.findAndCountAll({
     where,
     limit: size,
@@ -217,6 +470,8 @@ export async function listPendingReplies(auth, query) {
     total: count,
     page,
     size,
+    view,
+    days: view === 'auto_sent' || view === 'rejected' ? days : undefined,
   };
 }
 
@@ -224,7 +479,8 @@ export async function getOpsStats(auth, query) {
   const days = Math.min(90, Math.max(1, Number(query.days) || 7));
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-  const [threadOpen, msgTotal, aiDraft, aiApproved, pendingHuman, followOpen] = await Promise.all([
+  const [threadOpen, msgTotal, aiDraft, aiApproved, aiAutoSent, aiAutoThreads, pendingHuman, followOpen] =
+    await Promise.all([
     InboxThread.count({
       where: { tenant_id: auth.tenantId, status: 'open' },
     }),
@@ -236,6 +492,24 @@ export async function getOpsStats(auth, query) {
     }),
     AiReplyLog.count({
       where: { tenant_id: auth.tenantId, status: 'approved', created_at: { [Op.gte]: since } },
+    }),
+    AiReplyLog.count({
+      where: {
+        tenant_id: auth.tenantId,
+        status: 'approved',
+        approved_by: null,
+        created_at: { [Op.gte]: since },
+      },
+    }),
+    AiReplyLog.count({
+      where: {
+        tenant_id: auth.tenantId,
+        status: 'approved',
+        approved_by: null,
+        created_at: { [Op.gte]: since },
+      },
+      distinct: true,
+      col: 'thread_id',
     }),
     InboxThread.count({
       where: { tenant_id: auth.tenantId, status: 'pending_human' },
@@ -265,6 +539,7 @@ export async function getOpsStats(auth, query) {
 
   const slaOverdue = await countSlaOverdueThreads(auth.tenantId);
   const openTickets = await countOpenTickets(auth.tenantId);
+  const autoSendUsageToday = await getInboxAiAutoSendUsageToday(auth.tenantId);
 
   return {
     days,
@@ -278,6 +553,9 @@ export async function getOpsStats(auth, query) {
     staff_or_ai_replies: staffMsgs,
     ai_drafts_created: aiDraft,
     ai_replies_approved: aiApproved,
+    ai_replies_auto_sent: aiAutoSent,
+    threads_with_ai_auto_sent: aiAutoThreads,
+    auto_send_usage_today: autoSendUsageToday,
     auto_reply_rate_percent: autoReplyRate,
     open_followup_tasks: followOpen,
   };

@@ -18,7 +18,7 @@ import { getAccessToken } from './wework.service.js';
 
 const listGroupsSchema = Joi.object({
   page: Joi.number().integer().min(1).default(1),
-  size: Joi.number().integer().min(1).max(100).default(20),
+  size: Joi.number().integer().min(1).max(200).default(20),
   name: Joi.string().trim().allow('', null).optional(),
   status: Joi.number().integer().valid(0, 1).optional(),
 }).unknown(false);

@@ -230,6 +230,8 @@ export const env = {
    */
   registerOtp: {
     required: process.env.REGISTER_OTP_REQUIRED === '1',
+    /** 设为 1 时注册仅开放短信验证码（不展示/不接受邮箱渠道） */
+    smsOnly: process.env.REGISTER_OTP_SMS_ONLY === '1',
     smtpHost: (process.env.SMTP_HOST || '').trim(),
     smtpPort: Number(process.env.SMTP_PORT) || 587,
     smtpSecure: process.env.SMTP_SECURE === '1' || String(process.env.SMTP_PORT || '') === '465',

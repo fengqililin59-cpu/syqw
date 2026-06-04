@@ -38,7 +38,13 @@ export function isRegisterOtpEnabled() {
 
 export function getRegisterOtpChannels() {
   const ch = [];
-  if (env.registerOtp.smtpHost && (env.registerOtp.smtpFrom || env.registerOtp.smtpUser)) ch.push('email');
+  if (
+    !env.registerOtp.smsOnly &&
+    env.registerOtp.smtpHost &&
+    (env.registerOtp.smtpFrom || env.registerOtp.smtpUser)
+  ) {
+    ch.push('email');
+  }
   // SMS 优先级：Aliyun > Webhook
   if (env.registerOtp.aliyunKeyId && env.registerOtp.aliyunKeySecret && env.registerOtp.aliyunTemplateCode) {
     ch.push('sms');

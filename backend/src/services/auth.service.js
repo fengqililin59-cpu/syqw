@@ -30,15 +30,19 @@ const registerSchemaBase = {
   landing_cta: Joi.string().trim().max(64).allow('', null).optional(),
 };
 
-const registerSchemaOtpFields = {
-  register_channel: Joi.string().valid('email', 'sms').required(),
-  register_target: Joi.string().trim().min(3).max(191).required(),
-  otp_code: Joi.string().trim().length(6).pattern(/^\d+$/).required(),
-};
+function registerOtpChannelRule() {
+  const allowed = env.registerOtp.smsOnly ? ['sms'] : ['email', 'sms'];
+  return Joi.string().valid(...allowed).required();
+}
 
 function buildRegisterSchema() {
   if (registrationOtp.isRegisterOtpEnabled()) {
-    return Joi.object({ ...registerSchemaBase, ...registerSchemaOtpFields });
+    return Joi.object({
+      ...registerSchemaBase,
+      register_channel: registerOtpChannelRule(),
+      register_target: Joi.string().trim().min(3).max(191).required(),
+      otp_code: Joi.string().trim().length(6).pattern(/^\d+$/).required(),
+    });
   }
   return Joi.object(registerSchemaBase);
 }

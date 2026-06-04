@@ -1,5 +1,5 @@
 /**
- * @file 企业注册页：可选邮箱/短信验证码后创建租户与管理员。
+ * @file 企业注册页：手机号验证码后创建租户与管理员（生产默认仅短信）。
  */
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -33,11 +33,16 @@ type SendOtpRes = {
   devCode?: string
 }
 
+/** 注册仅使用短信渠道（与后端 REGISTER_OTP_SMS_ONLY 一致） */
+function smsChannelsOnly(channels: RegisterOptions['channels']) {
+  return channels.filter((c) => c === 'sms')
+}
+
 export function RegisterPage() {
   const navigate = useNavigate()
   const setSession = useAuthStore((s) => s.setSession)
   const [opts, setOpts] = useState<RegisterOptions | null>(null)
-  const [channel, setChannel] = useState<'email' | 'sms'>('email')
+  const channel: 'sms' = 'sms'
   const [tenantName, setTenantName] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -58,9 +63,10 @@ export function RegisterPage() {
       try {
         const o = await getJson<RegisterOptions>('/auth/register/options')
         if (cancelled) return
-        setOpts(o)
-        if (o.channels.includes('email')) setChannel('email')
-        else if (o.channels.includes('sms')) setChannel('sms')
+        setOpts({
+          ...o,
+          channels: smsChannelsOnly(o.channels),
+        })
       } catch {
         if (!cancelled) setOpts({ otpRequired: false, channels: [] })
       }
@@ -79,7 +85,7 @@ export function RegisterPage() {
   async function onSendOtp() {
     setErr(null)
     if (!username.trim()) {
-      setErr(channel === 'email' ? '请先填写邮箱' : '请先填写手机号')
+      setErr('请先填写手机号')
       return
     }
     setSendingOtp(true)
@@ -140,7 +146,6 @@ export function RegisterPage() {
   const optsLoading = opts === null
   const otpRequired = opts?.otpRequired ?? false
   const channels = opts?.channels ?? []
-  const showChannelSwitch = channels.length > 1
   const otpMisconfigured = otpRequired && channels.length === 0
 
   return (
@@ -152,37 +157,17 @@ export function RegisterPage() {
           </div>
           <CardTitle>企业注册</CardTitle>
           <CardDescription>
-            {otpRequired ? '请先验证邮箱或手机号，再创建企业与管理员账号' : '创建企业与管理员账号'}
+            {otpRequired ? '请先验证手机号，再创建企业与管理员账号' : '创建企业与管理员账号'}
           </CardDescription>
         </CardHeader>
         <form onSubmit={onSubmit}>
           <CardContent className="space-y-4">
             {otpMisconfigured ? (
               <p className="text-sm text-amber-700 dark:text-amber-500">
-                已开启注册验证码，但服务端未配置 SMTP 或 SMS_WEBHOOK_URL，请联系管理员。
+                已开启注册验证码，但服务端未配置短信（阿里云 SMS），请联系管理员。
               </p>
             ) : null}
             {err ? <p className="text-sm text-destructive">{err}</p> : null}
-            {showChannelSwitch ? (
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={channel === 'email' ? 'default' : 'outline'}
-                  className="flex-1"
-                  onClick={() => setChannel('email')}
-                >
-                  邮箱注册
-                </Button>
-                <Button
-                  type="button"
-                  variant={channel === 'sms' ? 'default' : 'outline'}
-                  className="flex-1"
-                  onClick={() => setChannel('sms')}
-                >
-                  手机号注册
-                </Button>
-              </div>
-            ) : null}
             <div className="space-y-2">
               <Label htmlFor="tenantName">企业名称</Label>
               <div className="login-input">
@@ -191,14 +176,14 @@ export function RegisterPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="username">
-                {otpRequired ? (channel === 'email' ? '管理员邮箱' : '管理员手机号') : '管理员账号'}
+                {otpRequired ? '管理员手机号' : '管理员账号'}
               </Label>
               <div className="login-input">
                 <Input
                   id="username"
-                  type={otpRequired ? (channel === 'email' ? 'email' : 'tel') : 'text'}
-                  autoComplete={otpRequired ? (channel === 'email' ? 'email' : 'tel') : 'username'}
-                  placeholder={otpRequired ? (channel === 'email' ? 'name@example.com' : '11 位手机号') : '登录用户名'}
+                  type={otpRequired ? 'tel' : 'text'}
+                  autoComplete={otpRequired ? 'tel' : 'username'}
+                  placeholder={otpRequired ? '11 位手机号' : '登录用户名'}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
@@ -206,13 +191,13 @@ export function RegisterPage() {
               </div>
               {otpRequired ? (
                 <p className="text-xs text-muted-foreground">
-                  登录账号与此相同，验证码将发至该{channel === 'email' ? '邮箱' : '手机号'}。
+                  登录账号与此手机号相同，验证码将发送至该手机。
                 </p>
               ) : null}
             </div>
             {otpRequired ? (
               <div className="space-y-2">
-                <Label htmlFor="otp">验证码（6 位数字）</Label>
+                <Label htmlFor="otp">短信验证码（6 位数字）</Label>
                 <div className="flex gap-2">
                   <div className="login-input flex-1">
                     <Input

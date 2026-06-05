@@ -19,6 +19,8 @@ type LoginRes = {
   token: string
   user: AuthUser
   tenant: { id: number; name: string }
+  demo_ui_active?: boolean
+  wework_configured?: boolean
 }
 
 type MyPermRes = MePermissionsResponse & {
@@ -87,7 +89,10 @@ export function LoginPage() {
       landing_cta: getLandingAttribution().cta,
     })
     useAuthStore.setState({ token: data.token })
-    const perm = await getJsonWithToken<MyPermRes>('/auth/me/permissions', data.token)
+    const [perm, me] = await Promise.all([
+      getJsonWithToken<MyPermRes>('/auth/me/permissions', data.token),
+      getJsonWithToken<{ demo_ui_active?: boolean }>('/auth/me', data.token),
+    ])
     localStorage.setItem('last_tenant_id', String(data.tenant.id))
     setSession({
       token: data.token,
@@ -96,6 +101,11 @@ export function LoginPage() {
       user: data.user,
       permissions: permListFromMeResponse(perm),
     })
+    if (typeof me.demo_ui_active === 'boolean') {
+      setIsDemo(me.demo_ui_active)
+    } else if (typeof data.demo_ui_active === 'boolean') {
+      setIsDemo(data.demo_ui_active)
+    }
     navigate('/app', { replace: true })
   }
 

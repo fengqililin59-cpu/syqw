@@ -52,7 +52,8 @@ router.post(
         },
       },
     );
-    return ok(res, { success: true });
+    res.setHeader('X-Demo-Mode', '0');
+    return ok(res, { success: true, demo_ui_active: false });
   }),
 );
 

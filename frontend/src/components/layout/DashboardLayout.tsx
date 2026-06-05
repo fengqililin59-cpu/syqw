@@ -1,7 +1,8 @@
 /**
  * @file 后台主布局：侧栏导航 + 顶栏（租户信息、退出登录）。
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { getJson } from '@/api/client'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -30,7 +31,7 @@ import { usePlatformAdmin } from '@/hooks/usePlatformAdmin'
 export function DashboardLayout() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { tenantName, user, clear, permissions, hasPerm } = useAuthStore()
+  const { tenantName, user, clear, permissions, hasPerm, setIsDemo } = useAuthStore()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const canUsers = canManageStaffUser(permissions)
   const canSettings = hasPerm('settings:manage')
@@ -51,6 +52,16 @@ export function DashboardLayout() {
   const canTicket = hasPerm('ticket:view') || hasPerm('customer:view')
   const canTransfer = hasPerm('user:manage')
   const { isPlatformAdmin } = usePlatformAdmin()
+
+  useEffect(() => {
+    void getJson<{ demo_ui_active?: boolean }>('/auth/me')
+      .then((me) => {
+        if (typeof me.demo_ui_active === 'boolean') {
+          setIsDemo(me.demo_ui_active)
+        }
+      })
+      .catch(() => undefined)
+  }, [setIsDemo])
 
   const sidebarCtx = useMemo(
     () => ({

@@ -1,4 +1,4 @@
-import { Customer, User } from '../models/index.js';
+import { Customer, Tenant, User } from '../models/index.js';
 import { DEMO_TENANT_ID } from '../config/constants.js';
 
 export async function demoModeMiddleware(req, res, next) {
@@ -9,7 +9,10 @@ export async function demoModeMiddleware(req, res, next) {
     const isGuest = Boolean(req.auth.isGuest);
     const isDemoTenant = currentTenantId === DEMO_TENANT_ID;
     const shouldForceDemo = isGuest || isDemoTenant;
-    if (!req.user.demo_mode && !shouldForceDemo) return next();
+    if (!req.user.demo_mode && !shouldForceDemo) {
+      res.setHeader('X-Demo-Mode', '0');
+      return next();
+    }
 
     const path = String(req.path || '');
     const method = String(req.method || 'GET').toUpperCase();
@@ -25,12 +28,30 @@ export async function demoModeMiddleware(req, res, next) {
     }
 
     if (!shouldForceDemo) {
+      const tenant = await Tenant.findByPk(req.auth.tenantId, {
+        attributes: ['wework_corp_id', 'wework_secret'],
+      });
+      const weworkConfigured = Boolean(
+        String(tenant?.wework_corp_id || '').trim() && String(tenant?.wework_secret || '').trim(),
+      );
+
+      if (weworkConfigured) {
+        if (req.user.demo_mode) {
+          await User.update({ demo_mode: 0 }, { where: { id: req.user.id } }).catch(console.error);
+          req.user.demo_mode = false;
+        }
+        res.setHeader('X-Demo-Mode', '0');
+        return next();
+      }
+
       const realCount = await Customer.count({
         where: { tenant_id: req.auth.tenantId, deleted_at: null },
       });
 
       if (realCount > 0) {
         await User.update({ demo_mode: 0 }, { where: { id: req.user.id } }).catch(console.error);
+        req.user.demo_mode = false;
+        res.setHeader('X-Demo-Mode', '0');
         return next();
       }
     }

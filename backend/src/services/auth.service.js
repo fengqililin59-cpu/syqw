@@ -8,7 +8,8 @@ import Joi from 'joi';
 import { Op } from 'sequelize';
 import { env } from '../config/env.js';
 import { HttpError } from '../utils/httpError.js';
-import { sequelize, Tenant, Role, User, Plan, Subscription } from '../models/index.js';
+import { sequelize, Tenant, Role, User, Plan, Subscription, Customer } from '../models/index.js';
+import { DEMO_TENANT_ID } from '../config/constants.js';
 import * as registrationOtp from './registrationOtp.service.js';
 import * as passwordResetOtp from './passwordResetOtp.service.js';
 import { bindVisitToUser } from './pageTracking.service.js';
@@ -134,6 +135,41 @@ function stripPassword(user) {
   const plain = user.get ? user.get({ plain: true }) : { ...user };
   delete plain.password_hash;
   return plain;
+}
+
+function isWeworkConfigured(tenant) {
+  const corpId = String(tenant?.wework_corp_id || '').trim();
+  const secret = String(tenant?.wework_secret || '').trim();
+  return Boolean(corpId && secret);
+}
+
+/** 是否应展示演示 UI；已配企微或已有真实客户时自动关闭 demo_mode */
+async function resolveDemoUiForUser(auth, userRow, tenant) {
+  const isGuest = Boolean(auth.isGuest);
+  const isDemoTenant = Number(auth.tenantId) === DEMO_TENANT_ID;
+  if (isGuest || isDemoTenant) {
+    return { demoUiActive: true, weworkConfigured: isWeworkConfigured(tenant) };
+  }
+
+  const weworkConfigured = isWeworkConfigured(tenant);
+  if (weworkConfigured) {
+    if (userRow?.demo_mode) {
+      await User.update({ demo_mode: 0 }, { where: { id: userRow.id } }).catch(console.error);
+    }
+    return { demoUiActive: false, weworkConfigured: true };
+  }
+
+  const customerCount = await Customer.count({
+    where: { tenant_id: auth.tenantId, deleted_at: null },
+  });
+  if (customerCount > 0) {
+    if (userRow?.demo_mode) {
+      await User.update({ demo_mode: 0 }, { where: { id: userRow.id } }).catch(console.error);
+    }
+    return { demoUiActive: false, weworkConfigured: false };
+  }
+
+  return { demoUiActive: Boolean(userRow?.demo_mode), weworkConfigured: false };
 }
 
 export async function register(body) {
@@ -389,7 +425,9 @@ export async function login(body) {
   await user.update({ last_login_at: new Date() });
   await patchSystemAdminInboxAiPermsForTenant(effectiveTenantId).catch(() => {});
 
-  const tenant = await Tenant.findByPk(effectiveTenantId, { attributes: ['id', 'name'] });
+  const tenant = await Tenant.findByPk(effectiveTenantId, {
+    attributes: ['id', 'name', 'wework_corp_id', 'wework_secret'],
+  });
 
   if (user.Role) {
     await user.Role.reload();
@@ -400,10 +438,17 @@ export async function login(body) {
   if (u && u.Role) {
     u.role = { id: u.Role.id, name: u.Role.name };
   }
+  const { demoUiActive, weworkConfigured } = await resolveDemoUiForUser(
+    { tenantId: effectiveTenantId, userId: user.id, isGuest: false },
+    user,
+    tenant,
+  );
   const result = {
     token,
     user: u,
     tenant: tenant ? { id: tenant.id, name: tenant.name } : { id: effectiveTenantId, name: '' },
+    wework_configured: weworkConfigured,
+    demo_ui_active: demoUiActive,
   };
   await Promise.allSettled([
     bindVisitToUser(value.attribution_token, effectiveTenantId, user.id),
@@ -521,12 +566,35 @@ export async function getMe(auth) {
     attributes: { exclude: ['password_hash'] },
     include: [
       { model: Role, attributes: ['id', 'name', 'permissions', 'perm_codes', 'description'] },
-      { model: Tenant, attributes: ['id', 'name', 'plan', 'status', 'expired_at', 'max_users'] },
+      {
+        model: Tenant,
+        attributes: [
+          'id',
+          'name',
+          'plan',
+          'status',
+          'expired_at',
+          'max_users',
+          'wework_corp_id',
+          'wework_secret',
+        ],
+      },
     ],
   });
   if (!user) {
     throw new HttpError(401, '用户不存在或已禁用', 401);
   }
-  return user.get({ plain: true });
+  const plain = user.get({ plain: true });
+  const tenant = plain.Tenant || null;
+  const { demoUiActive, weworkConfigured } = await resolveDemoUiForUser(auth, plain, tenant);
+  if (!demoUiActive && plain.demo_mode) {
+    plain.demo_mode = false;
+  }
+
+  return {
+    ...plain,
+    wework_configured: weworkConfigured,
+    demo_ui_active: demoUiActive,
+  };
 }
 

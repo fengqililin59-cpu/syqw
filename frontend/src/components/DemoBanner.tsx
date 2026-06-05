@@ -1,5 +1,6 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { postJson } from '@/api/client'
+import { getJson, postJson } from '@/api/client'
 import { useAuthStore } from '@/store/authStore'
 
 export default function DemoBanner() {
@@ -7,6 +8,16 @@ export default function DemoBanner() {
   const isGuest = useAuthStore((s) => s.isGuest)
   const setIsDemo = useAuthStore((s) => s.setIsDemo)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    void getJson<{ demo_ui_active?: boolean }>('/auth/me')
+      .then((me) => {
+        if (typeof me.demo_ui_active === 'boolean') {
+          setIsDemo(me.demo_ui_active)
+        }
+      })
+      .catch(() => undefined)
+  }, [setIsDemo])
 
   if (!isDemo) return null
 
@@ -46,7 +57,9 @@ export default function DemoBanner() {
         {isGuest ? (
           <span style={{ fontSize: 12, color: '#4a7aaa' }}>您正在体验演示数据</span>
         ) : (
-          <span style={{ fontSize: 12, color: '#4a7aaa' }}>当前展示演示数据，配置企微后切换真实数据</span>
+          <span style={{ fontSize: 12, color: '#4a7aaa' }}>
+            当前展示演示数据；保存企微 CorpID+Secret 或同步客户后将切换为您的真实数据
+          </span>
         )}
       </div>
       {isGuest ? (
@@ -81,7 +94,7 @@ export default function DemoBanner() {
             whiteSpace: 'nowrap',
           }}
         >
-          立即配置企微 →
+          退出演示模式 →
         </button>
       )}
     </div>

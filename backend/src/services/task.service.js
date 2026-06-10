@@ -25,7 +25,7 @@ export async function listTasks(tenantId, query = {}) {
     ],
     order: [
       ['due_date', 'ASC'],
-      [literal("FIELD(priority, 'urgent','high','medium','low')"), 'ASC'],
+      [literal("FIELD(`Task`.`priority`, 'urgent','high','medium','low')"), 'ASC'],
       ['created_at', 'DESC'],
     ],
     limit: Number(page_size),

@@ -19,6 +19,7 @@ import {
 import { isAdmin, customerWhereScope } from '../utils/permissions.js';
 import { getRevenueSummary } from './orderRevenue.service.js';
 import { countOverdueTicketsForTenant } from './ticketSlaReminder.service.js';
+import { DEMO_TENANT_ID } from '../config/constants.js';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -172,8 +173,6 @@ export async function getCharts(auth, query) {
 /**
  * 仪表盘增强统计：今日新增、近 7 日序列、阶段分布、成交率（租户 + 销售数据范围）。
  */
-const DEMO_TENANT_ID = 9999;
-
 export async function getStats(auth) {
   const tenantId = auth.tenantId;
   const cWhere = customerWhereScope(auth);

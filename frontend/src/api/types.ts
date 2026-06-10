@@ -116,6 +116,28 @@ export type CustomerRow = {
   created_at?: string | null
   tags?: TagRow[]
   owner?: { id: number; username: string; real_name?: string | null }
+  /** 意向分详情（AI 理由、规则分细节等） */
+  intent_score_detail?: {
+    rule_score: number
+    ai_score: number
+    final_score: number
+    intent_stage: string
+    confidence: string
+    reason_snippet: string
+    scored_at: string
+  } | null
+  /** 流失风险预警 */
+  churn_risk_alert?: {
+    days_since_last_contact: number
+    risk_level: 'critical' | 'high' | 'medium'
+    message: string
+  } | null
+  /** 成交率预测 */
+  conversion_rate_estimate?: {
+    estimated_rate: number
+    score_range: string
+    samples: number
+  } | null
 }
 
 /** POST /customers/:id/score-intent */

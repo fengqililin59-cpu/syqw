@@ -45,6 +45,7 @@ import { useAuthStore } from '@/store/authStore'
 import { canManageStaffUser, hasPermUser } from '@/lib/roles'
 import { CustomerAiReplyPanel } from '@/components/CustomerAiReplyPanel'
 import { IntentAlertPlaybookDialog } from '@/components/IntentAlertPlaybookDialog'
+import { SalesCoachCard } from '@/components/SalesCoachCard'
 import {
   CustomerTimelineSection,
   type TimelineItem,
@@ -336,6 +337,27 @@ export function CustomerDetailPage() {
   function applyScript(text: string) {
     setFuContent(text)
     setFuScriptOpen(false)
+  }
+
+  // ─── 一键快速跟进（从成交副驾卡触发）────────────────────────────────────────
+  async function handleQuickFollowUp() {
+    if (!id || !canEdit) return
+    // 1. 生成 AI 话术
+    setFuScriptLoading(true)
+    try {
+      const res = await postJson<{ scripts: string[] }>(`/customers/${id}/followup-scripts`, {})
+      const scripts = res.scripts || []
+      if (scripts.length > 0) {
+        // 2. 选择第一个话术（最相关的）
+        setFuContent(scripts[0])
+      }
+    } catch (e) {
+      console.error('生成话术失败:', e)
+    } finally {
+      setFuScriptLoading(false)
+    }
+    // 3. 切换到跟进记录标签页
+    setActiveTab('followups')
   }
 
   // ─── score intent ─────────────────────────────────────────────────────────
@@ -707,28 +729,18 @@ export function CustomerDetailPage() {
             </CardContent>
           </Card>
 
-          {/* 意向分 mini 卡 */}
-          {customer.intent_score != null && (
-            <Card className="rounded-2xl shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-muted-foreground">意向评分</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1.5 text-sm">
-                <div className="flex items-center gap-2">
-                  {intentIcon(customer.intent_score)}
-                  <span className="text-2xl font-bold">{customer.intent_score}</span>
-                  <span className="text-xs text-muted-foreground">/ 100</span>
-                </div>
-                {customer.intent_tier && (
-                  <p className="text-xs text-muted-foreground">{customer.intent_stage_label}</p>
-                )}
-                {customer.last_scored_at && (
-                  <p className="text-xs text-muted-foreground">
-                    更新于 {fmtDate(customer.last_scored_at)}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+          {/* 成交副驾卡 */}
+          {customer.intent_score != null && id && (
+            <SalesCoachCard
+              customerId={Number(id)}
+              intentScore={customer.intent_score}
+              intentTier={customer.intent_tier}
+              intentStageLabel={customer.intent_stage_label}
+              intentsScoreDetail={customer.intent_score_detail}
+              churnRiskAlert={customer.churn_risk_alert}
+              conversionRateEstimate={customer.conversion_rate_estimate}
+              onQuickFollowUp={handleQuickFollowUp}
+            />
           )}
         </div>
 

@@ -5,8 +5,9 @@ import Joi from 'joi';
 import { Op } from 'sequelize';
 import XLSX from 'xlsx';
 import { parse } from 'csv-parse/sync';
+import dayjs from 'dayjs';
 import { HttpError } from '../utils/httpError.js';
-import { AuditLog, Customer, CustomerFollowUp, CustomerTag, Tag, User, WeworkCustomerMessage } from '../models/index.js';
+import { AuditLog, Customer, CustomerFollowUp, CustomerTag, Tag, User, WeworkCustomerMessage, CustomerScore } from '../models/index.js';
 import { isAdmin, customerWhereScope } from '../utils/permissions.js';
 import { attachDiscoveryMeta } from '../utils/discoveryProfile.util.js';
 import { attachOrderStatsToCustomers } from './orderRevenue.service.js';
@@ -189,6 +190,55 @@ export async function listCustomers(auth, query) {
   return { list, total, page, size };
 }
 
+/**
+ * 估算客户成交率：基于意向分区间的历史成交数据
+ */
+async function estimateConversionRate(tenantId, customerIntentScore) {
+  const score = Number(customerIntentScore) || 0;
+
+  // 按意向分区间统计
+  let scoreMin, scoreMax;
+  if (score >= 75) {
+    scoreMin = 75;
+    scoreMax = 100;
+  } else if (score >= 50) {
+    scoreMin = 50;
+    scoreMax = 75;
+  } else {
+    scoreMin = 0;
+    scoreMax = 50;
+  }
+
+  try {
+    const [results] = await sequelize.query(
+      `SELECT
+        COUNT(DISTINCT c.id) as total_customers,
+        COUNT(DISTINCT CASE WHEN c.stage = 'deal' THEN c.id END) as deal_count
+      FROM customers c
+      WHERE c.tenant_id = ?
+        AND c.intent_score >= ?
+        AND c.intent_score < ?
+        AND c.deleted_at IS NULL
+        AND c.created_at > DATE_SUB(NOW(), INTERVAL 90 DAY)`,
+      { replacements: [tenantId, scoreMin, scoreMax], type: QueryTypes.SELECT }
+    );
+
+    if (!results || results[0].total_customers === 0) {
+      return null; // 数据不足，返回 null
+    }
+
+    const conversionRate = Math.round((results[0].deal_count / results[0].total_customers) * 100);
+    return {
+      estimated_rate: Math.max(5, Math.min(95, conversionRate)), // 夹在 5%-95% 之间
+      score_range: `${scoreMin}-${scoreMax}`,
+      samples: results[0].total_customers,
+    };
+  } catch (e) {
+    console.error('[getCustomer] estimateConversionRate failed:', e.message);
+    return null;
+  }
+}
+
 export async function getCustomer(auth, id) {
   const row = await Customer.findOne({
     where: { id, ...customerWhereScope(auth) },
@@ -200,7 +250,55 @@ export async function getCustomer(auth, id) {
   if (!row) {
     throw new HttpError(404, '客户不存在', 404);
   }
-  return attachDiscoveryMeta(row.get({ plain: true }));
+
+  const plain = attachDiscoveryMeta(row.get({ plain: true }));
+
+  // 补充意向分析详情（AI 理由、规则分细节）
+  const recentScore = await CustomerScore.findOne({
+    where: { tenant_id: auth.tenantId, customer_id: id },
+    order: [['created_at', 'DESC']],
+    attributes: ['rule_score', 'ai_score', 'final_score', 'intent_stage', 'confidence', 'reason_snippet', 'created_at'],
+  });
+
+  // 补充流失风险预警
+  let churnRiskAlert = null;
+  if (plain.last_contact_at) {
+    const hoursSinceLastContact = dayjs().diff(dayjs(plain.last_contact_at), 'hour');
+    const daysSinceLastContact = Math.floor(hoursSinceLastContact / 24);
+
+    // 简易流失预警规则：超过 72 小时未联系，且意向分低于 60 分时
+    if (daysSinceLastContact > 3 && (plain.intent_score || 0) < 60) {
+      churnRiskAlert = {
+        days_since_last_contact: daysSinceLastContact,
+        risk_level: daysSinceLastContact > 7 ? 'critical' : 'high',
+        message: `${daysSinceLastContact}天未联系，流失风险${daysSinceLastContact > 7 ? '很高' : '较高'}`,
+      };
+    } else if (daysSinceLastContact > 3) {
+      churnRiskAlert = {
+        days_since_last_contact: daysSinceLastContact,
+        risk_level: 'medium',
+        message: `${daysSinceLastContact}天未联系`,
+      };
+    }
+  }
+
+  // 补充成交率预测
+  const conversionRate = await estimateConversionRate(auth.tenantId, plain.intent_score);
+
+  return {
+    ...plain,
+    intent_score_detail: recentScore ? {
+      rule_score: recentScore.rule_score,
+      ai_score: recentScore.ai_score,
+      final_score: recentScore.final_score,
+      intent_stage: recentScore.intent_stage,
+      confidence: recentScore.confidence,
+      reason_snippet: recentScore.reason_snippet,
+      scored_at: recentScore.created_at,
+    } : null,
+    churn_risk_alert: churnRiskAlert,
+    conversion_rate_estimate: conversionRate,
+  };
 }
 
 export async function getByExternalUserId(tenantId, externalUserId) {

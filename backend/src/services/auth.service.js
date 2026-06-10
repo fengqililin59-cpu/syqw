@@ -105,7 +105,6 @@ const loginSchema = Joi.object({
 });
 
 const GUEST_USER_ID = 9998;
-const DEMO_TENANT_ID = 9999;
 
 /**
  * 从已加载 Role 的用户生成 JWT（携带 perm_codes + 过渡 role，供 requirePerm 无库校验）

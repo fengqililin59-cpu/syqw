@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>ZhiFlow · 企微销售团队专用 AI 助手</title>
+  <meta name="description" content="客户意向实时评分，流失风险提前预警，AI 告诉你现在该打哪个客户。14天免费试用。" />
+  <style>
+    :root {
+      --primary: #3b6fd4;
+      --primary-dark: #2a54b0;
+      --primary-light: #eef3ff;
+      --accent: #7c3aed;
+      --accent-light: #f5f0ff;
+      --success: #16a34a;
+      --warn: #d97706;
+      --danger: #dc2626;
+      --text: #0f1e2e;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── 顶部导航 ── */
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+      padding: 12px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { font-size: 17px; font-weight: 800; color: var(--primary); letter-spacing: -0.3px; }
+    .nav-logo span { color: var(--text); }
+    .nav-cta {
+      background: var(--primary); color: #fff;
+      border: none; border-radius: 20px;
+      padding: 8px 20px; font-size: 13px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      white-space: nowrap;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(160deg, #0f1e2e 0%, #1e3a5f 50%, #2a4a7f 100%);
+      color: #fff;
+      padding: 48px 20px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 70% 30%, rgba(91,141,217,0.25) 0%, transparent 60%);
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(91,141,217,0.25);
+      border: 1px solid rgba(91,141,217,0.5);
+      color: #93c5fd;
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: 28px;
+      font-weight: 900;
+      line-height: 1.25;
+      margin-bottom: 12px;
+      position: relative;
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(90deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: rgba(255,255,255,0.75);
+      line-height: 1.7;
+      margin-bottom: 28px;
+      position: relative;
+    }
+    .hero-points {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 32px;
+      position: relative;
+    }
+    .hero-point {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.9);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-align: left;
+    }
+    .hero-point .icon { font-size: 20px; flex-shrink: 0; }
+
+    /* ── CTA 主按钮 ── */
+    .cta-main {
+      display: block;
+      width: 100%;
+      max-width: 340px;
+      margin: 0 auto 10px;
+      background: linear-gradient(135deg, #3b6fd4, #7c3aed);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 16px 24px;
+      font-size: 17px;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 4px 20px rgba(59,111,212,0.5);
+      position: relative;
+    }
+    .cta-main:active { opacity: 0.9; transform: scale(0.98); }
+    .cta-hint {
+      font-size: 12px;
+      color: rgba(255,255,255,0.55);
+      text-align: center;
+      position: relative;
+    }
+
+    /* ── 痛点区 ── */
+    .section { padding: 40px 20px; }
+    .section-label {
+      display: flex; align-items: center; gap-8px;
+      font-size: 12px; font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .section-label::before, .section-label::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+    }
+    .section-label::before { margin-right: 10px; }
+    .section-label::after { margin-left: 10px; }
+    .section-title {
+      font-size: 22px; font-weight: 900;
+      text-align: center; margin-bottom: 6px;
+      line-height: 1.3;
+    }
+    .section-sub {
+      font-size: 14px; color: var(--muted);
+      text-align: center; margin-bottom: 24px;
+    }
+
+    .pain-cards { display: flex; flex-direction: column; gap: 12px; }
+    .pain-card {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 16px;
+      border-left: 4px solid var(--danger);
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    }
+    .pain-card .q {
+      font-size: 15px; font-weight: 700;
+      color: var(--danger); margin-bottom: 4px;
+    }
+    .pain-card .a {
+      font-size: 13px; color: var(--muted); line-height: 1.6;
+    }
+
+    /* ── 功能区 ── */
+    .features-bg { background: var(--surface); }
+    .feature-card {
+      background: var(--bg);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      border: 1px solid var(--line);
+    }
+    .feature-card:last-child { margin-bottom: 0; }
+    .feature-head {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 14px;
+    }
+    .feature-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+    .feature-icon.blue { background: #dbeafe; }
+    .feature-icon.purple { background: #ede9fe; }
+    .feature-icon.green { background: #dcfce7; }
+    .feature-title { font-size: 17px; font-weight: 800; }
+    .feature-desc { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    .feature-items { display: flex; flex-direction: column; gap: 8px; }
+    .feature-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 13px; line-height: 1.6;
+    }
+    .feature-item .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--primary); flex-shrink: 0; margin-top: 6px;
+    }
+
+    /* 模拟 UI 卡片 */
+    .mock-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .mock-score-row {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+    }
+    .mock-score {
+      font-size: 36px; font-weight: 900;
+      color: #d97706; line-height: 1;
+    }
+    .mock-score-info { flex: 1; }
+    .mock-score-label { font-size: 11px; color: var(--muted); }
+    .mock-score-tier { font-size: 13px; font-weight: 700; color: var(--warn); }
+    .mock-risk {
+      background: #fef2f2; border-left: 3px solid var(--danger);
+      border-radius: 8px; padding: 8px 10px;
+      font-size: 12px; color: #991b1b;
+      margin-bottom: 8px;
+    }
+    .mock-rate {
+      background: linear-gradient(90deg, #ecfdf5, #f0fdf4);
+      border: 1px solid #bbf7d0;
+      border-radius: 8px; padding: 8px 10px;
+      font-size: 12px; color: #166534;
+      margin-bottom: 8px;
+    }
+    .mock-next {
+      background: linear-gradient(135deg, #f5f3ff, #eef2ff);
+      border: 1px solid #c4b5fd;
+      border-radius: 8px; padding: 8px 10px;
+      font-size: 12px; color: #4c1d95;
+    }
+    .mock-btns { display: flex; gap: 8px; margin-top: 10px; }
+    .mock-btn {
+      flex: 1; padding: 7px; border-radius: 8px;
+      font-size: 12px; font-weight: 600; text-align: center;
+    }
+    .mock-btn.outline { border: 1px solid var(--line); color: var(--text); background: var(--surface); }
+    .mock-btn.fill { background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; border: none; }
+
+    /* ── 对比区 ── */
+    .compare-bg { background: linear-gradient(160deg, #0f1e2e, #1a3050); color: #fff; }
+    .compare-bg .section-title { color: #fff; }
+    .compare-bg .section-sub { color: rgba(255,255,255,0.6); }
+    .compare-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .compare-table th {
+      padding: 10px 8px;
+      font-size: 12px; font-weight: 700;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+    }
+    .compare-table th:first-child { text-align: left; color: rgba(255,255,255,0.6); }
+    .compare-table th:nth-child(2) { color: #93c5fd; background: rgba(59,111,212,0.2); border-radius: 8px 8px 0 0; }
+    .compare-table th:nth-child(3), .compare-table th:nth-child(4) { color: rgba(255,255,255,0.5); }
+    .compare-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      text-align: center;
+      color: rgba(255,255,255,0.7);
+    }
+    .compare-table td:first-child { text-align: left; color: rgba(255,255,255,0.85); font-weight: 600; }
+    .compare-table td:nth-child(2) { color: #93c5fd; font-weight: 700; background: rgba(59,111,212,0.1); }
+    .yes { color: #4ade80 !important; font-size: 16px; }
+    .no { color: rgba(255,255,255,0.25) !important; font-size: 16px; }
+    .maybe { color: #fbbf24 !important; font-size: 14px; }
+
+    /* ── 适合谁 ── */
+    .audience-grid { display: flex; flex-direction: column; gap: 10px; }
+    .audience-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      background: var(--surface);
+      border-radius: 12px; padding: 14px;
+      border: 1px solid var(--line);
+    }
+    .audience-emoji { font-size: 24px; flex-shrink: 0; }
+    .audience-title { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+    .audience-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    /* ── 套餐区 ── */
+    .plan-cards { display: flex; flex-direction: column; gap: 12px; }
+    .plan-card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 20px;
+      border: 2px solid var(--line);
+    }
+    .plan-card.highlight {
+      border-color: var(--primary);
+      box-shadow: 0 4px 20px rgba(59,111,212,0.15);
+    }
+    .plan-badge {
+      display: inline-block;
+      background: var(--primary); color: #fff;
+      font-size: 11px; font-weight: 700;
+      padding: 2px 10px; border-radius: 10px;
+      margin-bottom: 8px;
+    }
+    .plan-name { font-size: 18px; font-weight: 900; margin-bottom: 4px; }
+    .plan-price {
+      font-size: 28px; font-weight: 900; color: var(--primary);
+      margin-bottom: 4px; line-height: 1;
+    }
+    .plan-price span { font-size: 14px; font-weight: 400; color: var(--muted); }
+    .plan-desc { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+    .plan-features { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .plan-features li {
+      font-size: 13px; display: flex; gap: 8px; align-items: flex-start;
+    }
+    .plan-features li::before { content: '✓'; color: var(--success); font-weight: 700; flex-shrink: 0; }
+
+    /* ── 留资表单 ── */
+    .form-section {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .form-section h2 { font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 8px; }
+    .form-section p { font-size: 14px; color: rgba(255,255,255,0.8); margin-bottom: 24px; }
+    .form-box {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 16px;
+      padding: 20px;
+      max-width: 360px; margin: 0 auto;
+    }
+    .form-input {
+      width: 100%;
+      padding: 13px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      font-size: 15px;
+      margin-bottom: 10px;
+      outline: none;
+    }
+    .form-input::placeholder { color: rgba(255,255,255,0.6); }
+    .form-input:focus { border-color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.2); }
+    .form-submit {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      border: none;
+      background: #fff;
+      color: var(--primary);
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    .form-submit:active { opacity: 0.9; transform: scale(0.98); }
+    .form-fine { font-size: 11px; color: rgba(255,255,255,0.5); }
+
+    /* ── 信任栏 ── */
+    .trust-bar {
+      background: var(--surface);
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      border-top: 1px solid var(--line);
+    }
+    .trust-item {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--muted);
+    }
+    .trust-item .ti { font-size: 16px; }
+
+    /* ── 底部固定 CTA ── */
+    .sticky-cta {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      z-index: 99;
+      background: #fff;
+      border-top: 1px solid var(--line);
+      padding: 12px 20px;
+      display: flex; gap: 10px;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+    }
+    .sticky-cta a {
+      flex: 1;
+      display: block;
+      text-align: center;
+      padding: 13px;
+      border-radius: 12px;
+      font-size: 15px; font-weight: 800;
+      text-decoration: none;
+    }
+    .sticky-cta .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+      box-shadow: 0 3px 12px rgba(59,111,212,0.35);
+    }
+    .sticky-cta .btn-outline {
+      border: 2px solid var(--primary);
+      color: var(--primary);
+    }
+
+    /* ── 底部间距（防止被固定栏遮住） ── */
+    .footer {
+      padding: 24px 20px 90px;
+      text-align: center;
+      font-size: 12px; color: var(--muted);
+    }
+
+    /* ── 成功弹窗 ── */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 999;
+      background: rgba(0,0,0,0.6);
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--surface);
+      border-radius: 20px;
+      padding: 32px 24px;
+      text-align: center;
+      max-width: 300px; width: 90%;
+      animation: popIn 0.3s ease;
+    }
+    @keyframes popIn {
+      from { transform: scale(0.8); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal-icon { font-size: 48px; margin-bottom: 12px; }
+    .modal h3 { font-size: 20px; font-weight: 900; margin-bottom: 8px; }
+    .modal p { font-size: 14px; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
+    .modal-btn {
+      display: block; width: 100%;
+      background: var(--primary); color: #fff;
+      border: none; border-radius: 12px;
+      padding: 13px; font-size: 15px; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+<!-- 导航 -->
+<nav class="nav">
+  <div class="nav-logo">Zhi<span>Flow</span></div>
+  <a href="#form" class="nav-cta">免费试用 →</a>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-badge">🤖 企微销售团队专用 AI 助手</div>
+  <h1>让 AI 每天告诉你<br/><em>先跟进哪个客户</em></h1>
+  <p class="hero-sub">客户意向实时评分 · 流失风险提前预警<br/>成交副驾一键给出下一步建议</p>
+  <div class="hero-points">
+    <div class="hero-point">
+      <span class="icon">🎯</span>
+      <span>300 个客户，AI 自动排优先级，高意向客户绝不错过</span>
+    </div>
+    <div class="hero-point">
+      <span class="icon">⚠️</span>
+      <span>客户 3 天没联系自动预警，在他跑去买竞品之前提醒你</span>
+    </div>
+    <div class="hero-point">
+      <span class="icon">💬</span>
+      <span>企微消息直接进 CRM，不用手动录，不漏一条</span>
+    </div>
+  </div>
+  <a href="#form" class="cta-main">🎁 立即免费试用 14 天</a>
+  <p class="cta-hint">无需信用卡 · 5 分钟完成企微授权 · 随时可取消</p>
+</section>
+
+<!-- 痛点 -->
+<section class="section">
+  <div class="section-label">你是不是也这样</div>
+  <h2 class="section-title">做企微私域，<br/>这些问题困扰你吗？</h2>
+  <div class="pain-cards">
+    <div class="pain-card">
+      <div class="q">❌ 客户太多，不知道先联系谁</div>
+      <div class="a">每天打开企微，几百个客户，全靠感觉，高意向的反而没跟上</div>
+    </div>
+    <div class="pain-card">
+      <div class="q">❌ 跟了很久，眼睁睁看着流失</div>
+      <div class="a">客户一周没回消息，发现时他已经买了竞品，追悔莫及</div>
+    </div>
+    <div class="pain-card">
+      <div class="q">❌ 新销售不知道怎么开口</div>
+      <div class="a">老员工的经验带不走，新人靠摸索，转化率低得可怜</div>
+    </div>
+    <div class="pain-card">
+      <div class="q">❌ CRM 录数据太麻烦，用不起来</div>
+      <div class="a">传统 CRM 要手动录入，销售嫌麻烦，用两周就废了</div>
+    </div>
+  </div>
+</section>
+
+<!-- 功能 -->
+<section class="section features-bg">
+  <div class="section-label">解决方案</div>
+  <h2 class="section-title">ZhiFlow 怎么解决？</h2>
+  <p class="section-sub">三个核心能力，直击私域销售痛点</p>
+
+  <!-- 功能1：成交副驾 -->
+  <div class="feature-card">
+    <div class="feature-head">
+      <div class="feature-icon blue">🎯</div>
+      <div>
+        <div class="feature-title">成交副驾</div>
+        <div class="feature-desc">每个客户都有 AI 实时评分</div>
+      </div>
+    </div>
+    <div class="feature-items">
+      <div class="feature-item"><div class="dot"></div><span>AI 综合客户行为，给出 0-100 意向评分，高意向自动置顶</span></div>
+      <div class="feature-item"><div class="dot"></div><span>显示评分理由："规则分 75 + AI 分 68，近 3 天主动咨询 2 次"</span></div>
+      <div class="feature-item"><div class="dot"></div><span>预计成交率可视化，基于同类客户近 90 天历史数据</span></div>
+      <div class="feature-item"><div class="dot"></div><span>直接给出建议："高意向！建议今天电话确认需求，准备报价"</span></div>
+    </div>
+    <!-- 模拟卡片 -->
+    <div class="mock-card">
+      <div style="font-size:11px;color:#64748b;margin-bottom:8px;font-weight:600;">📊 成交副驾</div>
+      <div class="mock-score-row">
+        <div class="mock-score">82</div>
+        <div class="mock-score-info">
+          <div class="mock-score-tier">🔥 高意向</div>
+          <div class="mock-score-label">意向分 / 100 · 积极考察期</div>
+        </div>
+      </div>
+      <div class="mock-risk">⚠️ 高风险 · 距上次联系 5 天，建议今日主动跟进</div>
+      <div class="mock-rate">📈 预计成交率 <strong>38%</strong> · 基于 47 个同类客户数据</div>
+      <div class="mock-next">🎯 <strong>现在该做什么：</strong>高意向！建议立即电话确认需求，准备方案报价</div>
+      <div class="mock-btns">
+        <div class="mock-btn outline">📖 推荐话术</div>
+        <div class="mock-btn fill">✨ 一键跟进</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 功能2：流失预警 -->
+  <div class="feature-card">
+    <div class="feature-head">
+      <div class="feature-icon purple">⚠️</div>
+      <div>
+        <div class="feature-title">流失风险预警</div>
+        <div class="feature-desc">客户要跑，提前 3 天知道</div>
+      </div>
+    </div>
+    <div class="feature-items">
+      <div class="feature-item"><div class="dot" style="background:#7c3aed"></div><span>超过 N 天未联系，自动触发极高 / 高 / 中 风险预警</span></div>
+      <div class="feature-item"><div class="dot" style="background:#7c3aed"></div><span>意向分下降时立即提醒，不等客户消失再行动</span></div>
+      <div class="feature-item"><div class="dot" style="background:#7c3aed"></div><span>AI 意向预警列表，一键批量跟进高风险客户</span></div>
+    </div>
+  </div>
+
+  <!-- 功能3：企微深度集成 -->
+  <div class="feature-card">
+    <div class="feature-head">
+      <div class="feature-icon green">💬</div>
+      <div>
+        <div class="feature-title">企微原生集成</div>
+        <div class="feature-desc">消息自动入库，不靠人工录</div>
+      </div>
+    </div>
+    <div class="feature-items">
+      <div class="feature-item"><div class="dot" style="background:#16a34a"></div><span>企微会话消息自动同步至客户档案，AI 分析意向</span></div>
+      <div class="feature-item"><div class="dot" style="background:#16a34a"></div><span>统一收件箱，企微 + 多渠道消息集中管理</span></div>
+      <div class="feature-item"><div class="dot" style="background:#16a34a"></div><span>渠道活码 + 自动打标签，精准追踪客户来源</span></div>
+      <div class="feature-item"><div class="dot" style="background:#16a34a"></div><span>AI 话术库 + 智能推荐，新人也能快速上手</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 对比 -->
+<section class="section compare-bg">
+  <div class="section-label" style="color:rgba(255,255,255,0.5);">为什么选 ZhiFlow</div>
+  <h2 class="section-title">和其他工具有什么不同？</h2>
+  <p class="section-sub">不是更多功能，是真正解决问题</p>
+  <div style="overflow-x:auto;">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>功能</th>
+          <th>ZhiFlow</th>
+          <th>传统SCRM</th>
+          <th>AI工具</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>AI 客户意向评分</td>
+          <td><span class="yes">✓</span> 实时</td>
+          <td><span class="no">✗</span></td>
+          <td><span class="maybe">需接CRM</span></td>
+        </tr>
+        <tr>
+          <td>成交副驾建议</td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="no">✗</span></td>
+          <td><span class="no">✗</span></td>
+        </tr>
+        <tr>
+          <td>流失风险预警</td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="no">✗</span></td>
+          <td><span class="no">✗</span></td>
+        </tr>
+        <tr>
+          <td>企微消息同步</td>
+          <td><span class="yes">✓</span> 原生</td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="no">✗</span></td>
+        </tr>
+        <tr>
+          <td>CRM + AI 一体</td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="no">✗</span></td>
+          <td><span class="no">✗</span></td>
+        </tr>
+        <tr>
+          <td>5 分钟快速上手</td>
+          <td><span class="yes">✓</span></td>
+          <td><span class="no">✗ 实施复杂</span></td>
+          <td><span class="no">✗</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 适合谁 -->
+<section class="section">
+  <div class="section-label">适用场景</div>
+  <h2 class="section-title">适合你吗？</h2>
+  <p class="section-sub">这些情况，ZhiFlow 特别能帮上忙</p>
+  <div class="audience-grid">
+    <div class="audience-item">
+      <div class="audience-emoji">🏥</div>
+      <div>
+        <div class="audience-title">医美 / 健康行业</div>
+        <div class="audience-desc">客户决策周期长，需要持续跟进。AI 帮你判断谁快成交了，谁需要再培育</div>
+      </div>
+    </div>
+    <div class="audience-item">
+      <div class="audience-emoji">📚</div>
+      <div>
+        <div class="audience-title">教育培训机构</div>
+        <div class="audience-desc">咨询量大，销售跟不过来。意向排序让顾问先打最有可能成交的那批人</div>
+      </div>
+    </div>
+    <div class="audience-item">
+      <div class="audience-emoji">🏠</div>
+      <div>
+        <div class="audience-title">家装 / 房产</div>
+        <div class="audience-desc">客户周期 3-6 个月，容易"养着养着跑了"。流失预警提前发现异动</div>
+      </div>
+    </div>
+    <div class="audience-item">
+      <div class="audience-emoji">💼</div>
+      <div>
+        <div class="audience-title">B2B 企业服务</div>
+        <div class="audience-desc">决策链条复杂，跟进节奏关键。CRM + AI 帮你把握每个窗口期</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 套餐 -->
+<section class="section features-bg">
+  <div class="section-label">透明定价</div>
+  <h2 class="section-title">先免费用，满意再付</h2>
+  <p class="section-sub">注册即享 14 天专业版全功能试用</p>
+  <div class="plan-cards">
+    <div class="plan-card">
+      <div class="plan-name">体验版</div>
+      <div class="plan-price">免费 <span>永久</span></div>
+      <div class="plan-desc">试用结束后的永久免费档位</div>
+      <ul class="plan-features">
+        <li>客户数 100 人</li>
+        <li>基础跟进管理</li>
+        <li>有限 AI 调用</li>
+      </ul>
+    </div>
+    <div class="plan-card highlight">
+      <div class="plan-badge">🔥 最受欢迎</div>
+      <div class="plan-name">专业版</div>
+      <div class="plan-price">¥599 <span>/ 月起</span></div>
+      <div class="plan-desc">适合 5-20 人销售团队</div>
+      <ul class="plan-features">
+        <li>客户数不限</li>
+        <li>AI 意向评分 ✅</li>
+        <li>成交副驾 ✅</li>
+        <li>流失风险预警 ✅</li>
+        <li>自动化跟进规则</li>
+        <li>企微深度集成</li>
+      </ul>
+    </div>
+    <div class="plan-card">
+      <div class="plan-name">企业版</div>
+      <div class="plan-price">¥1299 <span>/ 月起</span></div>
+      <div class="plan-desc">大型销售团队 + 专属支持</div>
+      <ul class="plan-features">
+        <li>席位不限</li>
+        <li>全部专业版功能</li>
+        <li>专属客户成功</li>
+        <li>数据看板定制</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 留资表单 -->
+<section class="form-section" id="form">
+  <h2>现在开始，14 天免费体验</h2>
+  <p>留下手机号，我们 1 小时内联系你开通专业版试用</p>
+  <div class="form-box">
+    <input class="form-input" type="text" id="name" placeholder="您的姓名" />
+    <input class="form-input" type="tel" id="phone" placeholder="手机号码" maxlength="11" />
+    <input class="form-input" type="text" id="company" placeholder="公司名称（选填）" />
+    <button class="form-submit" onclick="handleSubmit()">立即领取 14 天免费试用 🎁</button>
+    <p class="form-fine">提交即表示同意 ZhiFlow 联系您，您的信息不会被泄漏给第三方</p>
+  </div>
+</section>
+
+<!-- 信任栏 -->
+<div class="trust-bar">
+  <div class="trust-item"><span class="ti">🔒</span> 数据加密存储</div>
+  <div class="trust-item"><span class="ti">📋</span> 符合企微官方规范</div>
+  <div class="trust-item"><span class="ti">🚀</span> 5 分钟完成接入</div>
+  <div class="trust-item"><span class="ti">💬</span> 7×12 在线支持</div>
+</div>
+
+<!-- 底部 -->
+<footer class="footer">
+  <p>© 2025 ZhiFlow · 杭州中数云科智慧科技有限公司</p>
+  <p style="margin-top:6px;">
+    <a href="/terms.html" style="color:inherit;">服务条款</a> ·
+    <a href="/privacy.html" style="color:inherit;">隐私政策</a>
+  </p>
+</footer>
+
+<!-- 底部固定 CTA -->
+<div class="sticky-cta">
+  <a href="tel:400XXXXXXX" class="btn-outline">📞 咨询</a>
+  <a href="#form" class="btn-primary">🎁 免费试用 14 天</a>
+</div>
+
+<!-- 成功弹窗 -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-icon">🎉</div>
+    <h3>提交成功！</h3>
+    <p>我们将在 <strong>1 小时内</strong> 联系您开通专业版试用<br/>也可直接前往官网立即注册</p>
+    <a href="https://wework.syzs.top/register" class="modal-btn">立即注册，马上开始 →</a>
+  </div>
+</div>
+
+<script>
+  function handleSubmit() {
+    const phone = document.getElementById('phone').value.trim()
+    const name = document.getElementById('name').value.trim()
+    if (!name) { alert('请填写您的姓名'); return; }
+    if (!/^1[3-9]\d{9}$/.test(phone)) { alert('请输入正确的手机号码'); return; }
+
+    // 这里接入你的 CRM 表单或巨量引擎 API
+    // 示例：发送到后端
+    const company = document.getElementById('company').value.trim()
+    fetch('https://wework.syzs.top/api/v1/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone, company, source: 'lp-sales' })
+    }).catch(() => {}) // 即便失败也显示成功
+
+    document.getElementById('modal').classList.add('show')
+  }
+
+  // 点击弹窗外层关闭
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('show')
+  })
+
+  // 锚点平滑跳转
+  document.querySelectorAll('a[href="#form"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault()
+      document.getElementById('form').scrollIntoView({ behavior: 'smooth' })
+    })
+  })
+</script>
+</body>
+</html>

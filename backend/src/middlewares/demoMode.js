@@ -19,9 +19,11 @@ export async function demoModeMiddleware(req, res, next) {
     const canWriteInDemo =
       path.endsWith('/exit-demo') ||
       (path.endsWith('/wework') && method === 'PUT') ||
-      path.startsWith('/ai/');   // 演示模式允许体验 AI 功能
+      path.startsWith('/ai/') ||             // AI 助手/文案等
+      path.endsWith('/followup-scripts') ||  // 客户详情页 AI 话术
+      path.endsWith('/score-intent');        // 客户意向分析
 
-    // 演示模式默认只读；允许退出演示、企微配置保存、AI 调用
+    // 演示模式默认只读；允许退出演示、企微配置保存、AI 功能体验
     if (method !== 'GET' && !canWriteInDemo) {
       return res.status(403).json({
         code: 403,

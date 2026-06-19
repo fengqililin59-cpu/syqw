@@ -138,6 +138,15 @@ export async function setTags(req, res) {
 }
 
 export async function scoreIntent(req, res) {
+  if (req.auth?.isGuest || req.auth?.isDemo) {
+    return ok(res, {
+      intent_score: 88,
+      intent_ai_score: 88,
+      intent_level: 'high',
+      reasoning: '客户多次询问价格与合作细节，近期响应速度明显加快，成交概率高。建议今日跟进，报出方案并推动决策。',
+      demo: true,
+    }, 'ok');
+  }
   const { error, value } = scoreIntentBodySchema.validate(req.body || {}, {
     abortEarly: false,
     stripUnknown: true,
@@ -161,6 +170,16 @@ export async function scoreHistory(req, res) {
  * POST /customers/:id/followup-scripts
  */
 export async function generateFollowupScripts(req, res) {
+  if (req.auth?.isGuest || req.auth?.isDemo) {
+    return ok(res, {
+      scripts: [
+        '您好！上次聊到您对我们系统很感兴趣，最近有没有时间做个详细的演示？这周五下午方便吗？',
+        '陈总，我帮您整理了一份对比方案，咱们团队现在用企微的方式，接入我们系统后能省多少重复工作——发您看看？',
+        '您好，上次提到的几个顾虑我都有针对性的回复，3 分钟能说清楚，今天有空打个电话吗？',
+      ],
+      demo: true,
+    }, '话术已生成');
+  }
   const { generateSidebarScripts } = await import('../services/aiContent.service.js');
   const data = await generateSidebarScripts(req.auth.tenantId, Number(req.params.id));
   return ok(res, data, '话术已生成');

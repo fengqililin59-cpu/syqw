@@ -12,8 +12,6 @@ import { useAuthStore } from '@/store/authStore'
 let cachedFor: string | null = null
 /** 上次缓存的结果 */
 let cachedResult: boolean = false
-/** 正在进行的请求 */
-let inflight: Promise<boolean> | null = null
 
 async function fetchPlatformAdmin(): Promise<boolean> {
   if (!useAuthStore.getState().token) return false
@@ -38,7 +36,6 @@ export function usePlatformAdmin() {
       // 登出：清除缓存，防止下一个用户继承
       cachedFor = null
       cachedResult = false
-      inflight = null
       setIsPlatformAdmin(false)
       setLoading(false)
       return
@@ -52,19 +49,15 @@ export function usePlatformAdmin() {
     // 新 token（切换用户）：必须重新拉取
     cachedFor = null
     cachedResult = false
-    inflight = null
     setLoading(true)
 
     const currentToken = token
-    const req = fetchPlatformAdmin()
-    inflight = req
-    void req.then((v) => {
+    void fetchPlatformAdmin().then((v) => {
       // 确保 token 在请求期间没有变化
       if (currentToken === useAuthStore.getState().token) {
         cachedFor = currentToken
         cachedResult = v
       }
-      inflight = null
       setIsPlatformAdmin(v)
       setLoading(false)
     })
@@ -76,5 +69,4 @@ export function usePlatformAdmin() {
 export function resetPlatformAdminCache() {
   cachedFor = null
   cachedResult = false
-  inflight = null
 }

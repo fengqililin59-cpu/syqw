@@ -20,6 +20,8 @@ function resourceLabel(resource) {
 export function requireQuota(resource) {
   return async (req, res, next) => {
     try {
+      // 演示/访客用户跳过配额检查（由 controller 层返回预置内容）
+      if (req.auth?.isGuest || req.auth?.isDemo) return next();
       const tenantId = req.auth?.tenantId ?? req.user?.tenant_id;
       if (!tenantId) return next();
 

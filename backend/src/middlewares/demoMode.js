@@ -16,9 +16,12 @@ export async function demoModeMiddleware(req, res, next) {
 
     const path = String(req.path || '');
     const method = String(req.method || 'GET').toUpperCase();
-    const canWriteInDemo = path.endsWith('/exit-demo') || (path.endsWith('/wework') && method === 'PUT');
+    const canWriteInDemo =
+      path.endsWith('/exit-demo') ||
+      (path.endsWith('/wework') && method === 'PUT') ||
+      path.startsWith('/ai/');   // 演示模式允许体验 AI 功能
 
-    // 演示模式默认只读；允许退出演示与企微配置保存
+    // 演示模式默认只读；允许退出演示、企微配置保存、AI 调用
     if (method !== 'GET' && !canWriteInDemo) {
       return res.status(403).json({
         code: 403,

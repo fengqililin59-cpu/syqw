@@ -82,16 +82,32 @@ BEGIN
     WHERE c.tenant_id = 9999
       AND c.intent_score >= 60;
 
-    INSERT INTO customer_follow_ups (customer_id, user_id, type, content, created_at)
+    -- intent 客户：设置逾期跟进（next_follow_at 在昨天）→ 待跟进列表可见
+    INSERT INTO customer_follow_ups (customer_id, user_id, type, content, next_follow_at, created_at)
     SELECT
       c.id,
       9999,
       'other',
       '再次跟进，客户确认了预算，等待内部审批',
+      DATE_SUB(NOW(), INTERVAL 1 DAY),
       DATE_SUB(NOW(), INTERVAL 1 DAY)
     FROM customers c
     WHERE c.tenant_id = 9999
       AND c.stage = 'intent';
+
+    -- contacted 客户：插入单条逾期跟进（2 天前到期）
+    INSERT INTO customer_follow_ups (customer_id, user_id, type, content, next_follow_at, created_at)
+    SELECT
+      c.id,
+      9999,
+      'other',
+      '客户有意向，需要再跟进确认具体时间安排',
+      DATE_SUB(NOW(), INTERVAL 2 DAY),
+      DATE_SUB(NOW(), INTERVAL 2 DAY)
+    FROM customers c
+    WHERE c.tenant_id = 9999
+      AND c.stage = 'contacted'
+      AND c.intent_score >= 70;
 
     -- 演示意向预警（3 条）
     -- NOTE: 后续可将 ai_script 升级为更自然的多模板话术，以提升演示真实感（下次重置演示数据时再替换）

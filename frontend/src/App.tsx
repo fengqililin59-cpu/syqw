@@ -2,6 +2,7 @@
  * @file 应用根组件：路由表（登录/注册 + 受保护的后台区域）。
  */
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { useAuthStore } from '@/store/authStore'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { LoginPage } from '@/pages/LoginPage'
@@ -90,11 +91,16 @@ import LandingPageBuilder from '@/pages/LandingPageBuilder'
 import LandingSubmissionsPage from '@/pages/LandingSubmissionsPage'
 import LandingPageView from '@/pages/LandingPageView'
 
+function RootRedirect() {
+  const token = useAuthStore((s) => s.token)
+  return <Navigate to={token ? '/app' : '/demo'} replace />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/demo" replace />} />
+        <Route path="/" element={<RootRedirect />} />
         <Route path="/demo" element={<DemoPreviewPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

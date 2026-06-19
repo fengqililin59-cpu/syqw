@@ -268,9 +268,14 @@ export function FollowUpsPage() {
                     {formatDt(r.next_follow_at)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button size="sm" variant="destructive" onClick={() => void onDelete(r.id)}>
-                      删除
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="outline" onClick={() => navigate(`/app/customers/${r.customer_id}`)}>
+                        去跟进
+                      </Button>
+                      <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => void onDelete(r.id)}>
+                        删除
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

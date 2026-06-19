@@ -97,9 +97,9 @@ export function IntentAlertsPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">意向预警</h1>
+        <h1 className="text-2xl font-bold tracking-tight">高意向客户列表</h1>
         <p className="text-muted-foreground">
-          客户意向分显著上涨时的预警记录；点击「一键跟进」可匹配话术库并跳转 AI 写跟进。
+          意向分显著上涨的客户；点击「一键跟进」可匹配话术库并跳转 AI 写跟进。
         </p>
       </div>
 

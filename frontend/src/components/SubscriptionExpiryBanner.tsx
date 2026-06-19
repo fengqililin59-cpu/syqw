@@ -46,6 +46,7 @@ function dismissForDay(tenantId: number, kind: string) {
 
 export function SubscriptionExpiryBanner() {
   const tenantId = useAuthStore((s) => s.tenantId)
+  const isDemo = useAuthStore((s) => s.isDemo)
   const perms = useAuthStore((s) => s.permissions)
   const canBilling = hasPermUser(perms, 'settings:manage')
   const [data, setData] = useState<Sub | null>(null)
@@ -104,7 +105,7 @@ export function SubscriptionExpiryBanner() {
     setHidden(isDismissed(tenantId, alert.kind))
   }, [tenantId, alert])
 
-  if (!alert || hidden) return null
+  if (isDemo || !alert || hidden) return null
 
   const onDismiss = () => {
     if (tenantId) dismissForDay(tenantId, alert.kind)

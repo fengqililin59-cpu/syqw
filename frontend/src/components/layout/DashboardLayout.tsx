@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   ClipboardList,
   LogOut,
-  Settings,
   Megaphone,
   Users,
   Menu,
@@ -274,30 +273,7 @@ export function DashboardLayout() {
 
       <nav className="fixed bottom-0 left-0 right-0 z-20 flex h-16 items-center justify-around border-t border-[#dde8f5] bg-white px-2 md:hidden">
         <NavLink
-          to="/app"
-          end
-          className={({ isActive }) =>
-            `flex flex-col items-center gap-0.5 rounded-lg px-3 py-1 text-xs transition-colors ${
-              isActive ? 'text-[#5b8dd9]' : 'text-gray-400'
-            }`
-          }
-        >
-          <LayoutDashboard className="h-5 w-5" />
-          <span>概览</span>
-        </NavLink>
-        <NavLink
-          to="/app/customers"
-          className={({ isActive }) =>
-            `flex flex-col items-center gap-0.5 rounded-lg px-3 py-1 text-xs transition-colors ${
-              isActive ? 'text-[#5b8dd9]' : 'text-gray-400'
-            }`
-          }
-        >
-          <Users className="h-5 w-5" />
-          <span>客户</span>
-        </NavLink>
-        <NavLink
-          to="/app/follow-ups"
+          to="/app/follow-ups?overdue=1"
           className={({ isActive }) =>
             `flex flex-col items-center gap-0.5 rounded-lg px-3 py-1 text-xs transition-colors ${
               isActive ? 'text-[#5b8dd9]' : 'text-gray-400'
@@ -305,10 +281,10 @@ export function DashboardLayout() {
           }
         >
           <ClipboardList className="h-5 w-5" />
-          <span>跟进</span>
+          <span>待跟进</span>
         </NavLink>
         <NavLink
-          to="/app/broadcast-tasks"
+          to="/app/intent-alerts"
           className={({ isActive }) =>
             `flex flex-col items-center gap-0.5 rounded-lg px-3 py-1 text-xs transition-colors ${
               isActive ? 'text-[#5b8dd9]' : 'text-gray-400'
@@ -316,7 +292,7 @@ export function DashboardLayout() {
           }
         >
           <Megaphone className="h-5 w-5" />
-          <span>群发</span>
+          <span>高意向</span>
         </NavLink>
         <NavLink
           to="/app/ai-assistant"
@@ -327,18 +303,30 @@ export function DashboardLayout() {
           }
         >
           <Sparkles className="h-5 w-5" />
-          <span>AI</span>
+          <span>AI话术</span>
         </NavLink>
         <NavLink
-          to="/app/settings"
+          to="/app/customers/pipeline"
           className={({ isActive }) =>
             `flex flex-col items-center gap-0.5 rounded-lg px-3 py-1 text-xs transition-colors ${
               isActive ? 'text-[#5b8dd9]' : 'text-gray-400'
             }`
           }
         >
-          <Settings className="h-5 w-5" />
-          <span>设置</span>
+          <LayoutDashboard className="h-5 w-5" />
+          <span>成交阶段</span>
+        </NavLink>
+        <NavLink
+          to="/app"
+          end
+          className={({ isActive }) =>
+            `flex flex-col items-center gap-0.5 rounded-lg px-3 py-1 text-xs transition-colors ${
+              isActive ? 'text-[#5b8dd9]' : 'text-gray-400'
+            }`
+          }
+        >
+          <Users className="h-5 w-5" />
+          <span>看板</span>
         </NavLink>
       </nav>
       <AiFloatingEntry />

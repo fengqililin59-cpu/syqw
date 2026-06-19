@@ -91,7 +91,7 @@ export function buildSidebarNavGroups(ctx: SidebarNavContext): NavGroupDef[] {
       defaultOpen: true,
       items: pick([
         (ctx.canFollowups || ctx.canCustomers) && {
-          to: '/app/follow-ups', icon: ClipboardList, label: '今日待跟进客户', featured: true,
+          to: '/app/follow-ups?overdue=1', icon: ClipboardList, label: '今日待跟进客户', featured: true,
         },
         ctx.canDash && {
           to: '/app/intent-alerts', icon: BellRing, label: '高意向客户列表', featured: true,

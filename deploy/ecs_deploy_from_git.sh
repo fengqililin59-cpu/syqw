@@ -26,9 +26,10 @@ rsync -a --delete "$TMP/frontend/dist/" "$WEB_HTTPS/"
 rsync -a --delete "$TMP/frontend/dist/" "$WEB_HTTP/"
 echo "前端版本: $(grep -o 'index-[^\"]*\.js' "$WEB_HTTPS/index.html" | head -1)"
 
-echo "=== [4/5] 同步后端源码 ==="
+echo "=== [4/5] 同步后端源码 & 部署脚本 ==="
 rsync -a --exclude='.env' --exclude='node_modules' \
   "$TMP/backend/src/" "$BACKEND_SRC/"
+rsync -a "$TMP/deploy/" "/var/www/wework-saas/deploy/"
 
 echo "=== [5/5] 重启 API 并验证 ==="
 pm2 restart syqw-api

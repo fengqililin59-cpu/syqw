@@ -70,6 +70,16 @@ app.use(
     },
   }),
 );
+// 巨量引擎表单 Webhook：需 rawBody 用于签名验证
+app.use(
+  '/api/v1/public/ocean-lead',
+  express.json({
+    limit: '512kb',
+    verify: (req, _res, buf) => {
+      req.rawBody = buf.toString('utf8');
+    },
+  }),
+);
 app.use(express.json({ limit: '1mb' }));
 
 app.get('/health', async (req, res) => {

@@ -175,6 +175,10 @@ export function SettingsPage() {
       setInboxAiAutoSendPlatform(data.inbox_ai_auto_send_platform_enabled !== false)
       setInboxAiNotifyPlatform(data.inbox_ai_auto_send_notify_platform_enabled !== false)
       setInboxAiPlatformDisabled(data.inbox_ai_platform_disabled === true)
+      if (data.wework_corp_id && data.wework_secret_set) {
+        await postJson('/auth/exit-demo', {}).catch(() => undefined)
+        setIsDemo(false)
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : '加载失败')
     } finally {
@@ -1181,6 +1185,35 @@ export function SettingsPage() {
                 </select>
               </div>
             </div>
+            {/* 巨量引擎表单广告 Webhook 地址 */}
+            {tenantId ? (
+              <div className="space-y-1">
+                <p className="text-sm font-medium">巨量引擎表单广告 Webhook 地址</p>
+                <p className="text-xs text-muted-foreground">
+                  在巨量引擎广告主后台 → 工具 → 线索管理 → 配置推送地址，粘贴下方链接即可自动接收表单线索。
+                </p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 overflow-x-auto rounded bg-muted/60 px-2 py-1 text-xs">
+                    {appUrl}/api/v1/public/ocean-lead/{tenantId}
+                  </code>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(
+                        `${appUrl}/api/v1/public/ocean-lead/${tenantId}`,
+                      )
+                    }}
+                  >
+                    复制
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  验签：上方配置抖音 Client Secret 后系统自动验证签名；未配置则所有推送放行（调试期可接受）。
+                </p>
+              </div>
+            ) : null}
             {pubWebhookSaved ? <p className="text-xs text-green-600 dark:text-green-500">公域验签已保存</p> : null}
             {signPreview ? (
               <pre className="overflow-x-auto rounded-md bg-muted/50 p-2 text-xs">{signPreview}</pre>

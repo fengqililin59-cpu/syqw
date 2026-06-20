@@ -32,9 +32,11 @@ ensure_flag ENABLE_WEEKLY_DIGEST_CRON 1
 
 echo "=== 重启 API 使配置生效 ==="
 pm2 restart syqw-api --update-env
-sleep 3
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3010/health 2>/dev/null || echo "000")
-echo "API 健康检查: $HTTP_CODE"
+sleep 6
+API_PORT=$(grep -m1 '^PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '\r "' || echo "3000")
+API_PORT=${API_PORT:-3000}
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${API_PORT}/health" 2>/dev/null || echo "000")
+echo "API 健康检查: $HTTP_CODE (port ${API_PORT})"
 
 echo ""
 echo "✅ 已激活。下一次触发时间："

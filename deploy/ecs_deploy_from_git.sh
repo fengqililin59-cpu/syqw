@@ -33,9 +33,12 @@ rsync -a "$TMP/deploy/" "/var/www/wework-saas/deploy/"
 
 echo "=== [5/5] 重启 API 并验证 ==="
 pm2 restart syqw-api
-sleep 4
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3010/health 2>/dev/null || echo "000")
-echo "API 健康检查: $HTTP_CODE"
+sleep 6
+# 从 .env 读实际端口，默认 3000
+API_PORT=$(grep -m1 '^PORT=' /var/www/wework-saas/backend/.env 2>/dev/null | cut -d= -f2- | tr -d '\r "' || echo "3000")
+API_PORT=${API_PORT:-3000}
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${API_PORT}/health" 2>/dev/null || echo "000")
+echo "API 健康检查: $HTTP_CODE (port ${API_PORT})"
 
 HTTPS_JS=$(curl -sS https://wework.syzs.top/ 2>/dev/null | grep -o 'index-[^"]*\.js' | head -1 || echo "?")
 echo "HTTPS 实际版本: $HTTPS_JS"

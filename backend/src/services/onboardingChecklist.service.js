@@ -6,6 +6,7 @@ import { Tenant, Flow, AutomationRule, Customer, User, UsageStat } from '../mode
 import { WELCOME_FLOW_NAME } from './flowTemplates.service.js';
 import { isAdmin } from '../utils/permissions.js';
 import { env } from '../config/env.js';
+import { getOrCreatePublicWebhookSettings } from './publicWebhookAuth.service.js';
 
 /**
  * @param {{ tenantId: number; userId: number }} auth
@@ -18,7 +19,7 @@ export async function getOnboardingChecklist(auth) {
 
   const statMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
 
-  const [staffWithWework, customerCount, welcomeFlow, ruleCount, activeFlows, usageRow] = await Promise.all([
+  const [staffWithWework, customerCount, welcomeFlow, ruleCount, activeFlows, usageRow, webhookSettings, oceanLeadCount] = await Promise.all([
     User.count({
       where: { tenant_id: tenantId, status: 1, wework_userid: { [Op.ne]: null } },
     }),
@@ -30,6 +31,8 @@ export async function getOnboardingChecklist(auth) {
     AutomationRule.count({ where: { tenant_id: tenantId, enabled: 1 } }),
     Flow.count({ where: { tenant_id: tenantId, status: 'active' } }),
     UsageStat.findOne({ where: { tenant_id: tenantId, stat_month: statMonth }, attributes: ['ai_calls_used'] }),
+    getOrCreatePublicWebhookSettings(tenantId).catch(() => null),
+    Customer.count({ where: { tenant_id: tenantId, source: { [Op.like]: '%巨量%' } } }),
   ]);
 
   const weworkOk = Boolean(tenant?.wework_corp_id && tenant?.wework_secret);
@@ -87,6 +90,13 @@ export async function getOnboardingChecklist(auth) {
       done: Number(usageRow?.ai_calls_used || 0) > 0,
       link: '/app/ai-assistant',
       hint: '侧栏「AI 智能」→ 智能助手，可复制到企微发送',
+    },
+    {
+      key: 'ocean_lead_webhook',
+      label: '接入巨量引擎表单广告（投流线索自动入库）',
+      done: Boolean(webhookSettings?.douyin_client_key || webhookSettings?.douyin_client_secret || oceanLeadCount > 0),
+      link: '/app/settings',
+      hint: '设置 → 公域 Webhook → 复制「巨量引擎表单广告 Webhook 地址」填到广告后台',
     },
     {
       key: 'billing',

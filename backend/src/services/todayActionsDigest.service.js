@@ -29,6 +29,18 @@ function buildAdminAuth(tenantId, adminUser) {
   };
 }
 
+/** 销售身份：getTodayActions 会按 owner_id 收敛到此人负责的客户。 */
+function buildSalesAuth(tenantId, salesUser) {
+  return {
+    tenantId: Number(tenantId),
+    userId: Number(salesUser.id),
+    legacyRole: 'sales',
+    roleName: '销售',
+    permissions: normalizePermissionCodes([]),
+    isDemo: false,
+  };
+}
+
 export function formatTodayActionsWeworkMessage(tenantName, payload) {
   const base = String(env.appUrl || '').replace(/\/$/, '');
   const lines = [
@@ -119,6 +131,7 @@ export async function sendTodayActionsMorningDigestForTenant(tenantId, options =
     return { sent: 0, skipped: 'no_actions', total: 0 };
   }
 
+  // 老板/管理员：全公司视角战报
   const content = formatTodayActionsWeworkMessage(tenant.name, payload);
   const admins = await User.findAll({
     where: { tenant_id: tid, status: 1, role: 'admin' },
@@ -126,6 +139,7 @@ export async function sendTodayActionsMorningDigestForTenant(tenantId, options =
   });
 
   let sent = 0;
+  let salesSent = 0;
   for (const u of admins) {
     const touser = u.wework_userid ? String(u.wework_userid).trim() : '';
     if (!touser) continue;
@@ -138,11 +152,44 @@ export async function sendTodayActionsMorningDigestForTenant(tenantId, options =
     }
   }
 
-  if (sent > 0) {
+  // 每个销售：只看自己名下客户的「今日必做」，建立全员日活习惯
+  const salesUsers = await User.findAll({
+    where: {
+      tenant_id: tid,
+      status: 1,
+      role: { [Op.ne]: 'admin' },
+      wework_userid: { [Op.and]: [{ [Op.ne]: null }, { [Op.ne]: '' }] },
+    },
+    attributes: ['id', 'username', 'wework_userid'],
+  });
+  for (const u of salesUsers) {
+    const touser = String(u.wework_userid).trim();
+    if (!touser) continue;
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const salesPayload = await getTodayActions(buildSalesAuth(tid, u));
+      // 销售无待办则不打扰，避免「狼来了」降低打开率
+      if (!salesPayload.items?.length) continue;
+      const salesContent = formatTodayActionsWeworkMessage(tenant.name, salesPayload);
+      // eslint-disable-next-line no-await-in-loop
+      await sendAgentTextMessage(tenant, { touser, content: salesContent });
+      salesSent += 1;
+    } catch (e) {
+      console.error('[todayActionsDigest] sales send failed', tid, u.id, e);
+    }
+  }
+
+  if (sent > 0 || salesSent > 0) {
     await recordMorningDigestSent(tid, content);
   }
 
-  return { sent, total: payload.total, critical_count: payload.critical_count };
+  return {
+    sent: sent + salesSent,
+    admins_notified: sent,
+    sales_notified: salesSent,
+    total: payload.total,
+    critical_count: payload.critical_count,
+  };
 }
 
 export async function sendTodayActionsMorningDigestAllTenants() {

@@ -17,9 +17,9 @@ export class CallRecord extends Model {
           defaultValue: 'outbound',
         },
         dial_mode: {
-          type: DataTypes.ENUM('phone', 'webrtc'),
+          type: DataTypes.ENUM('phone', 'webrtc', 'native'),
           allowNull: false,
-          defaultValue: 'phone',
+          defaultValue: 'native',
         },
         status: {
           type: DataTypes.ENUM('initiating', 'calling', 'connected', 'completed', 'failed', 'cancelled'),

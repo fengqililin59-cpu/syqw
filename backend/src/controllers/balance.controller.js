@@ -141,7 +141,11 @@ export async function createRechargeOrder(req, res) {
           totalAmountYuan: rechargeAmount,
           returnUrl: `${env.alipay.notifyBaseUrl}/app/billing?status=paid`,
         });
-    if (mock) codeUrl = `mock:alipay:${outTradeNo}`;
+    if (mock) {
+      codeUrl = `mock:alipay:${outTradeNo}`;
+    } else {
+      codeUrl = `pagepay:${outTradeNo}`;
+    }
   }
 
   await PaymentRecord.create({
@@ -154,7 +158,7 @@ export async function createRechargeOrder(req, res) {
     pay_channel,
     purchase_type: 'balance_recharge',
     out_trade_no: outTradeNo,
-    pay_code_url: pay_channel === 'alipay' ? codeUrl || `mock:alipay:${outTradeNo}` : codeUrl,
+    pay_code_url: codeUrl,
     remark: packageName ? `${packageName}充值` : `余额充值 ¥${rechargeAmount.toFixed(2)}`,
     metadata: {
       recharge_amount: rechargeAmount,

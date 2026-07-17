@@ -4,6 +4,7 @@
 import axios, { type AxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/store/authStore'
 import type { ApiResponse } from '@/api/types'
+import { dispatchPlanUpgradeRequired } from '@/lib/planFeatures'
 
 /** 空字符串表示同域（Docker / Nginx 反代 /api 时使用） */
 function resolveApiRoot(): string {
@@ -96,8 +97,20 @@ http.interceptors.response.use(
     }
     if (status === 402) {
       const d = axios.isAxiosError(err)
-        ? (err.response?.data as Partial<ApiResponse<unknown>> & { message?: string } | undefined)
+        ? (err.response?.data as Partial<ApiResponse<unknown>> & {
+            message?: string
+            data?: { reason?: string; feature?: string; feature_label?: string }
+          } | undefined)
         : undefined
+      const reason = d?.data?.reason
+      if (reason === 'plan_feature') {
+        dispatchPlanUpgradeRequired({
+          reason,
+          feature: d?.data?.feature,
+          feature_label: d?.data?.feature_label,
+        })
+        return Promise.reject(err)
+      }
       const msg = d?.message ?? '已达套餐上限，请升级'
       showToast(`功能受限：${msg}`, 'warning')
       if (!window.location.pathname.startsWith('/app/billing')) {

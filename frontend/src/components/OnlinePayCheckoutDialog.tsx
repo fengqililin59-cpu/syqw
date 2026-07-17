@@ -33,6 +33,7 @@ type CheckoutPayload = {
 type ResumeOrder = {
   out_trade_no: string
   code_url: string
+  redirect_url?: string | null
   pay_mode?: 'native' | 'jsapi' | null
 }
 
@@ -196,6 +197,9 @@ export function OnlinePayCheckoutDialog({
       // 支付宝使用跳转，不需要二维码
       if (channel === 'alipay') {
         const isMockUrl = resumeOrder.code_url.startsWith('mock:alipay:')
+        const resumeRedirect =
+          resumeOrder.redirect_url ||
+          (resumeOrder.code_url.startsWith('https://') ? resumeOrder.code_url : null)
         void getJson<PaymentChannels>('/billing/payment/channels')
           .then((ch) => {
             setChannels(ch)
@@ -203,20 +207,20 @@ export function OnlinePayCheckoutDialog({
             setMockMode(mock)
             setOrder({
               out_trade_no: resumeOrder.out_trade_no,
-              redirect_url: mock || isMockUrl ? undefined : resumeOrder.code_url,
+              redirect_url: mock || isMockUrl ? undefined : resumeRedirect || undefined,
               alipay_mock: mock || isMockUrl,
             })
           })
           .catch(() => {
             setOrder({
               out_trade_no: resumeOrder.out_trade_no,
-              redirect_url: isMockUrl ? undefined : resumeOrder.code_url,
+              redirect_url: isMockUrl ? undefined : resumeRedirect || undefined,
               alipay_mock: isMockUrl,
             })
           })
         startPoll(resumeOrder.out_trade_no)
-        if (!resumeOrder.code_url.startsWith('mock:alipay:')) {
-          window.open(resumeOrder.code_url, '_blank')
+        if (resumeRedirect && !isMockUrl) {
+          window.open(resumeRedirect, '_blank')
         }
       } else {
         applyCodeUrl(resumeOrder.code_url, resumeOrder.out_trade_no)

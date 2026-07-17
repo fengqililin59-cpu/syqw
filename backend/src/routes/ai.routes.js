@@ -6,6 +6,8 @@ import * as aiContentController from '../controllers/aiContent.controller.js';
 import { requireAuth } from '../middlewares/auth.js';
 import { requirePerm } from '../middlewares/requirePerm.js';
 import { requireQuota } from '../middlewares/requireQuota.js';
+import { requirePlanFeature } from '../middlewares/requirePlanFeature.js';
+import { PREMIUM_FEATURES } from '../constants/planFeatures.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
@@ -17,5 +19,10 @@ router.post('/generate-poster', asyncHandler(aiContentController.generatePoster)
 router.post('/reply-suggestions', asyncHandler(aiContentController.replySuggestions));
 router.post('/chat', asyncHandler(aiContentController.contextChat));
 router.post('/assistant', asyncHandler(aiContentController.assistantChat));
+router.post(
+  '/quick-score',
+  requirePlanFeature(PREMIUM_FEATURES.AI_INTENT_SCORE),
+  asyncHandler(aiContentController.quickScore),
+);
 
 export default router;

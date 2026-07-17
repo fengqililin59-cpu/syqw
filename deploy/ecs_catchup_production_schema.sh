@@ -40,6 +40,7 @@ PREPARE stmt FROM @q; EXECUTE stmt; DEALLOCATE PREPARE stmt;"
 echo "==> 数据库: $DB_NAME @ $DB_HOST:$DB_PORT"
 
 for f in \
+  "$ROOT/database/034_wework_tokens.sql" \
   "$ROOT/database/043_billing.sql" \
   "$ROOT/database/062_billing_promo_codes.sql" \
   "$ROOT/database/049_sms.sql" \
@@ -53,6 +54,16 @@ for f in \
 do
   run_sql_file "$f"
 done
+
+echo "==> wework_tokens JSAPI 列（幂等）"
+add_col wework_tokens jsapi_ticket \
+  "ALTER TABLE wework_tokens ADD COLUMN jsapi_ticket VARCHAR(256) NULL AFTER expires_at"
+add_col wework_tokens jsapi_ticket_expires_at \
+  "ALTER TABLE wework_tokens ADD COLUMN jsapi_ticket_expires_at DATETIME NULL AFTER jsapi_ticket"
+add_col wework_tokens agent_jsapi_ticket \
+  "ALTER TABLE wework_tokens ADD COLUMN agent_jsapi_ticket VARCHAR(256) NULL AFTER jsapi_ticket_expires_at"
+add_col wework_tokens agent_jsapi_ticket_expires_at \
+  "ALTER TABLE wework_tokens ADD COLUMN agent_jsapi_ticket_expires_at DATETIME NULL AFTER agent_jsapi_ticket"
 
 echo "==> payment_records 微信列（幂等）"
 add_col payment_records pay_code_url \

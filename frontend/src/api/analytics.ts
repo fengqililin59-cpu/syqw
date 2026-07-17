@@ -126,6 +126,56 @@ export async function fetchReportSummary(params?: Record<string, string>) {
   return getJson<ReportSummary>(`/analytics/summary${buildQuery(params)}`)
 }
 
+export type LeaderboardRankItem = {
+  rank: number
+  user_id: number
+  real_name: string
+  value: number
+  display: string
+}
+
+export type LeaderboardDimension = {
+  key: string
+  label: string
+  items: LeaderboardRankItem[]
+  my_rank?: { rank: number; value: number; display: string } | null
+  top_items?: LeaderboardRankItem[]
+}
+
+export type LeaderboardMemberStats = {
+  user_id: number
+  real_name: string
+  avatar_url?: string | null
+  deals: number
+  followups: number
+  ai_generated: number
+  ai_adopted: number
+  ai_adoption_rate: number | null
+  avg_response_minutes: number | null
+  response_samples: number
+}
+
+export type LeaderboardTeamResponse = {
+  week_label: string
+  scope: 'team'
+  members: LeaderboardMemberStats[]
+  dimensions: LeaderboardDimension[]
+}
+
+export type LeaderboardSelfResponse = {
+  week_label: string
+  scope: 'self'
+  my_stats: LeaderboardMemberStats | null
+  my_ranks: Record<string, { rank: number; value: number; display: string } | null>
+  dimensions: LeaderboardDimension[]
+}
+
+export type LeaderboardResponse = LeaderboardTeamResponse | LeaderboardSelfResponse
+
+export async function fetchLeaderboard() {
+  return getJson<LeaderboardResponse>('/analytics/leaderboard')
+}
+
 function buildQuery(params?: Record<string, string>) {
   if (!params) return ''
   const q = new URLSearchParams()

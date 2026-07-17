@@ -7,6 +7,8 @@ import {
 import type {
   CoachSuggestion, CoachType, SuggestionStatus, SnapshotData,
 } from '@/api/coaching'
+import { PREMIUM_FEATURES } from '@/lib/planFeatures'
+import { usePlanGate } from '@/hooks/usePlanGate'
 
 // ============================================================
 // 维度 Tab
@@ -93,6 +95,7 @@ const CoachPage: React.FC = () => {
   const [generating, setGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState<CoachType | 'all'>('all');
   const [expandedSnapshots, setExpandedSnapshots] = useState<Set<number>>(new Set());
+  const { runGated, gateDialog, locked } = usePlanGate(PREMIUM_FEATURES.AI_COACH_DAILY);
 
   // 加载列表
   const load = useCallback(async () => {
@@ -114,30 +117,33 @@ const CoachPage: React.FC = () => {
 
   // 为指定员工生成
   const handleGenerate = async (userId: number) => {
-    setGenerating(true);
-    try {
-      await generateCoaching(userId);
-      await load();
-    } catch (e: any) {
-      alert('生成失败: ' + (e.message || '未知错误'));
-    } finally {
-      setGenerating(false);
-    }
+    runGated(async () => {
+      setGenerating(true);
+      try {
+        await generateCoaching(userId);
+        await load();
+      } catch (e: any) {
+        alert('生成失败: ' + (e.message || '未知错误'));
+      } finally {
+        setGenerating(false);
+      }
+    });
   };
 
-  // 批量生成
   const handleGenerateAll = async () => {
-    if (!confirm('将为所有活跃员工生成教练建议，需消耗 AI 配额，确认？')) return;
-    setGenerating(true);
-    try {
-      const r = await generateAllCoaching();
-      alert(`已为 ${r.users.length} 名员工生成 ${r.generated} 条建议`);
-      await load();
-    } catch (e: any) {
-      alert('批量生成失败: ' + (e.message || '未知错误'));
-    } finally {
-      setGenerating(false);
-    }
+    runGated(async () => {
+      if (!confirm('将为所有活跃员工生成教练建议，需消耗 AI 配额，确认？')) return;
+      setGenerating(true);
+      try {
+        const r = await generateAllCoaching();
+        alert(`已为 ${r.users.length} 名员工生成 ${r.generated} 条建议`);
+        await load();
+      } catch (e: any) {
+        alert('批量生成失败: ' + (e.message || '未知错误'));
+      } finally {
+        setGenerating(false);
+      }
+    });
   };
 
   // 忽略/实施
@@ -165,6 +171,15 @@ const CoachPage: React.FC = () => {
 
   return (
     <div style={{ padding: 24, maxWidth: 1400, margin: '0 auto' }}>
+      {gateDialog}
+      {locked ? (
+        <div style={{
+          marginBottom: 16, padding: '12px 16px', borderRadius: 8,
+          background: '#F5F3FF', border: '1px solid #DDD6FE', color: '#5B21B6', fontSize: 13,
+        }}>
+          体验版不含 AI 教练日报。升级专业版后可每日自动生成个性化销售教练建议。
+        </div>
+      ) : null}
       {/* 头部 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>

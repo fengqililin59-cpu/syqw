@@ -68,7 +68,7 @@ export function AiFirstUseGuideDialog() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Sparkles className="h-5 w-5 text-violet-600" />
-            欢迎使用 ZhiFlow
+            欢迎使用中数云
           </DialogTitle>
           <DialogDescription>
             你已开通 <strong>14 天专业版试用</strong>。建议先用 1 分钟体验站内 AI，感受写话术能省多少时间。

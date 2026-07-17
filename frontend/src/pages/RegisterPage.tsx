@@ -153,7 +153,7 @@ export function RegisterPage() {
       <Card className="mx-auto w-full max-w-[380px] rounded-2xl border border-[#dde8f5] bg-white p-2 shadow-xl shadow-blue-100/30">
         <CardHeader>
           <div className="mb-4 flex flex-col items-center">
-            <ZhiFlowLogo size="lg" showText />
+            <ZhiFlowLogo size="lg" showText variant="light" />
           </div>
           <CardTitle>企业注册</CardTitle>
           <CardDescription>

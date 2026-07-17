@@ -23,4 +23,11 @@ router.get('/team', requirePerm('customer:read'), asyncHandler(analyticsControll
 // 客户分析
 router.get('/customers', requirePerm('customer:read'), asyncHandler(analyticsController.customerAnalysis));
 
+// 本周销售战力榜
+router.get(
+  '/leaderboard',
+  requirePerm('dashboard:view'),
+  asyncHandler(analyticsController.leaderboard),
+);
+
 export default router;

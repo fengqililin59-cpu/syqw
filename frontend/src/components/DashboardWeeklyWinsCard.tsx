@@ -65,7 +65,7 @@ export function DashboardWeeklyWinsCard({ data: dataProp }: { data?: WeeklyWins 
       if (!w) {
         const a = document.createElement('a')
         a.href = url
-        a.download = 'ZhiFlow周报.html'
+        a.download = '中数云周报.html'
         a.click()
         window.alert('已下载 HTML 周报，用浏览器打开后打印为 PDF')
       }

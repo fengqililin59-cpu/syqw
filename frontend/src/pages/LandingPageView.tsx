@@ -17,7 +17,7 @@ export default function LandingPageView() {
       try {
         const data = await fetchPublicLandingPage(slug);
         setLp(data);
-        document.title = data.meta_title || data.title || 'ZhiFlow';
+        document.title = data.meta_title || data.title || '中数云';
         if (data.favicon_url) {
           const link = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
           if (link) link.href = data.favicon_url;
@@ -28,7 +28,7 @@ export default function LandingPageView() {
       } finally { setLoading(false); }
     })();
 
-    return () => { document.title = 'ZhiFlow CRM'; };
+    return () => { document.title = '中数云 CRM'; };
   }, [slug]);
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -8,6 +8,8 @@ import * as aggregationController from '../controllers/aggregation.controller.js
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { requireAuth } from '../middlewares/auth.js';
 import { requireAnyPerm, requirePerm } from '../middlewares/requirePerm.js';
+import { requirePlanFeature } from '../middlewares/requirePlanFeature.js';
+import { PREMIUM_FEATURES } from '../constants/planFeatures.js';
 
 const router = Router();
 
@@ -20,9 +22,27 @@ router.get(
   requireAnyPerm('ads:view', 'campaign:manage'),
   asyncHandler(adTrackingController.conversionPlatforms),
 );
-router.get('/roi', requireAuth, requireAnyPerm('ads:view', 'dashboard:view'), asyncHandler(adTrackingController.roi));
-router.get('/roi/trend', requireAuth, requireAnyPerm('ads:view', 'dashboard:view'), asyncHandler(adTrackingController.roiTrend));
-router.get('/roi/details', requireAuth, requireAnyPerm('ads:view', 'dashboard:view'), asyncHandler(adTrackingController.roiDetails));
+router.get(
+  '/roi',
+  requireAuth,
+  requireAnyPerm('ads:view', 'dashboard:view'),
+  requirePlanFeature(PREMIUM_FEATURES.ADS_ROI),
+  asyncHandler(adTrackingController.roi),
+);
+router.get(
+  '/roi/trend',
+  requireAuth,
+  requireAnyPerm('ads:view', 'dashboard:view'),
+  requirePlanFeature(PREMIUM_FEATURES.ADS_ROI),
+  asyncHandler(adTrackingController.roiTrend),
+);
+router.get(
+  '/roi/details',
+  requireAuth,
+  requireAnyPerm('ads:view', 'dashboard:view'),
+  requirePlanFeature(PREMIUM_FEATURES.ADS_ROI),
+  asyncHandler(adTrackingController.roiDetails),
+);
 router.post('/spend/bulk', requireAuth, requirePerm('settings:manage'), asyncHandler(adSpendController.bulkUpsert));
 router.get('/spend', requireAuth, requireAnyPerm('ads:view', 'dashboard:view'), asyncHandler(adSpendController.list));
 router.post('/spend/sync/tencent', requireAuth, requirePerm('settings:manage'), asyncHandler(adSpendController.syncTencent));

@@ -286,6 +286,21 @@ CALL add_payment_col_095();
 DROP PROCEDURE IF EXISTS add_payment_col_095;
 
 -- ============================================================================
+-- 034: 企微 access_token 缓存（保存企微设置 / 发消息 / 同步客户必需）
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `wework_tokens` (
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `access_token` VARCHAR(512) NOT NULL,
+  `expires_at` DATETIME NOT NULL,
+  `jsapi_ticket` VARCHAR(256) NULL,
+  `jsapi_ticket_expires_at` DATETIME NULL,
+  `agent_jsapi_ticket` VARCHAR(256) NULL,
+  `agent_jsapi_ticket_expires_at` DATETIME NULL,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`tenant_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
 -- 完成
 -- ============================================================================
 SELECT '✅ ECS 补表完成' AS status;

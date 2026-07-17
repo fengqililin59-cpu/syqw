@@ -34,6 +34,8 @@ export function hasPerm(auth, code) {
     'channel:manage': ['customer:edit'],
     'ads:view': ['dashboard:view'],
     'customer:import': ['customer:edit'],
+    'call:make': ['customer:edit'],
+    'sms:view': ['customer:edit'],
   };
   const fallback = impliedBy[code];
   if (fallback && fallback.some((x) => perms.includes(x))) return true;

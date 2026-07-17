@@ -10,9 +10,9 @@ export class UserCallSetting extends Model {
         user_id: { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, allowNull: false },
         tenant_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
         dial_mode: {
-          type: DataTypes.ENUM('phone', 'webrtc'),
+          type: DataTypes.ENUM('phone', 'webrtc', 'native'),
           allowNull: false,
-          defaultValue: 'phone',
+          defaultValue: 'native',
         },
         phone_number: { type: DataTypes.STRING(20), allowNull: true },
         is_available: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },

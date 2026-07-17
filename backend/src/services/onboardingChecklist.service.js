@@ -38,6 +38,13 @@ export async function getOnboardingChecklist(auth) {
   const weworkOk = Boolean(tenant?.wework_corp_id && tenant?.wework_secret);
   const items = [
     {
+      key: 'quick_score',
+      label: '立即体验：粘贴对话 AI 评分',
+      done: Number(usageRow?.ai_calls_used || 0) > 0,
+      link: '/app/quick-score',
+      hint: '无需配置企微，复制微信/企微对话即可看到 AI 意向分与跟进话术',
+    },
+    {
       key: 'wework',
       label: '配置企微应用（CorpID / Secret / 回调）',
       done: weworkOk,

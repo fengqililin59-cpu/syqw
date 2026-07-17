@@ -16,6 +16,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { PREMIUM_FEATURES } from '@/lib/planFeatures'
+import { usePlanGate } from '@/hooks/usePlanGate'
 
 type RoiRow = {
   platform: string
@@ -89,6 +91,7 @@ function fmtDate(d: Date) {
 }
 
 export function AdsRoiPage() {
+  const { runGated, gateDialog, locked } = usePlanGate(PREMIUM_FEATURES.ADS_ROI)
   const defaultEnd = useMemo(() => new Date(), [])
   const defaultStart = useMemo(() => new Date(Date.now() - 29 * 24 * 60 * 60 * 1000), [])
   const [startDate, setStartDate] = useState(fmtDate(defaultStart))
@@ -120,19 +123,21 @@ export function AdsRoiPage() {
   }
 
   async function onQuery() {
-    setErr(null)
-    setLoading(true)
-    try {
-      const data = await getJson<RoiRow[]>(`/ads/roi?start_date=${startDate}&end_date=${endDate}`)
-      setRows(data)
-      await loadTrend(platform, startDate, endDate)
-      await loadDetails(platform, startDate, endDate)
-      await loadEvents(startDate, endDate)
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : '加载失败')
-    } finally {
-      setLoading(false)
-    }
+    runGated(async () => {
+      setErr(null)
+      setLoading(true)
+      try {
+        const data = await getJson<RoiRow[]>(`/ads/roi?start_date=${startDate}&end_date=${endDate}`)
+        setRows(data)
+        await loadTrend(platform, startDate, endDate)
+        await loadDetails(platform, startDate, endDate)
+        await loadEvents(startDate, endDate)
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : '加载失败')
+      } finally {
+        setLoading(false)
+      }
+    })
   }
 
   async function loadTrend(p = platform, start = startDate, end = endDate) {
@@ -269,6 +274,12 @@ export function AdsRoiPage() {
 
   return (
     <div className="space-y-4">
+      {gateDialog}
+      {locked ? (
+        <div className="rounded-lg border border-violet-200 bg-violet-50/60 px-4 py-3 text-sm text-violet-900">
+          体验版不含广告 ROI 归因。升级专业版后可查看投放转化、CPA / ROAS 与渠道漏斗。
+        </div>
+      ) : null}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">广告 ROI 分析</h1>
         <p className="text-muted-foreground">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getCallStats, listCalls, type CallRecord } from '@/api/calls'
+import { dialModeLabel, getCallStats, listCalls, type CallRecord } from '@/api/calls'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -138,7 +138,7 @@ export function CallRecordsPage() {
                     <div className="text-xs text-muted-foreground">{r.customer?.phone || '—'}</div>
                   </TableCell>
                   <TableCell>{r.caller?.real_name || r.caller?.username || '—'}</TableCell>
-                  <TableCell>{r.dial_mode === 'webrtc' ? '网页软电话' : '手机接听'}</TableCell>
+                  <TableCell>{dialModeLabel(r.dial_mode)}</TableCell>
                   <TableCell>
                     <Badge className={s.cls}>{s.text}</Badge>
                   </TableCell>
@@ -176,7 +176,7 @@ export function CallRecordsPage() {
                 销售：{r.caller?.real_name || r.caller?.username || '—'} · {fmt(r.created_at)}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {r.dial_mode === 'webrtc' ? '网页软电话' : '手机接听'} {r.duration_seconds > 0 ? `· ${r.duration_seconds}s` : ''}
+                {dialModeLabel(r.dial_mode)} {r.duration_seconds > 0 ? `· ${r.duration_seconds}s` : ''}
               </p>
               {r.recording_url ? <audio controls src={r.recording_url} className="mt-2 h-8 w-full" preload="none" /> : null}
             </div>

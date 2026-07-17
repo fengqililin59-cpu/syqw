@@ -1,3 +1,4 @@
+import { BRAND_FULL } from '@/constants/brand'
 import { SITE_LEGAL_COMPANY, SITE_LEGAL_ICP, SITE_LEGAL_ICP_URL } from '@/constants/siteLegal'
 
 type SiteLegalFooterProps = {
@@ -11,11 +12,11 @@ export function SiteLegalFooter({ className = '', showProductTagline = false }: 
     <p className={`text-center text-[11px] leading-relaxed text-[#8aabb8] ${className}`.trim()}>
       {showProductTagline ? (
         <>
-          © 2026 ZhiFlow · 私域增长平台
+          © 2026 {BRAND_FULL}
           <br />
         </>
       ) : (
-        <>© 2026 ZhiFlow · </>
+        <>© 2026 {BRAND_FULL} · </>
       )}
       {SITE_LEGAL_COMPANY} ·{' '}
       <a

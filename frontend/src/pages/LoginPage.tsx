@@ -238,7 +238,7 @@ export function LoginPage() {
       <Card className="mx-auto w-full max-w-[380px] rounded-2xl border border-[#dde8f5] bg-white p-2 shadow-lg shadow-blue-100/50">
         <CardHeader>
           <div className="mb-4 flex flex-col items-center">
-            <ZhiFlowLogo size="lg" showText />
+            <ZhiFlowLogo size="lg" showText variant="light" />
           </div>
           <CardTitle className="text-center">登录</CardTitle>
           <CardDescription className="text-center">使用账号密码登录；企业 ID 可选（用于多企业账号）</CardDescription>

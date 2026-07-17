@@ -139,6 +139,9 @@ export async function updateWeworkSettings(auth, body) {
   await clearAccessTokenCache(Number(tenant.id));
 
   await tenant.reload();
+  if (tenant.wework_corp_id && tenant.wework_secret) {
+    await User.update({ demo_mode: 0 }, { where: { tenant_id: auth.tenantId } }).catch(console.error);
+  }
   return {
     wework_corp_id: tenant.wework_corp_id,
     wework_agent_id: tenant.wework_agent_id,

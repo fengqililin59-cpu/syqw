@@ -16,6 +16,7 @@ import { customerWhereScope, isAdmin } from '../utils/permissions.js';
 import { sendAgentTextMessage } from './wework.service.js';
 import { env } from '../config/env.js';
 import { getRoiSummary } from './adTracking.service.js';
+import { getLastWeekChampionSummary, formatChampionDigestLines } from './leaderboard.service.js';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -201,8 +202,11 @@ export function formatWeeklyWinsShareText(wins, tenantName, { scopeLabel = '团�
   return lines.filter(Boolean).join('\n');
 }
 
-function formatDigestMessage(wins, tenantName) {
-  return formatWeeklyWinsShareText(wins, tenantName, { scopeLabel: '每周战报' });
+function formatDigestMessage(wins, tenantName, championSummary = null) {
+  const base = formatWeeklyWinsShareText(wins, tenantName, { scopeLabel: '每周战报' });
+  const championLines = formatChampionDigestLines(championSummary);
+  if (!championLines.length) return base;
+  return `${base}\n\n─── 上周销售战力榜 ───\n${championLines.join('\n')}`;
 }
 
 /** 可复制 / 转发用的周报文案 */
@@ -330,7 +334,14 @@ export async function sendWeeklyDigestForTenant(tenantId) {
     return { sent: 0, skipped: 'no_activity' };
   }
 
-  const content = formatDigestMessage(wins, tenant.name);
+  let championSummary = null;
+  try {
+    championSummary = await getLastWeekChampionSummary(Number(tenantId));
+  } catch (e) {
+    console.error('[weeklyDigest] champion summary failed', tenantId, e);
+  }
+
+  const content = formatDigestMessage(wins, tenant.name, championSummary);
   const admins = await User.findAll({
     where: { tenant_id: tenantId, status: 1, role: 'admin' },
     attributes: ['id', 'wework_userid'],

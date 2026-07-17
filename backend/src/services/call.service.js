@@ -15,7 +15,7 @@ import {
 import * as tcccService from './tccc.service.js';
 
 const DEFAULT_SETTING = {
-  dial_mode: 'phone',
+  dial_mode: 'native',
   phone_number: null,
   is_available: true,
 };
@@ -33,7 +33,7 @@ const listSchema = Joi.object({
 }).unknown(false);
 
 const settingSchema = Joi.object({
-  dial_mode: Joi.string().valid('phone', 'webrtc').required(),
+  dial_mode: Joi.string().valid('phone', 'webrtc', 'native').required(),
   phone_number: Joi.string().trim().allow('', null).optional(),
   is_available: Joi.boolean().optional(),
 }).unknown(false);
@@ -105,20 +105,51 @@ export async function initiateCall(tenantId, callerUserId, customerId) {
     customer_id: Number(customerId),
     user_id: Number(callerUserId),
     type: 'call',
-    content: '电话跟进（进行中）',
+    content: dialMode === 'native' ? '电话跟进 · 本机拨打' : '电话跟进（进行中）',
   });
+
+  if (dialMode === 'native') {
+    const now = new Date();
+    await callRecord.update({
+      status: 'completed',
+      started_at: now,
+      ended_at: now,
+      duration_seconds: 0,
+    });
+    return CallRecord.findByPk(callRecord.id, {
+      include: [
+        { model: Customer, as: 'customer', attributes: ['id', 'name', 'phone'] },
+        { model: User, as: 'caller', attributes: ['id', 'username', 'real_name'] },
+      ],
+    });
+  }
+
+  const MOCK_SESSION_PREFIX = 'mock_';
+  const MOCK_FAILURE_REASON =
+    '当前为模拟外呼，未真实拨号。管理员请在「设置→云服务配置」填写腾讯云 TCCC，服务器将 TCCC_MOCK 设为 0 后重启 API';
 
   try {
     const tcccResp =
       dialMode === 'webrtc'
         ? await tcccService.initiateWebRtcCall(tenant, caller.wework_userid || caller.username, customerPhone)
         : await tcccService.initiatePhoneCall(tenant, String(callerPhone).trim(), customerPhone);
-    await callRecord.update({
-      tccc_session_id: tcccResp?.SessionId || null,
-      status: 'calling',
-      started_at: new Date(),
-      failure_reason: null,
-    });
+    const sessionId = tcccResp?.SessionId || null;
+    const isMock = String(sessionId || '').startsWith(MOCK_SESSION_PREFIX);
+    if (isMock) {
+      await callRecord.update({
+        tccc_session_id: sessionId,
+        status: 'failed',
+        failure_reason: MOCK_FAILURE_REASON,
+        ended_at: new Date(),
+      });
+    } else {
+      await callRecord.update({
+        tccc_session_id: sessionId,
+        status: 'calling',
+        started_at: new Date(),
+        failure_reason: null,
+      });
+    }
   } catch (e) {
     await callRecord.update({
       status: 'failed',
@@ -133,6 +164,13 @@ export async function initiateCall(tenantId, callerUserId, customerId) {
       { model: User, as: 'caller', attributes: ['id', 'username', 'real_name'] },
     ],
   });
+  if (finalRecord?.status === 'failed') {
+    throw new HttpError(
+      502,
+      finalRecord.failure_reason || '发起外呼失败，请检查外呼设置或 TCCC 配置',
+      502,
+    );
+  }
   return finalRecord;
 }
 

@@ -18,9 +18,21 @@ function sign(secretKey, date, service, stringToSign) {
   return hmacSha256(kSigning, stringToSign, 'hex');
 }
 
+function isTcccConfigured(tenant) {
+  const sdkAppId = String(tenant?.tccc_sdk_app_id || env.tcccSdkAppId || '').trim();
+  const secretId = String(tenant?.tccc_secret_id || env.tcccSecretId || '').trim();
+  const secretKey = String(tenant?.tccc_secret_key || env.tcccSecretKey || '').trim();
+  const serverNumber = String(tenant?.tccc_server_number || env.tcccServerNumber || '').trim();
+  return Boolean(sdkAppId && secretId && secretKey && serverNumber);
+}
+
 async function callTcccApi(tenant, action, payload) {
-  if (env.tccMock) {
-    console.log(`[TCCC Mock] ${action}`, payload);
+  if (env.tccMock || !isTcccConfigured(tenant)) {
+    if (!env.tccMock && !isTcccConfigured(tenant)) {
+      console.log(`[TCCC Mock] 租户未配置 TCCC，使用模拟外呼: ${action}`, payload);
+    } else {
+      console.log(`[TCCC Mock] ${action}`, payload);
+    }
     return {
       SessionId: `mock_${Date.now()}`,
       RequestId: `req_${Date.now()}`,

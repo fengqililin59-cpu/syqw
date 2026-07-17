@@ -255,7 +255,7 @@ export function SmsPage() {
           <div className="space-y-3">
             <Input placeholder="模板名称" value={tplForm.name} onChange={(e) => setTplForm((s) => ({ ...s, name: e.target.value }))} />
             <Input placeholder="阿里云模板Code（如 SMS_123）" value={tplForm.code} onChange={(e) => setTplForm((s) => ({ ...s, code: e.target.value }))} />
-            <Input placeholder="签名（如 ZhiFlow）" value={tplForm.sign} onChange={(e) => setTplForm((s) => ({ ...s, sign: e.target.value }))} />
+            <Input placeholder="签名（如 中数云）" value={tplForm.sign} onChange={(e) => setTplForm((s) => ({ ...s, sign: e.target.value }))} />
             <Input placeholder="模板内容预览" value={tplForm.preview} onChange={(e) => setTplForm((s) => ({ ...s, preview: e.target.value }))} />
             <Input placeholder="变量（逗号分隔，如 name,product）" value={tplForm.vars} onChange={(e) => setTplForm((s) => ({ ...s, vars: e.target.value }))} />
             <a href="https://dysms.console.aliyun.com" target="_blank" rel="noreferrer" className="text-xs text-blue-500">

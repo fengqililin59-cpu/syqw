@@ -21,6 +21,7 @@ import { WeworkCallbackPage } from '@/pages/WeworkCallbackPage'
 import { ChannelLiveCodePage } from '@/pages/ChannelLiveCodePage'
 import { AICopywritingPage } from '@/pages/AICopywritingPage'
 import { AiAssistantPage } from '@/pages/AiAssistantPage'
+import { QuickScorePage } from '@/pages/QuickScorePage'
 import { CampaignsPage } from '@/pages/CampaignsPage'
 import { CampaignFormPage } from '@/pages/CampaignFormPage'
 import { CampaignDetailPage } from '@/pages/CampaignDetailPage'
@@ -58,6 +59,7 @@ import { CustomFieldsSettingsPage } from '@/pages/CustomFieldsSettingsPage'
 import { PipelineSettingsPage } from '@/pages/PipelineSettingsPage'
 import { DashboardLayoutSettingsPage } from '@/pages/DashboardLayoutSettingsPage'
 import AnalyticsPage from '@/pages/AnalyticsPage'
+import { LeaderboardPage } from '@/pages/LeaderboardPage'
 import NotificationsPage from '@/pages/NotificationsPage'
 import ApprovalsPage from '@/pages/ApprovalsPage'
 import ApprovalTemplatesPage from '@/pages/ApprovalTemplatesPage'
@@ -129,6 +131,7 @@ export default function App() {
             <Route path="channel-live" element={<ChannelLiveCodePage />} />
             <Route path="groups" element={<GroupsPage />} />
             <Route path="ai-copy" element={<AICopywritingPage />} />
+            <Route path="quick-score" element={<QuickScorePage />} />
             <Route path="ai-assistant" element={<AiAssistantPage />} />
             <Route path="inbox" element={<InboxPage />} />
             <Route path="ai-review" element={<AiReviewPage />} />
@@ -151,6 +154,7 @@ export default function App() {
             <Route path="flows" element={<FlowsListPage />} />
             <Route path="channel-report" element={<ChannelReportPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="leaderboard" element={<LeaderboardPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="approvals" element={<ApprovalsPage />} />
             <Route path="approval-templates" element={<ApprovalTemplatesPage />} />

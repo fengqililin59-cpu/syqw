@@ -281,7 +281,16 @@ export async function getUserIdByCode(tenant, code) {
  * @param {number} tenantId
  */
 export async function clearAccessTokenCache(tenantId) {
-  await WeworkToken.destroy({ where: { tenant_id: Number(tenantId) } });
+  try {
+    await WeworkToken.destroy({ where: { tenant_id: Number(tenantId) } });
+  } catch (e) {
+    const code = e?.parent?.code || e?.original?.code;
+    if (code === 'ER_NO_SUCH_TABLE') {
+      console.warn('[wework] wework_tokens 表不存在，跳过 token 缓存清理（请执行 database/034_wework_tokens.sql）');
+      return;
+    }
+    throw e;
+  }
 }
 
 /**

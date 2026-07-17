@@ -834,6 +834,125 @@ export async function generateSidebarScripts(tenantId, customerId) {
   return { scripts };
 }
 
+function scoreToIntentLevel(score) {
+  const n = Number(score);
+  if (!Number.isFinite(n)) return '中意向';
+  if (n >= 70) return '高意向';
+  if (n >= 40) return '中意向';
+  return '低意向';
+}
+
+function quickScoreFallbackScripts() {
+  return [
+    '您好，上次聊到的点我整理了一份简要说明，您有空时可以看看，有任何疑问随时找我～',
+    '结合您提到的需求，我们有几位相似行业的客户案例，效果数据挺不错，要不要发您参考？',
+    '本周还有限时体验名额，如果您方便，我们约 10 分钟电话过一下方案细节？',
+  ];
+}
+
+/**
+ * 粘贴对话后生成 3 条跟进话术（sidebar-scripts 同款 prompt 风格）。
+ */
+export async function generateQuickScoreScripts(transcript, scoreInfo, tenantId, userId) {
+  const tc = String(transcript || '').trim().slice(0, 6000);
+  const intentScore = Number(scoreInfo?.intent_score) || 50;
+  const stage = scoreInfo?.stage || '了解中';
+  const reason = scoreInfo?.reason || '';
+
+  const prompt = `你是一名私域销售顾问。以下是一段客户与销售的聊天记录（可能不完整）：
+"""
+${tc}
+"""
+
+AI 已判断：意向分 ${intentScore} 分，阶段「${stage}」，理由：${reason}
+
+请生成3条不同风格的微信跟进话术，
+要求：
+1. 自然友好，不硬销
+2. 每条100字以内
+3. 结合对话内容与当前意向给出具体价值点
+4. 三条风格各异（关怀型/价值型/促成型）
+
+输出格式（只输出话术，用|||分隔三条，不要编号和解释）：
+关怀型话术|||价值型话术|||促成型话术`;
+
+  const started = Date.now();
+  const { rawText, model, provider } = await invokeChatCompletions(
+    [
+      {
+        role: 'system',
+        content: '你是私域销售顾问。严格按用户指定格式输出，不要额外解释。',
+      },
+      { role: 'user', content: prompt },
+    ],
+    { max_tokens: 600, temperature: 0.75 },
+  );
+
+  let scripts = String(rawText || '')
+    .split('|||')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+
+  if (scripts.length < 3) {
+    scripts = [...scripts, ...quickScoreFallbackScripts()].slice(0, 3);
+  }
+
+  bumpAiUsage(tenantId);
+
+  try {
+    await AiGenerationLog.create({
+      tenant_id: tenantId,
+      user_id: userId,
+      customer_id: null,
+      kind: 'quick_score_scripts',
+      input_message: tc.slice(0, 2000),
+      output_json: { scripts },
+      model,
+      meta_json: {
+        duration_ms: Date.now() - started,
+        provider,
+        intent_score: intentScore,
+      },
+    });
+  } catch (e) {
+    console.error('[ai_generation_logs] quick_score_scripts persist failed', e);
+  }
+
+  return { scripts };
+}
+
+/**
+ * POST /ai/quick-score — 粘贴对话，立即评分 + 跟进话术。
+ */
+export async function quickScoreFromPastedText(auth, text) {
+  const transcript = String(text || '').trim().slice(0, 8000);
+  if (!transcript) throw new HttpError(400, '请粘贴对话内容', 400);
+
+  const audit = {
+    tenantId: auth.tenantId,
+    customerId: null,
+    ownerUserId: auth.userId,
+  };
+
+  const scoreResult = await generateIntentScoreFromChat(transcript, audit);
+  const { scripts } = await generateQuickScoreScripts(
+    transcript,
+    scoreResult,
+    auth.tenantId,
+    auth.userId,
+  );
+
+  return {
+    intent_score: scoreResult.intent_score,
+    intent_level: scoreToIntentLevel(scoreResult.intent_score),
+    stage: scoreResult.stage,
+    confidence: scoreResult.confidence,
+    reasoning: scoreResult.reason || '',
+    scripts,
+  };
+}
+
 /**
  * AI 客户画像摘要：一句话概括客户核心特征 + 下一步建议。
  * GET /customers/:id/summary

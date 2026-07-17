@@ -23,7 +23,7 @@ const defaultSection = (type: LandingSection['type']): LandingSection => {
     case 'cta': return { ...base, title: '准备好提升转化了吗？', content: '立即免费试用', backgroundColor: '#534AB7', textColor: '#ffffff' };
     case 'testimonials': return { ...base, title: '客户怎么说', items: [{ title: '张总', description: '使用后客户转化率提升了 40%' }] };
     case 'faq': return { ...base, title: '常见问题', items: [{ title: '如何开始使用？', description: '注册即可免费试用 14 天' }] };
-    case 'footer': return { ...base, title: '', content: '© 2026 ZhiFlow. All rights reserved.' };
+    case 'footer': return { ...base, title: '', content: '© 2026 中数云私域增长平台. All rights reserved.' };
     default: return base;
   }
 };

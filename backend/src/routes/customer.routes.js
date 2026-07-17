@@ -7,6 +7,8 @@ import * as customFieldController from '../controllers/customField.controller.js
 import { requireAuth } from '../middlewares/auth.js';
 import { requirePerm } from '../middlewares/requirePerm.js';
 import { requireQuota } from '../middlewares/requireQuota.js';
+import { requirePlanFeature } from '../middlewares/requirePlanFeature.js';
+import { PREMIUM_FEATURES } from '../constants/planFeatures.js';
 import { csvUpload } from '../middlewares/uploadCsv.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -39,10 +41,21 @@ router.get('/customers/:id/summary', requirePerm('ai:use'), asyncHandler(custome
 router.post('/customers/:id/transfer', requirePerm('customer:edit'), asyncHandler(customerController.transfer));
 router.put('/customers/:id/tags', requirePerm('customer:edit'), asyncHandler(customerController.setTags));
 
-router.get('/customers/:id/messages', requirePerm('customer:view'), asyncHandler(customerController.listMessages));
+router.get(
+  '/customers/:id/messages',
+  requirePerm('customer:view'),
+  requirePlanFeature(PREMIUM_FEATURES.ARCHIVE_ANALYSIS),
+  asyncHandler(customerController.listMessages),
+);
 router.post('/customers/:id/rollback-auto-deal', requirePerm('customer:edit'), asyncHandler(customerController.rollbackAutoDeal));
 
-router.post('/customers/:id/score-intent', requirePerm('ai:use'), asyncHandler(customerController.scoreIntent));
+router.post(
+  '/customers/:id/score-intent',
+  requirePerm('ai:use'),
+  requirePlanFeature(PREMIUM_FEATURES.AI_INTENT_SCORE),
+  requireQuota('ai_calls'),
+  asyncHandler(customerController.scoreIntent),
+);
 router.get('/customers/:id/score-history', requirePerm('customer:view'), asyncHandler(customerController.scoreHistory));
 router.get(
   '/customers/:id/intent-playbook',

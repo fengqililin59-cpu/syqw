@@ -35,6 +35,23 @@ const assistantChatSchema = Joi.object({
   scene: Joi.string().valid('general', 'sales', 'copy', 'followup', 'objection').optional(),
 }).unknown(false);
 
+const quickScoreSchema = Joi.object({
+  text: Joi.string().trim().min(1).max(8000).required(),
+}).unknown(false);
+
+const DEMO_QUICK_SCORE = {
+  intent_score: 78,
+  intent_level: '高意向',
+  stage: '准备成交',
+  confidence: '高',
+  reasoning: '客户主动询问报价与试用时间，并提及本周末前做决定，购买意愿较强。',
+  scripts: [
+    '您好，根据上次沟通我把方案和报价整理好了，您看今晚还是明天方便，我发您过目？',
+    '类似规模的企业用后平均跟进效率提升约 40%，我把案例摘要发您参考，看看有没有共鸣点？',
+    '本周体验名额还剩几个，如果您能在周五前确认，我可以帮您申请额外 onboarding 支持～',
+  ],
+};
+
 export async function generateCopy(req, res) {
   const { error, value } = copySchema.validate(req.body, { abortEarly: false, stripUnknown: true });
   if (error) {
@@ -107,4 +124,17 @@ export async function generateSidebarScripts(req, res) {
   }
   const data = await aiContentService.generateSidebarScripts(req.auth.tenantId, customerId);
   return ok(res, data);
+}
+
+/** POST /ai/quick-score — 粘贴对话，立即评分（访客/演示返回预置结果） */
+export async function quickScore(req, res) {
+  const { error, value } = quickScoreSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
+  if (error) {
+    throw new HttpError(400, '参数校验失败', 400, error.details);
+  }
+  if (req.auth?.isGuest || req.auth?.isDemo) {
+    return ok(res, { ...DEMO_QUICK_SCORE, demo: true }, 'ok');
+  }
+  const data = await aiContentService.quickScoreFromPastedText(req.auth, value.text);
+  return ok(res, data, 'ok');
 }

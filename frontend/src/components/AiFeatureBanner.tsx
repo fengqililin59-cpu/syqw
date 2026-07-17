@@ -56,7 +56,7 @@ export function AiFeatureBanner() {
     <Card className="overflow-hidden border-0 bg-gradient-to-br from-[#0f2744] via-[#152d52] to-[#1a3a6e] text-white shadow-lg">
       <CardContent className="p-5 md:p-6">
         <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-sky-300/90">ZhiFlow · 站内 AI</p>
+          <p className="text-xs font-semibold tracking-wider text-sky-300/90">中数云 · 站内 AI</p>
           <h2 className="mt-1 text-lg font-bold md:text-xl">AI 驱动私域销售，全部在本平台完成</h2>
           <p className="mt-1 max-w-2xl text-sm text-sky-100/80">
             智能助手、文案、意向预警、知识库 —— 按 AI 调用次数计费，升级 AI 助手版享 8000 次/月。

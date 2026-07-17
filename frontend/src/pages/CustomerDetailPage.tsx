@@ -6,7 +6,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
-  Phone,
   Building2,
   User,
   Flame,
@@ -43,6 +42,8 @@ import {
 } from '@/components/ui/dialog'
 import { useAuthStore } from '@/store/authStore'
 import { canManageStaffUser, hasPermUser } from '@/lib/roles'
+import { PREMIUM_FEATURES } from '@/lib/planFeatures'
+import { usePlanGate } from '@/hooks/usePlanGate'
 import { CustomerAiReplyPanel } from '@/components/CustomerAiReplyPanel'
 import { IntentAlertPlaybookDialog } from '@/components/IntentAlertPlaybookDialog'
 import { SalesCoachCard } from '@/components/SalesCoachCard'
@@ -51,7 +52,7 @@ import {
   type TimelineItem,
   type TimelineSummary,
 } from '@/components/CustomerTimelineSection'
-import CallButton from '@/components/CallButton'
+import CallButton, { PhoneCallLink } from '@/components/CallButton'
 import SmsButton from '@/components/SmsButton'
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -136,6 +137,8 @@ export function CustomerDetailPage() {
   const canEdit = hasPermUser(permissions, 'customer:edit')
   const canManageUsers = canManageStaffUser(permissions)
   const canAi = hasPermUser(permissions, 'ai:use')
+  const intentGate = usePlanGate(PREMIUM_FEATURES.AI_INTENT_SCORE)
+  const archiveGate = usePlanGate(PREMIUM_FEATURES.ARCHIVE_ANALYSIS)
 
   // ── data ──
   const [customer, setCustomer] = useState<CustomerRow | null>(null)
@@ -454,6 +457,8 @@ export function CustomerDetailPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 pb-10">
+      {intentGate.gateDialog}
+      {archiveGate.gateDialog}
       {/* ── 顶部导航 ── */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" onClick={() => navigate('/app/customers')}>
@@ -502,8 +507,11 @@ export function CustomerDetailPage() {
                 )}
                 {customer.phone && (
                   <span className="flex items-center gap-1">
-                    <Phone className="h-3.5 w-3.5" />
-                    {customer.phone}
+                    <PhoneCallLink
+                      customerId={customer.id}
+                      customerName={customer.name || `客户 #${customer.id}`}
+                      phone={customer.phone}
+                    />
                   </span>
                 )}
                 {customer.owner && (
@@ -533,6 +541,14 @@ export function CustomerDetailPage() {
 
             {/* 右：操作按钮 */}
             <div className="flex flex-wrap gap-2 sm:flex-col sm:items-end">
+              {customer.phone && (
+                <CallButton
+                  customerId={customer.id}
+                  customerName={customer.name || `客户 #${customer.id}`}
+                  customerPhone={customer.phone}
+                  prominent
+                />
+              )}
               {canEdit && (
                 <Button size="sm" variant="outline" onClick={() => void openEdit()}>
                   <Edit2 className="mr-1 h-3.5 w-3.5" />
@@ -545,13 +561,6 @@ export function CustomerDetailPage() {
               <Button size="sm" variant="secondary" asChild>
                 <Link to={`/app/service-desk?customer_id=${customer.id}`}>服务台</Link>
               </Button>
-              {customer.phone && (
-                <CallButton
-                  customerId={customer.id}
-                  customerName={customer.name || `客户 #${customer.id}`}
-                  customerPhone={customer.phone}
-                />
-              )}
               {customer.phone && (
                 <SmsButton
                   customerId={customer.id}
@@ -759,7 +768,17 @@ export function CustomerDetailPage() {
             ).map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => {
+                  if (tab.key === 'messages') {
+                    archiveGate.runGated(() => setActiveTab('messages'))
+                    return
+                  }
+                  if (tab.key === 'intent') {
+                    intentGate.runGated(() => setActiveTab('intent'))
+                    return
+                  }
+                  setActiveTab(tab.key)
+                }}
                 className={`flex-1 rounded-lg py-1.5 text-sm font-medium transition-colors ${
                   activeTab === tab.key
                     ? 'bg-white text-foreground shadow-sm'
@@ -966,7 +985,7 @@ export function CustomerDetailPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => void handleScoreIntent()}
+                    onClick={() => intentGate.runGated(() => void handleScoreIntent())}
                     disabled={scoreLoading}
                   >
                     {scoreLoading ? '分析中...' : '重新评分'}

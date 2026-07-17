@@ -26,6 +26,7 @@ import {
   AI_PLAN_COLUMNS,
   CRM_FEATURE_ROWS,
   CRM_PLAN_COLUMNS,
+  PAYWALL_FEATURE_ROWS,
 } from '@/lib/planComparison'
 
 interface Plan {
@@ -64,6 +65,7 @@ type PendingOnlineRow = {
   out_trade_no: string
   pay_channel?: 'wechat' | 'alipay'
   pay_code_url: string | null
+  redirect_url?: string | null
   pay_mode?: 'native' | 'jsapi' | null
   amount: number
   billing_cycle: 'monthly' | 'yearly'
@@ -156,6 +158,7 @@ export function BillingPage() {
     channel: OnlinePayChannel
     out_trade_no: string
     code_url: string
+    redirect_url?: string | null
     pay_mode?: 'native' | 'jsapi' | null
   } | null>(null)
   const [wechatJsapiEnabled, setWechatJsapiEnabled] = useState(false)
@@ -234,13 +237,15 @@ export function BillingPage() {
   const crmPlans = plans.filter((p) => !p.code.startsWith('ai_'))
   const aiPlans = plans.filter((p) => p.code.startsWith('ai_'))
   const proPlan = crmPlans.find((p) => p.code === 'pro')
+  const growthPlan = crmPlans.find((p) => p.code === 'growth')
   const enterprisePlan = crmPlans.find((p) => p.code === 'enterprise')
   const paidPlanPriceHint = useMemo(() => {
     const parts: string[] = []
     if (proPlan) parts.push(`专业版 ${formatCny(proPlan.price_monthly)}/月`)
+    if (growthPlan) parts.push(`增长版 ${formatCny(growthPlan.price_monthly)}/月`)
     if (enterprisePlan) parts.push(`企业版 ${formatCny(enterprisePlan.price_monthly)}/月`)
-    return parts.length ? parts.join('、') : '专业版 / 企业版'
-  }, [proPlan, enterprisePlan])
+    return parts.length ? parts.join('、') : '专业版 / 增长版'
+  }, [proPlan, growthPlan, enterprisePlan])
 
   const statusBadge = useMemo(() => {
     if (!status) return <Badge variant="secondary">未知</Badge>
@@ -297,8 +302,8 @@ export function BillingPage() {
         const a = document.createElement('a')
         a.href = url
         a.download = statementMonth
-          ? `ZhiFlow-订阅账单-${statementMonth}.pdf`
-          : 'ZhiFlow-订阅账单.pdf'
+          ? `中数云-订阅账单-${statementMonth}.pdf`
+          : '中数云-订阅账单.pdf'
         a.click()
         setTimeout(() => URL.revokeObjectURL(url), 30_000)
         return
@@ -307,7 +312,7 @@ export function BillingPage() {
       if (!w) {
         const a = document.createElement('a')
         a.href = url
-        a.download = 'ZhiFlow-订阅账单.html'
+        a.download = '中数云-订阅账单.html'
         a.click()
         window.alert('已下载 HTML 账单，用浏览器打开后打印为 PDF')
       }
@@ -350,7 +355,7 @@ export function BillingPage() {
             <div>
               <CardTitle className="text-lg text-blue-950">新用户必读：试用与体验版的区别</CardTitle>
               <CardDescription className="text-blue-900/80">
-                ZhiFlow 为 B2B 订阅制，不靠免费版广告变现。
+                中数云为 B2B 订阅制，不靠免费版广告变现。
               </CardDescription>
             </div>
             {isPlatformAdmin ? (
@@ -367,7 +372,7 @@ export function BillingPage() {
               <span className="font-medium"> 这不是体验版试用。</span>
             </li>
             <li>
-              <strong>试用到期后自动降为体验版</strong>：永久免费的默认档位，客户数 / 群发 / AI 等有配额上限，部分高级能力不可用。
+              <strong>试用到期后自动降为体验版</strong>：客户 30、席位 1、月 AI 20 次、群发 50 次；AI 意向评分、教练日报、ROI 归因、会话存档等需升级专业版。
             </li>
             <li>
               <strong>付费正式开通</strong>：{paidPlanPriceHint}（支持月付 / 年付），也可用兑换码、微信 / 支付宝或线下转账。
@@ -419,6 +424,7 @@ export function BillingPage() {
                         channel: p.pay_channel === 'alipay' ? 'alipay' : 'wechat',
                         out_trade_no: p.out_trade_no,
                         code_url: p.pay_code_url!,
+                        redirect_url: p.redirect_url ?? null,
                         pay_mode: p.pay_mode ?? (p.pay_code_url?.startsWith('jsapi:') ? 'jsapi' : 'native'),
                       })
                     }}
@@ -442,8 +448,8 @@ export function BillingPage() {
           {isTrialingPro ? (
             <p>
               <strong>专业版试用剩余 {data.days_remaining} 天</strong>
-              （截止 {formatDate(data.subscription.trial_ends_at)}）。到期后自动降为体验版：客户上限 100、月 AI
-              100 次、无自动化。建议现在提交订单或使用兑换码，避免销售节奏中断。
+              （截止 {formatDate(data.subscription.trial_ends_at)}）。到期后自动降为体验版：客户上限 30、月 AI
+              20 次、无 AI 评分与自动化。建议现在提交订单或使用兑换码，避免销售节奏中断。
             </p>
           ) : null}
           {status === 'active' && currentPlan.code !== 'free' && (data.days_remaining ?? 0) <= 7 ? (
@@ -501,7 +507,7 @@ export function BillingPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>为什么选 ZhiFlow？</CardTitle>
+          <CardTitle>为什么选中数云？</CardTitle>
           <CardDescription>与「纯 SCRM」或「纯 AI 平台」相比的核心差异（价值对比，非功能数量比拼）。</CardDescription>
         </CardHeader>
         <CardContent>
@@ -510,7 +516,7 @@ export function BillingPage() {
               <thead>
                 <tr className="border-b bg-muted/40">
                   <th className="p-3 text-left">维度</th>
-                  <th className="bg-blue-50 p-3 text-left font-semibold text-blue-950">ZhiFlow</th>
+                  <th className="bg-blue-50 p-3 text-left font-semibold text-blue-950">中数云</th>
                   <th className="p-3 text-left text-muted-foreground">传统企微 SCRM</th>
                   <th className="p-3 text-left text-muted-foreground">纯 AI / Agent 平台</th>
                 </tr>
@@ -581,6 +587,25 @@ export function BillingPage() {
         </CardContent>
       </Card>
 
+      <Card className="border-violet-300 bg-gradient-to-br from-violet-50/90 to-white">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg text-violet-950">体验版 vs 专业版：为什么值得升级？</CardTitle>
+          <CardDescription>
+            体验版适合手动管客户；专业版（¥398/月 或 ¥3980/年）解锁全部 AI 销售能力。增长版（¥998/月）另含巨量表单与多席位。
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PlanFeatureComparisonTable
+            title="体验版与专业版能力对比"
+            columns={CRM_PLAN_COLUMNS.filter((c) => ['free', 'pro', 'growth'].includes(c.code))}
+            rows={PAYWALL_FEATURE_ROWS}
+            plans={crmPlans}
+            quotaRow
+            description="体验版 = 手动 CRM + 基础群发；专业版起解锁 AI 意向评分、教练日报、广告 ROI、会话存档分析。"
+          />
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>套餐对比</CardTitle>
@@ -593,7 +618,7 @@ export function BillingPage() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-3">
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {crmPlans.map((p) => (
             <div
               key={p.id}
@@ -604,6 +629,8 @@ export function BillingPage() {
                 <p className="text-sm text-muted-foreground">14 天专业版试用结束后的免费档位（非试用）</p>
               ) : p.code === 'pro' ? (
                 <p className="text-sm text-muted-foreground">新注册默认 14 天全功能试用，到期需付费续用</p>
+              ) : p.code === 'growth' ? (
+                <p className="text-sm text-muted-foreground">含巨量表单 + AI 教练 + 50 席位</p>
               ) : (
                 <p>
                   {formatCny(cycle === 'monthly' ? p.price_monthly : p.price_yearly)} / {cycle === 'monthly' ? '月' : '年'}

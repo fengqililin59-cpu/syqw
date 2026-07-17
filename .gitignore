@@ -3,3 +3,9 @@ node_modules/
 *.log
 .DS_Store
 dist-workbench/
+
+# macOS AppleDouble (exFAT)
+._*
+**/._*
+*.tgz
+*.tgz.b64

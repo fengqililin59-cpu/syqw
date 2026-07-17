@@ -102,7 +102,7 @@ export function SettingsPage() {
   const [err, setErr] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [callSetting, setCallSetting] = useState<UserCallSetting>({
-    dial_mode: 'phone',
+    dial_mode: 'native',
     phone_number: null,
     is_available: true,
   })
@@ -643,7 +643,21 @@ export function SettingsPage() {
         <h2 className="text-sm font-semibold">我的外呼设置</h2>
         <div>
           <Label>拨打方式</Label>
-          <div className="mt-2 flex flex-col gap-2 md:flex-row">
+          <div className="mt-2 flex flex-col gap-2">
+            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50/50 p-2">
+              <input
+                type="radio"
+                value="native"
+                checked={callSetting.dial_mode === 'native'}
+                onChange={() => setCallSetting((s) => ({ ...s, dial_mode: 'native' }))}
+              />
+              <div>
+                <p className="text-sm font-medium">本机直接拨打</p>
+                <p className="text-xs text-gray-500">
+                  用手机直接拨打客户，无需开通腾讯云 TCCC。电脑端会复制号码。
+                </p>
+              </div>
+            </label>
             <label className="flex cursor-pointer items-center gap-2 rounded-md border p-2">
               <input
                 type="radio"
@@ -652,8 +666,8 @@ export function SettingsPage() {
                 onChange={() => setCallSetting((s) => ({ ...s, dial_mode: 'phone' }))}
               />
               <div>
-                <p className="text-sm font-medium">手机接听</p>
-                <p className="text-xs text-gray-500">系统先拨您的手机，接听后再拨客户。</p>
+                <p className="text-sm font-medium">云外呼 · 手机接听</p>
+                <p className="text-xs text-gray-500">需配置 TCCC。系统先拨您的手机，接听后再拨客户。</p>
               </div>
             </label>
             <label className="flex cursor-pointer items-center gap-2 rounded-md border p-2">
@@ -664,8 +678,8 @@ export function SettingsPage() {
                 onChange={() => setCallSetting((s) => ({ ...s, dial_mode: 'webrtc' }))}
               />
               <div>
-                <p className="text-sm font-medium">网页软电话</p>
-                <p className="text-xs text-gray-500">浏览器内接听，需麦克风权限。</p>
+                <p className="text-sm font-medium">云外呼 · 网页软电话</p>
+                <p className="text-xs text-gray-500">需配置 TCCC。浏览器内接听，需麦克风权限。</p>
               </div>
             </label>
           </div>
@@ -783,7 +797,7 @@ export function SettingsPage() {
               <div>
                 <label className="text-sm">默认签名</label>
                 <Input
-                  placeholder="ZhiFlow"
+                  placeholder="中数云"
                   value={smsConfig.defaultSign}
                   onChange={(e) => setSmsConfig((s) => ({ ...s, defaultSign: e.target.value }))}
                 />
@@ -895,7 +909,7 @@ export function SettingsPage() {
         </div>
         {inboxAiPlatformDisabled ? (
           <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-            平台已关闭本企业 AI 自动发送，如需开启请联系 ZhiFlow 运营。
+            平台已关闭本企业 AI 自动发送，如需开启请联系中数云运营。
           </p>
         ) : null}
         <div className="flex items-center gap-2 rounded-md border border-dashed p-3">

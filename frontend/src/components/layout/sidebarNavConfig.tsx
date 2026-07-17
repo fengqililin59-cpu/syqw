@@ -12,9 +12,11 @@ import {
   Settings,
   QrCode,
   Sparkles,
+  Zap,
   Megaphone,
   BarChart3,
   Gauge,
+  Trophy,
   ShieldCheck,
   BellRing,
   PhoneCall,
@@ -96,16 +98,32 @@ export function buildSidebarNavGroups(ctx: SidebarNavContext): NavGroupDef[] {
         ctx.canDash && {
           to: '/app/intent-alerts', icon: BellRing, label: '高意向客户列表', featured: true,
         },
-        showAi && {
-          to: '/app/ai-assistant', icon: Sparkles, label: 'AI 生成跟进话术', featured: true,
-        },
         ctx.canCustomers && {
           to: '/app/customers/pipeline', icon: LayoutGrid, label: '客户成交阶段', featured: true,
         },
         { to: '/app/analytics', icon: BarChart3, label: '销售团队数据', featured: true },
         ctx.canDash && {
+          to: '/app/leaderboard', icon: Trophy, label: '销售战力榜', featured: true,
+        },
+        ctx.canDash && {
           to: '/app', end: true, icon: LayoutDashboard, label: '老板经营看板', featured: true,
         },
+      ]),
+    },
+
+    {
+      id: 'ai-smart',
+      title: 'AI 智能',
+      hint: '零配置即可体验',
+      defaultOpen: true,
+      items: pick([
+        showAi && { to: '/app/quick-score', icon: Zap, label: '粘贴对话评分', featured: true },
+        showAi && { to: '/app/ai-assistant', icon: Sparkles, label: 'AI 智能助手', featured: true },
+        showAi && { to: '/app/ai-copy', icon: Sparkles, label: 'AI 文案生成' },
+        (ctx.canAi || ctx.canCustomers) && { to: '/app/script-library', icon: MessageSquare, label: '智能话术库' },
+        showAi && { to: '/app/ai-coach', icon: Brain, label: 'AI 教练建议' },
+        ctx.canDash && { to: '/app/ai-ops', icon: Gauge, label: 'AI 运营看板' },
+        (ctx.canKb || ctx.canAi) && { to: '/app/knowledge-base', icon: BookMarked, label: 'AI 知识库' },
       ]),
     },
 
@@ -117,11 +135,6 @@ export function buildSidebarNavGroups(ctx: SidebarNavContext): NavGroupDef[] {
       defaultOpen: false,
       items: pick([
         ctx.canCustomers && { to: '/app/customers', icon: Contact, label: '客户管理' },
-        (ctx.canAi || ctx.canCustomers) && { to: '/app/script-library', icon: MessageSquare, label: '智能话术库' },
-        showAi && { to: '/app/ai-copy', icon: Sparkles, label: 'AI 文案生成' },
-        showAi && { to: '/app/ai-coach', icon: Brain, label: 'AI 教练建议' },
-        ctx.canDash && { to: '/app/ai-ops', icon: Gauge, label: 'AI 运营看板' },
-        (ctx.canKb || ctx.canAi) && { to: '/app/knowledge-base', icon: BookMarked, label: 'AI 知识库' },
         ctx.canInbox && { to: '/app/inbox', icon: Inbox, label: '统一收件箱' },
         ctx.canCustomers && { to: '/app/call-records', icon: PhoneCall, label: '通话记录' },
         ctx.canCustomers && { to: '/app/orders', icon: Receipt, label: '成交订单' },

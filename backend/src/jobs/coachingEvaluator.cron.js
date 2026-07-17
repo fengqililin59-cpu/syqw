@@ -4,6 +4,8 @@
 import * as coachingService from '../services/coaching.service.js';
 
 let intervalId = null;
+/** @type {string | null} */
+let lastDailyKey = null;
 
 export function registerCoachingEvaluatorCron() {
   if (intervalId) return;
@@ -19,8 +21,8 @@ export function registerCoachingEvaluatorCron() {
 
     // 检查今天是否已生成（用日期标记防止 10 分钟内重复执行）
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    if (coachingService.__lastDailyKey === todayKey) return;
-    coachingService.__lastDailyKey = todayKey;
+    if (lastDailyKey === todayKey) return;
+    lastDailyKey = todayKey;
 
     console.log('[coaching:cron] 开始每日教练建议生成...');
     try {

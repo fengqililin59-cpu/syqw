@@ -166,7 +166,7 @@ export function ForgotPasswordPage() {
       <Card className="mx-auto w-full max-w-[380px] rounded-2xl border border-[#dde8f5] bg-white p-2 shadow-lg shadow-blue-100/50">
         <CardHeader>
           <div className="mb-4 flex flex-col items-center">
-            <ZhiFlowLogo size="lg" showText />
+            <ZhiFlowLogo size="lg" showText variant="light" />
           </div>
           <CardTitle className="text-center">忘记密码</CardTitle>
           <CardDescription className="text-center">

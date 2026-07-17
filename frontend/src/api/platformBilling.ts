@@ -75,7 +75,7 @@ export async function downloadPlatformTenantStatement(
     type: isPdf ? 'application/pdf' : 'text/html;charset=utf-8',
   })
   const cd = res.headers['content-disposition'] as string | undefined
-  let filename = isPdf ? `ZhiFlow-账单-${tenantId}.pdf` : `ZhiFlow-账单-${tenantId}.html`
+  let filename = isPdf ? `中数云-账单-${tenantId}.pdf` : `中数云-账单-${tenantId}.html`
   const m = cd?.match(/filename\*=UTF-8''([^;]+)/i)
   if (m?.[1]) filename = decodeURIComponent(m[1])
   const url = URL.createObjectURL(blob)
@@ -113,7 +113,7 @@ export async function downloadTenantStatementsZip(params: {
   })
   const blob = res.data as Blob
   const cd = res.headers['content-disposition'] as string | undefined
-  let filename = `ZhiFlow-租户账单-${params.month}.zip`
+  let filename = `中数云-租户账单-${params.month}.zip`
   const m = cd?.match(/filename\*=UTF-8''([^;]+)/i)
   if (m?.[1]) filename = decodeURIComponent(m[1])
   const url = URL.createObjectURL(blob)

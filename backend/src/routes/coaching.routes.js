@@ -4,6 +4,8 @@
 import { Router } from 'express';
 import { requireAuth } from '../middlewares/auth.js';
 import { requirePerm } from '../middlewares/requirePerm.js';
+import { requirePlanFeature } from '../middlewares/requirePlanFeature.js';
+import { PREMIUM_FEATURES } from '../constants/planFeatures.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import * as ctrl from '../controllers/coaching.controller.js';
 
@@ -24,8 +26,8 @@ router.get('/preview/check', asyncHandler(ctrl.preview));
 router.get('/:id', asyncHandler(ctrl.get));
 
 // 生成教练建议
-router.post('/generate', asyncHandler(ctrl.generate));
-router.post('/generate-all', asyncHandler(ctrl.generateAll));
+router.post('/generate', requirePlanFeature(PREMIUM_FEATURES.AI_COACH_DAILY), asyncHandler(ctrl.generate));
+router.post('/generate-all', requirePlanFeature(PREMIUM_FEATURES.AI_COACH_DAILY), asyncHandler(ctrl.generateAll));
 
 // 状态变更
 router.patch('/:id/dismiss', asyncHandler(ctrl.dismiss));

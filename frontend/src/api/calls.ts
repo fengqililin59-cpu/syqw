@@ -6,17 +6,18 @@ export interface CallRecord {
   caller_user_id: number
   customer: { id: number; name: string; phone: string | null }
   caller: { id: number; username: string; real_name?: string | null }
-  dial_mode: 'phone' | 'webrtc'
+  dial_mode: 'phone' | 'webrtc' | 'native'
   status: 'initiating' | 'calling' | 'connected' | 'completed' | 'failed' | 'cancelled'
   duration_seconds: number
   recording_url: string | null
+  failure_reason?: string | null
   started_at: string | null
   ended_at: string | null
   created_at: string
 }
 
 export interface UserCallSetting {
-  dial_mode: 'phone' | 'webrtc'
+  dial_mode: 'phone' | 'webrtc' | 'native'
   phone_number: string | null
   is_available: boolean
 }
@@ -60,3 +61,9 @@ export const getTcccConfig = () =>
     serverNumber: string
     configured: boolean
   }>('/calls/tccc-config')
+
+export function dialModeLabel(mode: CallRecord['dial_mode']) {
+  if (mode === 'native') return '本机直接拨打'
+  if (mode === 'webrtc') return '网页软电话'
+  return '云外呼·手机接听'
+}

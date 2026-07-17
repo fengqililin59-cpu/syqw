@@ -38,7 +38,7 @@ export function AiAssistantPage() {
     {
       role: 'assistant',
       content:
-        '你好，我是 ZhiFlow 站内 AI 助手。可直接问我私域销售、话术、文案、跟进策略等问题，无需跳转外部网站。',
+        '你好，我是中数云站内 AI 助手。可直接问我私域销售、话术、文案、跟进策略等问题，无需跳转外部网站。',
     },
   ])
   const [input, setInput] = useState('')

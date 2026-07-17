@@ -16,6 +16,8 @@ export function hasPermUser(userPerms: string[] | null | undefined, permCode: st
     'channel:manage': ['customer:edit'],
     'ads:view': ['dashboard:view'],
     'customer:import': ['customer:edit'],
+    'call:make': ['customer:edit'],
+    'sms:view': ['customer:edit'],
   }
   const fb = impliedBy[permCode]
   return Boolean(fb?.some((x) => list.includes(x)))

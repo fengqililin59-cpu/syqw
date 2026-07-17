@@ -33,7 +33,7 @@ export class PaymentRecord extends Model {
           defaultValue: 'subscription',
         },
         out_trade_no: { type: DataTypes.STRING(64), allowNull: false, unique: true },
-        pay_code_url: { type: DataTypes.STRING(512), allowNull: true },
+        pay_code_url: { type: DataTypes.STRING(2048), allowNull: true },
         wechat_transaction_id: { type: DataTypes.STRING(64), allowNull: true },
         paid_at: { type: DataTypes.DATE, allowNull: true },
         remark: { type: DataTypes.STRING(255), allowNull: true },

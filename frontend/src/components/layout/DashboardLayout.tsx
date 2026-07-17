@@ -21,6 +21,7 @@ import ZhiFlowLogo from '@/components/ZhiFlowLogo'
 import DemoBanner from '@/components/DemoBanner'
 import { SubscriptionExpiryBanner } from '@/components/SubscriptionExpiryBanner'
 import { AiFirstUseGuideDialog } from '@/components/AiFirstUseGuideDialog'
+import { PlanUpgradeProvider } from '@/components/PlanUpgradeProvider'
 import { SidebarNavSections } from '@/components/layout/SidebarNavSections'
 import { AiFloatingEntry } from '@/components/AiFloatingEntry'
 import { SiteLegalFooter } from '@/components/SiteLegalFooter'
@@ -138,6 +139,7 @@ export function DashboardLayout() {
       '/app/ai-review': 'AI 审核台',
       '/app/knowledge-base': 'AI 知识库',
       '/app/ai-assistant': 'AI 智能助手',
+      '/app/quick-score': '粘贴对话评分',
       '/app/ai-ops': 'AI 运营看板',
       '/app/service-desk': '服务台',
       '/app/acquisition-wizard': '获客向导',
@@ -145,6 +147,7 @@ export function DashboardLayout() {
       '/app/guide-templates': '获客指南',
       '/app/notifications': '通知中心',
       '/app/analytics': '销售分析',
+      '/app/leaderboard': '销售战力榜',
       '/app/approvals': '审批中心',
       '/app/approval-templates': '审批模板',
       '/app/products': '产品目录',
@@ -265,6 +268,7 @@ export function DashboardLayout() {
           <div className="p-4 md:p-6">
             <SubscriptionExpiryBanner />
             <AiFirstUseGuideDialog />
+            <PlanUpgradeProvider />
             <Outlet />
             <SiteLegalFooter className="mt-8" />
           </div>

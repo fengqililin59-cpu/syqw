@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="api-base" content="/api/v1">
+<meta name="tenant-id" content="1">
+<meta name="landing-from" content="product_landing">
 <title>ZhiFlow 智能CRM — AI驱动的全行业销售管理系统</title>
 <style>
   :root {
@@ -172,12 +175,21 @@
   }
   .cta-section .section-title { color: white; }
   .cta-section .section-desc { color: rgba(255,255,255,0.8); margin: 0 auto 32px; }
-  .cta-section input[type="text"] {
-    padding: 14px 20px; border-radius: 10px; border: none; font-size: 16px;
-    width: 320px; max-width: 90%; outline: none;
+  .cta-form { display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 400px; margin: 0 auto; }
+  .cta-form input {
+    width: 100%; padding: 14px 20px; border-radius: 10px; border: none; font-size: 16px;
+    outline: none; transition: box-shadow .2s;
   }
-  .cta-section .btn-primary { background: white; color: var(--blue-700); margin-left: 8px; }
-  .cta-section .btn-primary:hover { background: var(--gray-100); box-shadow: none; }
+  .cta-form input:focus { box-shadow: 0 0 0 3px rgba(255,255,255,.4); }
+  .cta-form .btn-primary { background: white; color: var(--blue-700); width: 100%; }
+  .cta-form .btn-primary:hover { background: var(--gray-100); box-shadow: none; transform: none; }
+  .cta-form .btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
+  .cta-msg { margin-top: 12px; font-size: 14px; font-weight: 600; min-height: 20px; }
+  .cta-msg.success { color: #C6F6D5; }
+  .cta-msg.error { color: #FED7D7; }
+  .cta-section .btn-primary { margin-left: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(37,99,235,.2); border-top-color: var(--blue-600); border-radius: 50%; animation: spin .6s linear infinite; margin-right: 6px; vertical-align: middle; }
 
   /* ---- Comparison ---- */
   .compare-table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -204,8 +216,7 @@
     .section-title { font-size: 26px; }
     .hero-stats { gap: 24px; }
     .hero-stat .num { font-size: 28px; }
-    .cta-section input[type="text"] { width: 100%; margin-bottom: 12px; }
-    .cta-section .btn-primary { margin-left: 0; }
+    .cta-form input { width: 100%; }
   }
 </style>
 </head>
@@ -448,10 +459,12 @@
 <section id="cta" class="cta-section">
   <h2 class="section-title">🏆 让每个销售都配一个AI教练</h2>
   <p class="section-desc">现在注册享14天全功能免费体验，无需绑定支付方式。</p>
-  <div>
-    <input type="text" placeholder="输入手机号，领取体验资格">
-    <a href="#" class="btn-primary">🎁 免费体验</a>
-  </div>
+  <form class="cta-form" id="leadForm">
+    <input type="text" name="name" placeholder="您的姓名" required autocomplete="name">
+    <input type="text" name="phone" placeholder="输入手机号，领取体验资格" required autocomplete="tel">
+    <button type="submit" class="btn-primary">🎁 免费体验</button>
+    <div class="cta-msg" id="ctaMsg"></div>
+  </form>
   <p style="margin-top: 16px; font-size: 13px; color: rgba(255,255,255,0.6);">
     或直接联系我们：<strong>zhi-flow.com</strong> · 企微扫码咨询
   </p>
@@ -465,6 +478,107 @@
     <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" style="color: rgba(255,255,255,0.5); text-decoration: none;">浙ICP备2026009605号-1</a>
   </p>
 </footer>
+
+<!-- ====== 留资表单提交 ====== -->
+<script>
+(function() {
+  var API_BASE = (function() {
+    var meta = document.querySelector('meta[name="api-base"]');
+    if (meta && meta.content && !meta.content.startsWith('/')) return meta.content;
+    // 同源时用相对路径（ECS Nginx），跨域时用完整 URL
+    if (location.hostname === 'wework.syzs.top' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      return '/api/v1';
+    }
+    return 'https://wework.syzs.top/api/v1';
+  })();
+  var TENANT_ID = document.querySelector('meta[name="tenant-id"]')
+    ? document.querySelector('meta[name="tenant-id"]').content
+    : '1';
+  var LANDING_FROM = document.querySelector('meta[name="landing-from"]')
+    ? document.querySelector('meta[name="landing-from"]').content
+    : 'product_landing';
+
+  function getUtmParams() {
+    var p = new URLSearchParams(location.search);
+    return {
+      utm_source:   p.get('utm_source')   || undefined,
+      utm_medium:   p.get('utm_medium')   || undefined,
+      utm_campaign: p.get('utm_campaign') || undefined,
+      utm_content:  p.get('utm_content')  || undefined,
+      utm_term:     p.get('utm_term')     || undefined,
+    };
+  }
+
+  var form = document.getElementById('leadForm');
+  var msg  = document.getElementById('ctaMsg');
+  var btn  = form ? form.querySelector('button[type="submit"]') : null;
+
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      var nameVal  = (form.querySelector('[name="name"]')  || {}).value || '';
+      var phoneVal = (form.querySelector('[name="phone"]') || {}).value || '';
+
+      if (!nameVal.trim() || !phoneVal.trim()) {
+        msg.className = 'cta-msg error';
+        msg.textContent = '请填写姓名和手机号';
+        return;
+      }
+      if (!/^1[3-9]\d{9}$/.test(String(phoneVal).trim())) {
+        msg.className = 'cta-msg error';
+        msg.textContent = '请输入正确的手机号';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>提交中...';
+      msg.className = 'cta-msg';
+      msg.textContent = '';
+
+      var utm = getUtmParams();
+      var body = {
+        name: String(nameVal).trim(),
+        phone: String(phoneVal).trim(),
+        source: '落地页留资',
+        landing_from: LANDING_FROM,
+      };
+      if (utm.utm_source)   body.utm_source   = utm.utm_source;
+      if (utm.utm_medium)   body.utm_medium   = utm.utm_medium;
+      if (utm.utm_campaign) body.utm_campaign = utm.utm_campaign;
+      if (utm.utm_content)  body.utm_content  = utm.utm_content;
+      if (utm.utm_term)     body.utm_term     = utm.utm_term;
+
+      var url = API_BASE + '/leads/' + TENANT_ID + '/submit';
+
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      .then(function(r) { return r.json().then(function(d) { return { status: r.status, data: d }; }); })
+      .then(function(result) {
+        if (result.data.code === 0) {
+          msg.className = 'cta-msg success';
+          msg.textContent = '✅ ' + (result.data.data && result.data.data.message || '提交成功，顾问将尽快联系您');
+          form.reset();
+        } else {
+          msg.className = 'cta-msg error';
+          msg.textContent = result.data.message || '提交失败，请稍后重试';
+        }
+      })
+      .catch(function(err) {
+        msg.className = 'cta-msg error';
+        msg.textContent = '网络异常，请稍后重试';
+        console.error('[leadForm]', err);
+      })
+      .finally(function() {
+        btn.disabled = false;
+        btn.innerHTML = '🎁 免费体验';
+      });
+    });
+  }
+})();
+</script>
 
 </body>
 </html>

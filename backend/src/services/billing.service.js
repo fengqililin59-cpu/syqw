@@ -11,6 +11,7 @@ import * as wechatPayService from './wechatPay.service.js';
 import * as wechatMpOAuthService from './wechatMpOAuth.service.js';
 import * as alipayService from './alipay.service.js';
 import { env } from '../config/env.js';
+import { planIncludesFeature } from '../constants/planFeatures.js';
 
 const RESOURCE_MAP = {
   customers: { usageField: 'customers_count', limitField: 'customers_limit' },
@@ -200,6 +201,29 @@ export async function checkQuota(tenantId, resource) {
 }
 
 /**
+ * 当前租户是否拥有某套餐能力（体验版不含付费专属 AI）。
+ * @param {number} tenantId
+ * @param {string} featureToken
+ */
+export async function hasPlanFeature(tenantId, featureToken) {
+  const sub = await ensureSubscriptionWithPlan(tenantId);
+  const plan = sub.plan;
+  if (!plan) return false;
+
+  if (['expired', 'cancelled'].includes(sub.status)) return false;
+
+  const features = Array.isArray(plan.features) ? plan.features : [];
+
+  if (plan.code === 'free' && sub.status === 'active') return false;
+
+  if (sub.status === 'trialing' && plan.code !== 'free') {
+    return planIncludesFeature(features, featureToken);
+  }
+
+  return planIncludesFeature(features, featureToken);
+}
+
+/**
  * 原子递增月度用量（并发安全）。
  */
 export async function incrementUsage(tenantId, resource, delta = 1) {
@@ -373,6 +397,34 @@ export function getPaymentChannels() {
 
 const WECHAT_PENDING_REUSE_MS = 2 * 60 * 60 * 1000;
 
+/** 支付宝 page.pay 完整 URL 含签名，常超过 512 字符，库内只存短标记 */
+function alipayPayCodeMarker(outTradeNo) {
+  return `pagepay:${outTradeNo}`;
+}
+
+function buildAlipayRedirectForRecord(record, plan) {
+  if (alipayService.isAlipayMock()) return null;
+  const cycleLabel = record.billing_cycle === 'yearly' ? '年付' : '月付';
+  const planName = plan?.name || '套餐';
+  return alipayService.buildPagePayUrl({
+    outTradeNo: record.out_trade_no,
+    subject: `ZhiFlow ${planName} ${cycleLabel}`,
+    totalAmountYuan: record.amount,
+    returnUrl: `${alipayService.notifyBaseUrl || ''}/app/billing?status=paid`,
+  });
+}
+
+function resolveAlipayRedirectFromStoredCode(record, plan) {
+  const code = String(record.pay_code_url || '');
+  if (code.startsWith('mock:alipay:') || alipayService.isAlipayMock()) {
+    return { redirectUrl: null, mock: true };
+  }
+  if (code.startsWith('https://')) {
+    return { redirectUrl: code, mock: false };
+  }
+  return { redirectUrl: buildAlipayRedirectForRecord(record, plan), mock: false };
+}
+
 export async function listPendingOnlinePayments(tenantId) {
   const rows = await PaymentRecord.findAll({
     where: {
@@ -389,6 +441,11 @@ export async function listPendingOnlinePayments(tenantId) {
     const payCode = p.pay_code_url || null;
     const payMode =
       payCode && String(payCode).startsWith('jsapi:') ? 'jsapi' : payCode ? 'native' : null;
+    let redirect_url = null;
+    if (p.pay_channel === 'alipay' && payCode) {
+      const { redirectUrl, mock } = resolveAlipayRedirectFromStoredCode(p, p.plan);
+      if (!mock) redirect_url = redirectUrl;
+    }
     return {
       id: p.id,
       out_trade_no: p.out_trade_no,
@@ -396,6 +453,7 @@ export async function listPendingOnlinePayments(tenantId) {
       billing_cycle: p.billing_cycle,
       amount: Number(p.amount),
       pay_code_url: payCode,
+      redirect_url,
       pay_mode: payMode,
       created_at: p.created_at,
       plan: p.plan ? { id: p.plan.id, name: p.plan.name, code: p.plan.code } : null,
@@ -535,30 +593,21 @@ export async function createAlipayPayment(tenantId, planCode, billingCycle) {
   });
   if (existing) {
     const plain = existing.get({ plain: true });
-    const isMock = alipayService.isAlipayMock();
     const code = String(plain.pay_code_url || '');
-    const isMockUrl = code.startsWith('mock:alipay:');
+    const { redirectUrl, mock } = resolveAlipayRedirectFromStoredCode(plain, plan);
     return {
       ...plain,
       pay_code_url: code,
-      redirect_url: isMock || isMockUrl ? null : code,
-      alipay_mock: isMock || isMockUrl,
+      redirect_url: redirectUrl,
+      alipay_mock: mock,
       reused: true,
     };
   }
 
   const record = await createPaymentRecord(tenantId, plan.id, billingCycle, 'alipay', null);
-  const cycleLabel = billingCycle === 'yearly' ? '年付' : '月付';
   const isMock = alipayService.isAlipayMock();
-  const redirectUrl = isMock
-    ? null
-    : alipayService.buildPagePayUrl({
-        outTradeNo: record.out_trade_no,
-        subject: `ZhiFlow ${plan.name} ${cycleLabel}`,
-        totalAmountYuan: record.amount,
-        returnUrl: `${alipayService.notifyBaseUrl || ''}/app/billing?status=paid`,
-      });
-  const payCodeUrl = isMock ? `mock:alipay:${record.out_trade_no}` : redirectUrl;
+  const redirectUrl = isMock ? null : buildAlipayRedirectForRecord(record, plan);
+  const payCodeUrl = isMock ? `mock:alipay:${record.out_trade_no}` : alipayPayCodeMarker(record.out_trade_no);
 
   await PaymentRecord.update({ pay_code_url: payCodeUrl }, { where: { id: record.id } });
 

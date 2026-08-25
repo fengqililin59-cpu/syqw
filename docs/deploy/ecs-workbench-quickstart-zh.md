@@ -1,4 +1,4 @@
-# ECS Workbench 快速上手（ZhiFlow / wework.syzs.top）
+# ECS Workbench 快速上手（中数云科 / wework.syzs.top）
 
 > **解决什么问题**：在 Mac 本机误跑生产命令、ECS 上找不到 `deploy/` / `database/077` / `install.sh`、公网 `502`。  
 > **完整上线清单**仍见 [production-launch-runbook-zh.md](./production-launch-runbook-zh.md)。
@@ -32,7 +32,7 @@ Workbench **默认上传包**（`pack-workbench-upload.sh`）只含：`backend/s
 |-------------|:-----:|:-----:|------|
 | `./scripts/pack-workbench-upload.sh` | ✅ | ❌ | 本地构建并打 tar.gz |
 | Workbench 上传 `wework-workbench-*.tar.gz` 到 `/tmp` | ✅ 上传 | — | 在阿里云控制台操作 |
-| `cd /tmp && tar xzf … && ./install.sh`（需设 ZhiFlow 环境变量） | ❌ | ✅ | 在**解压后的包目录**里，不是 `/var/www/zhiflow` |
+| `cd /tmp && tar xzf … && ./install.sh`（需设 中数云科 环境变量） | ❌ | ✅ | 在**解压后的包目录**里，不是 `/var/www/zhiflow` |
 | `bash deploy/scripts/db-migrate.sh` | ❌* | ✅ | *Mac 上无生产 `.env`、无 `zhiflow` 库权限时会失败 |
 | `mysql … < database/077_….sql` | ❌ | ✅ | 必须在 ECS，且 `database/` 文件要先存在 |
 | `pm2 restart zhiflow-api` | ❌ | ✅ | Mac 上一般没有 `zhiflow-api` 进程 |
@@ -109,7 +109,7 @@ wework-workbench-YYYYMMDD-HHMMSS/
 └── database/               # 仅 058–061（若仓库里有）
 ```
 
-`install.sh` **默认**已指向 ZhiFlow 生产路径（未 export 时）：
+`install.sh` **默认**已指向 中数云科 生产路径（未 export 时）：
 
 | 变量 | 默认值 |
 |------|--------|
@@ -246,7 +246,7 @@ curl -sS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3002/health
 Table 'wework_saas.registration_otp_challenges' doesn't exist
 ```
 
-**含义**：错误里的库名（如 `wework_saas`）就是当前 `backend/.env` 里 **`DB_NAME` 实际连上的库**。ZhiFlow 生产应使用 **`zhiflow_prod`** + 用户 **`zhiflow`**；若仍是 `wework_saas`，说明配置未切库或迁移只在另一库跑过。
+**含义**：错误里的库名（如 `wework_saas`）就是当前 `backend/.env` 里 **`DB_NAME` 实际连上的库**。中数云科 生产应使用 **`zhiflow_prod`** + 用户 **`zhiflow`**；若仍是 `wework_saas`，说明配置未切库或迁移只在另一库跑过。
 
 **表 DDL**（幂等，可重复执行）：仓库 `database/024_registration_otp_challenges.sql`（`CREATE TABLE IF NOT EXISTS`）。
 
@@ -428,5 +428,5 @@ curl -sS -H "Authorization: Bearer $TOKEN" "$API/auth/me"
 
 ## 相关文档
 
-- [production-launch-runbook-zh.md](./production-launch-runbook-zh.md) — 迁移全表、30 分钟验收、ZhiFlow 环境变量
+- [production-launch-runbook-zh.md](./production-launch-runbook-zh.md) — 迁移全表、30 分钟验收、中数云科 环境变量
 - [../ops/workbench-upload-manifest.md](../ops/workbench-upload-manifest.md) — 旧栈 wework-saas 路径清单（勿与 zhiflow 混用）

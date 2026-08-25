@@ -26,13 +26,14 @@ import { useAuthStore } from '@/store/authStore'
 import { isAdminUser } from '@/lib/roles'
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin'
 
-type TabId = 'sales' | 'admin' | 'menu' | 'faq'
+type TabId = 'sales' | 'admin' | 'menu' | 'faq' | 'feedback'
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'sales', label: '销售 3 步' },
   { id: 'admin', label: '管理员上线' },
   { id: 'menu', label: '菜单说明' },
   { id: 'faq', label: '常见问题' },
+  { id: 'feedback', label: '反馈问题' },
 ]
 
 const SALES_STEPS = [
@@ -399,6 +400,73 @@ export function HelpCenterPage() {
             </Accordion>
           </CardContent>
         </Card>
+      ) : null}
+
+      {tab === 'feedback' ? (
+        <div className="space-y-4">
+          <Card className="border-sky-200 bg-sky-50/30">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <CircleHelp className="h-5 w-5 text-sky-600" />
+                遇到问题？我们帮你解决
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                无论是功能疑问、使用建议还是 Bug 反馈，都可以通过以下方式联系我们。
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-xl border border-slate-100 bg-white p-4">
+                <p className="font-medium text-slate-900">方式一：发送邮件（推荐）</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  直接发送邮件至客服邮箱，我们会在 24 小时内回复。
+                </p>
+                <a
+                  href="mailto:zhufacai@zsykai.cn?subject=[中数云CRM用户反馈]&body=请描述您遇到的问题或建议：&#10;&#10;【问题描述】&#10;&#10;【期望结果】&#10;&#10;【截图附件】（如有）"
+                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700"
+                >
+                  发送邮件反馈
+                </a>
+              </div>
+
+              <div className="rounded-xl border border-slate-100 bg-white p-4">
+                <p className="font-medium text-slate-900">方式二：企微客服</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  使用微信扫描下方二维码，添加企业微信客服，实时沟通。
+                </p>
+                <div className="mt-3 flex flex-col items-center gap-2 rounded-lg bg-slate-50 p-4">
+                  <img
+                    src="/wework-customer-service-qr.png"
+                    alt="企业微信客服二维码"
+                    className="h-40 w-40 rounded-lg border border-slate-200 bg-white"
+                  />
+                  <span className="text-xs text-muted-foreground">微信扫码添加客服</span>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-100 bg-white p-4">
+                <p className="font-medium text-slate-900">方式三：系统内工单</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  登录后在「更多功能」中找到相关页面，创建服务工单跟踪处理进度。
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">反馈模板（复制使用）</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <pre className="overflow-x-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-700">
+{`【问题类型】功能疑问 / Bug 反馈 / 功能建议
+【问题描述】请详细描述您遇到的问题
+【操作步骤】1. xxx  2. xxx  3. xxx
+【期望结果】希望系统如何表现
+【截图/录屏】（如有请附件）`}
+              </pre>
+            </CardContent>
+          </Card>
+        </div>
       ) : null}
     </div>
   )

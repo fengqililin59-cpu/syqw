@@ -111,10 +111,13 @@ pm2 list
 # ---- 健康检查 ----
 step "6/6 健康检查"
 
+APP_PORT=$(grep '^PORT=' "$PRODUCTION_ENV" | cut -d= -f2 | tr -d ' ')
+APP_PORT=${APP_PORT:-3000}
+
 sleep 3
-HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/health 2>/dev/null || echo "000")
+HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${APP_PORT}/health" 2>/dev/null || echo "000")
 if [ "$HEALTH" = "200" ]; then
-    log "✅ 后端健康检查通过 (http://localhost:3000/health)"
+    log "✅ 后端健康检查通过 (http://localhost:${APP_PORT}/health)"
 else
     warn "后端健康检查返回 HTTP $HEALTH，请检查 PM2 日志: pm2 logs syqw-api"
 fi
@@ -125,12 +128,12 @@ echo -e "${GREEN}============================================${NC}"
 echo -e "${GREEN}  部署完成！${NC}"
 echo -e "${GREEN}============================================${NC}"
 echo ""
-echo "  API 状态:  http://localhost:3000/health"
+echo "  API 状态:  http://localhost:${APP_PORT}/health"
 echo "  PM2 管理:  pm2 list | pm2 logs syqw-api"
 echo ""
 echo "  下一步:"
-echo "  1. 配置 Nginx: sudo cp deploy/nginx/production.conf /etc/nginx/sites-available/syqw"
-echo "  2. 启用站点:   sudo ln -sf /etc/nginx/sites-available/syqw /etc/nginx/sites-enabled/"
+echo "  1. 配置 Nginx: sudo cp deploy/nginx-zhiflow-production.conf /etc/nginx/sites-available/zhiflow"
+echo "  2. 启用站点:   sudo ln -sf /etc/nginx/sites-available/zhiflow /etc/nginx/sites-enabled/"
 echo "  3. SSL 证书:   sudo certbot --nginx -d wework.syzs.top"
 echo "  4. 重启 Nginx: sudo nginx -t && sudo systemctl reload nginx"
 echo "  5. 数据库备份: crontab deploy/scripts/crontab.txt"

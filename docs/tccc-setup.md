@@ -20,7 +20,7 @@
 
 ## 2. 系统配置
 
-在 ZhiFlow 系统设置 -> TCCC 配置 填写：
+在 中数云科 系统设置 -> TCCC 配置 填写：
 - SDK App ID
 - Secret ID
 - Secret Key（保密）

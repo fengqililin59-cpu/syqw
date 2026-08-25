@@ -1,4 +1,4 @@
-# ZhiFlow 演示前检查清单（可打印）
+# 中数云科 演示前检查清单（可打印）
 
 > **适用**：客户演示、老板路演、渠道试点开通前 **24 小时**内完成。  
 > **依据**：[分角色演示脚本 §6](./competitive-demo-scripts-by-persona-zh.md)、[改进路线图 30 天 P0](./competitive-improvement-roadmap-zh.md)、[生产 Runbook §B](../deploy/production-launch-runbook-zh.md)  

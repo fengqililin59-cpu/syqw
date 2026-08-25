@@ -1,4 +1,4 @@
-# ZhiFlow 生产上线 Runbook — wework.syzs.top
+# 中数云科 生产上线 Runbook — wework.syzs.top
 
 > **域名**：https://wework.syzs.top/  
 > **用途**：ECS 上可复制粘贴的执行清单（不含密码/密钥）。  
@@ -360,7 +360,7 @@ cd /path/to/syqw
 
 产出：`dist-workbench/wework-workbench-YYYYMMDD-HHMMSS.tar.gz`
 
-**ECS 解压安装（ZhiFlow 路径，覆盖默认 wework-saas 变量）**：
+**ECS 解压安装（中数云科 路径，覆盖默认 wework-saas 变量）**：
 
 ```bash
 cd /tmp

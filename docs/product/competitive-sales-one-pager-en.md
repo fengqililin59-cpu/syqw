@@ -1,4 +1,4 @@
-# ZhiFlow Sales One-Pager (Print / PDF / Feishu)
+# 中数云科 Sales One-Pager (Print / PDF / Feishu)
 
 > Legend: **✓** Lead with this · **≈** Parity, depth varies · **✗** Competitor stronger or do not over-promise  
 > Honest positioning: [competitive-positioning-vs-scrm-zh.md](./competitive-positioning-vs-scrm-zh.md) · Pre-demo: [production launch runbook](../deploy/production-launch-runbook-zh.md)
@@ -7,7 +7,7 @@
 
 ## 1. One-liner + ICP
 
-**ZhiFlow: The sales copilot inside WeCom Work—who to follow up, what to say, you send.**
+**中数云科: The sales copilot inside WeCom Work—who to follow up, what to say, you send.**
 
 **Ideal customer**: 10–30 seat sales + paid-acquisition teams (B2B, consultative, education/beauty lead gen) who need **high-intent follow-up without gaps, AI they can trust, and paid media ROI**—not the longest feature checklist.
 
@@ -25,7 +25,7 @@
 
 ## 3. Mini comparison (6 dimensions)
 
-| Dimension | ZhiFlow | Chenfeng | Weiban / WeCom SaaS | Youzan / Weimob |
+| Dimension | 中数云科 | Chenfeng | Weiban / WeCom SaaS | Youzan / Weimob |
 |-----------|---------|----------|---------------------|-----------------|
 | AI intent score + alerts | **✓** | ≈ | ≈ | ✗ |
 | Inbox AI draft + human review | **✓** | ≈ | ≈ | ≈ |
@@ -56,7 +56,7 @@
 ### vs Youzan / Weimob (有赞)
 
 1. Youzan wins **selling, membership, store associates**; we win **paid acquisition + WeCom conversion + AI-assisted sales**.  
-2. Retail-first deals → Youzan; **B2B / consultative / multi-channel leads** → ZhiFlow.  
+2. Retail-first deals → Youzan; **B2B / consultative / multi-channel leads** → 中数云科.  
 3. Prove value in **14 days** with weekly wins + ad ROI—not feature count.
 
 ---
@@ -68,7 +68,7 @@
 | Fewer features than XX? | We bet on three outcomes: **high intent not missed, AI writes you send, paid media accountable**. Validate in 14 days with wins + ROI. |
 | Will AI reply wrongly to customers? | **Draft + human review by default**; semi-auto only on whitelist pilots; platform kill switch. |
 | Production-ready? | **Phase A**: joint migration, deep health, permission sign-off before seat expansion; single-tenant pilots first. |
-| vs Coze (扣子)? | Coze **builds agents**; ZhiFlow **owns customers, approval, outbound, ROI**—integrate via API. |
+| vs Coze (扣子)? | Coze **builds agents**; 中数云科 **owns customers, approval, outbound, ROI**—integrate via API. |
 | Replace the support team? | **Do not promise full automation**; position as sales copilot—less typing, fewer missed hot leads. |
 
 ---

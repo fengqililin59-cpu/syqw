@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全行业通用SaaS CRM — 自动化获客方案</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:#f5f7fa;color:#1a1a2e;line-height:1.8;-webkit-font-smoothing:antialiased;}
+  .container{max-width:960px;margin:0 auto;padding:0 24px;}
+  
+  /* Hero */
+  .hero{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:60px 0 50px;text-align:center;}
+  .hero h1{font-size:36px;font-weight:800;margin-bottom:12px;letter-spacing:-0.5px;}
+  .hero .subtitle{font-size:18px;opacity:0.9;margin-bottom:8px;}
+  .hero .meta{font-size:14px;opacity:0.7;margin-top:16px;}
+  .hero .badge{display:inline-block;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:4px 16px;font-size:13px;margin:4px;}
+  
+  /* Section */
+  .section{padding:48px 0;border-bottom:1px solid #e8ecf1;}
+  .section:last-child{border-bottom:none;}
+  .section-title{font-size:26px;font-weight:700;color:#1a1a2e;margin-bottom:8px;}
+  .section-title .num{display:inline-block;background:#667eea;color:#fff;width:32px;height:32px;line-height:32px;text-align:center;border-radius:8px;font-size:16px;margin-right:10px;vertical-align:middle;}
+  .section-desc{color:#6b7280;font-size:15px;margin-bottom:28px;margin-left:42px;}
+  
+  /* Cards */
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px;}
+  .card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1px solid #e8ecf1;}
+  .card h3{font-size:16px;font-weight:700;margin-bottom:10px;color:#1a1a2e;}
+  .card p{font-size:14px;color:#4b5563;line-height:1.7;}
+  .card .icon{font-size:28px;margin-bottom:10px;display:block;}
+  .card.highlight{border-color:#667eea;border-width:2px;background:linear-gradient(135deg,#f5f3ff 0%,#ede9fe 100%);}
+  
+  /* Table */
+  .data-table{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:14px;}
+  .data-table th{background:#f3f4f6;padding:12px 16px;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e5e7eb;font-size:13px;}
+  .data-table td{padding:12px 16px;border-bottom:1px solid #f3f4f6;color:#4b5563;}
+  .data-table tr:hover{background:#fafbfc;}
+  .data-table .tag{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+  .tag-bofu{background:#fee2e2;color:#dc2626;}
+  .tag-mofu{background:#fef3c7;color:#d97706;}
+  .tag-tofu{background:#dbeafe;color:#2563eb;}
+  .tag-high{background:#dcfce7;color:#16a34a;}
+  .tag-medium{background:#fef3c7;color:#d97706;}
+  
+  /* Funnel */
+  .funnel{display:flex;flex-direction:column;align-items:center;gap:4px;margin:24px 0;}
+  .funnel-step{padding:16px 32px;text-align:center;color:#fff;font-weight:600;font-size:15px;border-radius:8px;width:100%;max-width:600px;position:relative;}
+  .funnel-step .step-num{position:absolute;left:-40px;top:50%;transform:translateY(-50%);background:#fff;color:#667eea;width:28px;height:28px;line-height:28px;border-radius:50%;font-size:13px;font-weight:700;}
+  .funnel-step .conv-rate{font-size:12px;opacity:0.85;margin-top:4px;font-weight:400;}
+  .funnel-s1{background:linear-gradient(135deg,#667eea,#764ba2);width:100%;}
+  .funnel-s2{background:linear-gradient(135deg,#7c6fd6,#8b5fbf);width:90%;}
+  .funnel-s3{background:linear-gradient(135deg,#8b6fc6,#9b5faf);width:80%;}
+  .funnel-s4{background:linear-gradient(135deg,#9b72b6,#a85ca0);width:70%;}
+  .funnel-s5{background:linear-gradient(135deg,#a875a6,#b85a8f);width:60%;}
+  .funnel-s6{background:linear-gradient(135deg,#b57896,#be5680);width:50%;}
+  
+  /* Timeline */
+  .timeline{position:relative;padding-left:32px;margin:24px 0;}
+  .timeline::before{content:'';position:absolute;left:12px;top:0;bottom:0;width:2px;background:#e5e7eb;}
+  .timeline-item{position:relative;margin-bottom:24px;}
+  .timeline-item::before{content:'';position:absolute;left:-26px;top:6px;width:12px;height:12px;border-radius:50%;background:#667eea;border:2px solid #fff;box-shadow:0 0 0 2px #667eea;}
+  .timeline-item .time{font-size:13px;color:#667eea;font-weight:600;margin-bottom:4px;}
+  .timeline-item .title{font-size:16px;font-weight:600;margin-bottom:6px;}
+  .timeline-item .desc{font-size:14px;color:#4b5563;line-height:1.7;}
+  .timeline-item ul{margin-top:8px;padding-left:20px;}
+  .timeline-item ul li{font-size:14px;color:#4b5563;margin-bottom:4px;}
+  
+  /* Callout */
+  .callout{background:linear-gradient(135deg,#f0f4ff 0%,#f5f0ff 100%);border-left:4px solid #667eea;border-radius:0 12px 12px 0;padding:20px 24px;margin:20px 0;}
+  .callout.warning{background:linear-gradient(135deg,#fff7ed 0%,#fef3c7 100%);border-left-color:#f59e0b;}
+  .callout.success{background:linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%);border-left-color:#22c55e;}
+  .callout h4{font-size:15px;font-weight:700;margin-bottom:8px;}
+  .callout p{font-size:14px;color:#4b5563;}
+  
+  /* Landing page mockup */
+  .lp-mockup{background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.08);overflow:hidden;margin:20px 0;}
+  .lp-section{padding:20px 24px;border-bottom:1px solid #f3f4f6;}
+  .lp-section:last-child{border-bottom:none;}
+  .lp-section .label{font-size:11px;font-weight:600;color:#667eea;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
+  .lp-section .content{font-size:14px;color:#374151;}
+  .lp-hero{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;text-align:center;padding:36px 24px;}
+  .lp-hero h2{font-size:22px;font-weight:800;margin-bottom:8px;}
+  .lp-hero p{font-size:14px;opacity:0.9;margin-bottom:16px;}
+  .lp-cta{display:inline-block;background:#fff;color:#667eea;padding:10px 28px;border-radius:8px;font-weight:700;font-size:14px;}
+  
+  /* Keyword chips */
+  .keyword-chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;}
+  .keyword-chip{display:inline-block;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500;}
+  .chip-bofu{background:#fee2e2;color:#dc2626;border:1px solid #fecaca;}
+  .chip-mofu{background:#fef3c7;color:#d97706;border:1px solid #fde68a;}
+  .chip-tofu{background:#dbeafe;color:#2563eb;border:1px solid #bfdbfe;}
+  
+  /* Metrics */
+  .metrics-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:20px 0;}
+  .metric{text-align:center;padding:20px 12px;background:#fff;border-radius:12px;border:1px solid #e8ecf1;}
+  .metric .value{font-size:28px;font-weight:800;color:#667eea;}
+  .metric .label{font-size:13px;color:#6b7280;margin-top:4px;}
+  
+  /* Checklist */
+  .checklist{list-style:none;padding:0;}
+  .checklist li{padding:8px 0 8px 28px;position:relative;font-size:14px;color:#374151;border-bottom:1px solid #f3f4f6;}
+  .checklist li:last-child{border-bottom:none;}
+  .checklist li::before{content:'✓';position:absolute;left:0;top:8px;color:#22c55e;font-weight:700;font-size:16px;}
+  .checklist li.pending::before{content:'○';color:#d1d5db;font-weight:400;}
+  
+  /* Content calendar */
+  .calendar-table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px;}
+  .calendar-table th{background:#667eea;color:#fff;padding:10px;text-align:center;font-weight:600;}
+  .calendar-table td{padding:10px;border:1px solid #e8ecf1;vertical-align:top;}
+  .calendar-table .week{background:#f3f4f6;font-weight:600;text-align:center;width:60px;}
+  .calendar-table .content-cell{background:#f0f4ff;font-size:12px;color:#4b5563;}
+  
+  /* Footer */
+  .footer{text-align:center;padding:32px 0;background:#1a1a2e;color:#9ca3af;font-size:13px;}
+  .footer strong{color:#fff;}
+  
+  @media(max-width:768px){
+    .hero h1{font-size:26px;}
+    .metrics-row{grid-template-columns:repeat(2,1fr);}
+    .section-title{font-size:22px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <div class="container">
+    <h1>自动化获客方案</h1>
+    <p class="subtitle">SEO + 落地页 → 自助订阅 — 全流程自动获客引擎</p>
+    <div style="margin-top:12px;">
+      <span class="badge">全行业通用 SaaS CRM</span>
+      <span class="badge">杭州中数云科</span>
+      <span class="badge">2026年8月</span>
+    </div>
+    <p class="meta">方案编制日期：2026-08-07 ｜ 适用产品：全行业可配置 SaaS CRM 系统</p>
+  </div>
+</div>
+
+<!-- ===== 1. 市场定位 ===== -->
+<div class="section">
+  <div class="container">
+    <h2 class="section-title"><span class="num">1</span>市场定位与差异化</h2>
+    <p class="section-desc">先搞清楚「我们是谁、打谁、凭什么赢」，再谈获客</p>
+
+    <div class="card-grid">
+      <div class="card highlight">
+        <span class="icon">🎯</span>
+        <h3>我们的定位</h3>
+        <p><strong>全行业通用 · 可配置 · AI 驱动</strong><br>
+        不是某个行业的专用工具，而是「任何行业都能 5 分钟配置上手」的 CRM 平台。核心竞争力是<strong>可配置性</strong>——自定义字段、可配置管道、行业模板一键切换。</p>
+      </div>
+      <div class="card">
+        <span class="icon">⚔️</span>
+        <h3>主要竞争对手</h3>
+        <p><strong>第一梯队：</strong>纷享销客、销售易（中大型，贵）<br>
+        <strong>第二梯队：</strong>悟空CRM、Zoho CRM（轻量，功能有限）<br>
+        <strong>第三梯队：</strong>超兔一体云、红圈CRM（垂直行业绑定）<br>
+        <strong>国际：</strong>HubSpot、Salesforce（贵，本地化弱）</p>
+      </div>
+      <div class="card">
+        <span class="icon">💡</span>
+        <h3>差异化优势</h3>
+        <p>① <strong>全行业适配</strong>：4 套行业模板（教培/医美/B2B/助贷）+ 5 套管道模板，非「绑死」某一行业<br>
+        ② <strong>AI 原生</strong>：AI话术生成 + AI客户画像 + AI智能提醒，开箱即用<br>
+        ③ <strong>价格优势</strong>：中小企业可负担的 SaaS 订阅，非按人头高昂计费<br>
+        ④ <strong>企微生态</strong>：原生集成企业微信，贴合国内私域运营场景</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <h4>📌 一句话价值主张（用于所有营销物料）</h4>
+      <p style="font-size:18px;font-weight:700;color:#667eea;">「5分钟配置你的行业CRM，AI帮你跟进每一个客户」</p>
+      <p>备选：「全行业都能用的可配置CRM — 比纷享销客灵活，比悟空CRM智能，比HubSpot更懂中国企业」</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 2. 目标客户画像 ===== -->
+<div class="section">
+  <div class="container">
+    <h2 class="section-title"><span class="num">2</span>目标客户画像</h2>
+    <p class="section-desc">不是所有人都是你的客户——精准画像决定关键词和落地页方向</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <span class="icon">🏢</span>
+        <h3>核心画像 A：中小企业老板</h3>
+        <p><strong>规模：</strong>10-100人销售团队<br>
+        <strong>痛点：</strong>客户资料散在Excel/微信里，销售离职带走客户，跟进无标准流程<br>
+        <strong>搜索习惯：</strong>「CRM软件推荐」「中小企业CRM」「客户管理系统哪个好」<br>
+        <strong>决策因素：</strong>价格、易用性、快速上手<br>
+        <strong>付费意愿：</strong>500-2000元/月</p>
+      </div>
+      <div class="card">
+        <span class="icon">📊</span>
+        <h3>核心画像 B：销售总监/运营负责人</h3>
+        <p><strong>规模：</strong>成长型企业，有初步销售流程<br>
+        <strong>痛点：</strong>销售管道不可视，团队协作混乱，数据报表靠手工<br>
+        <strong>搜索习惯：</strong>「销售管道管理」「销售自动化工具」「AI CRM」<br>
+        <strong>决策因素：</strong>功能完整性、AI能力、数据分析<br>
+        <strong>付费意愿：</strong>2000-5000元/月</p>
+      </div>
+      <div class="card">
+        <span class="icon">🏭</span>
+        <h3>核心画像 C：行业垂直需求者</h3>
+        <p><strong>规模：</strong>教培/医美/B2B/助贷等特定行业<br>
+        <strong>痛点：</strong>通用CRM不适配行业流程，定制开发太贵<br>
+        <strong>搜索习惯：</strong>「教培行业CRM」「医美客户管理」「B2B销售管理软件」<br>
+        <strong>决策因素：</strong>行业模板适配度、自定义能力<br>
+        <strong>付费意愿：</strong>1000-3000元/月</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 3. SEO 关键词策略 ===== -->
+<div class="section">
+  <div class="container">
+    <h2 class="section-title"><span class="num">3</span>SEO 关键词策略</h2>
+    <p class="section-desc">按搜索意图分层——高购买意图词优先，不求流量大，求转化高</p>
+
+    <div class="callout warning">
+      <h4>⚠️ 核心原则</h4>
+      <p>不要追逐高搜索量的泛词（如「CRM是什么」流量大但转化极低）。优先抢占<strong>高购买意图</strong>的长尾词——搜索量虽小，但每个搜索者都在评估购买，转化率是泛词的 50 倍。</p>
+    </div>
+
+    <h3 style="font-size:18px;margin:24px 0 12px;color:#dc2626;">🔥 第一优先级：高购买意图词（BOFU — 立即决策阶段）</h3>
+    <div class="keyword-chips">
+      <span class="keyword-chip chip-bofu">CRM软件推荐</span>
+      <span class="keyword-chip chip-bofu">CRM系统哪个好</span>
+      <span class="keyword-chip chip-bofu">免费CRM软件</span>
+      <span class="keyword-chip chip-bofu">中小企业CRM系统</span>
+      <span class="keyword-chip chip-bofu">全行业CRM</span>
+      <span class="keyword-chip chip-bofu">可配置CRM系统</span>
+      <span class="keyword-chip chip-bofu">纷享销客替代</span>
+      <span class="keyword-chip chip-bofu">销售易替代方案</span>
+      <span class="keyword-chip chip-bofu">悟空CRM替代</span>
+      <span class="keyword-chip chip-bofu">CRM软件价格对比</span>
+      <span class="keyword-chip chip-bofu">CRM免费试用</span>
+      <span class="keyword-chip chip-bofu">企业微信CRM集成</span>
+    </div>
+
+    <h3 style="font-size:18px;margin:24px 0 12px;color:#d97706;">🟡 第二优先级：方案比较词（MOFU — 评估阶段）</h3>
+    <div class="keyword-chips">
+      <span class="keyword-chip chip-mofu">客户管理系统</span>
+      <span class="keyword-chip chip-mofu">销售管道管理软件</span>
+      <span class="keyword-chip chip-mofu">客户跟进管理系统</span>
+      <span class="keyword-chip chip-mofu">销售自动化工具</span>
+      <span class="keyword-chip chip-mofu">AI CRM系统</span>
+      <span class="keyword-chip chip-mofu">教培行业CRM</span>
+      <span class="keyword-chip chip-mofu">医美客户管理系统</span>
+      <span class="keyword-chip chip-mofu">B2B销售管理软件</span>
+      <span class="keyword-chip chip-mofu">助贷CRM系统</span>
+      <span class="keyword-chip chip-mofu">房产销售管理软件</span>
+      <span class="keyword-chip chip-mofu">企业微信客户管理</span>
+      <span class="keyword-chip chip-mofu">销售漏斗管理工具</span>
+    </div>
+
+    <h3 style="font-size:18px;margin:24px 0 12px;color:#2563eb;">🔵 第三优先级：认知教育词（TOFU — 品牌建设）</h3>
+    <div class="keyword-chips">
+      <span class="keyword-chip chip-tofu">什么是CRM系统</span>
+      <span class="keyword-chip chip-tofu">CRM系统有什么用</span>
+      <span class="keyword-chip chip-tofu">如何选择CRM软件</span>
+      <span class="keyword-chip chip-tofu">客户关系管理最佳实践</span>
+      <span class="keyword-chip chip-tofu">销售漏斗分析怎么做</span>
+      <span class="keyword-chip chip-tofu">客户跟进话术技巧</span>
+      <span class="keyword-chip chip-tofu">销售团队管理方法</span>
+      <span class="keyword-chip chip-tofu">客户流失率怎么降低</span>
+    </div>
+
+    <h3 style="font-size:18px;margin:28px 0 12px;">📋 关键词优先级矩阵</h3>
+    <table class="data-table">
+      <thead>
+        <tr><th>关键词</th><th>意图阶段</th><th>对应页面类型</th><th>预计转化率</th><th>优先级</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>CRM软件推荐</td><td><span class="tag tag-bofu">BOFU</span></td><td>对比落地页</td><td>5-8%</td><td><span class="tag tag-high">立即</span></td></tr>
+        <tr><td>纷享销客替代</td><td><span class="tag tag-bofu">BOFU</span></td><td>竞品对比页</td><td>8-12%</td><td><span class="tag tag-high">立即</span></td></tr>
+        <tr><td>中小企业CRM系统</td><td><span class="tag tag-bofu">BOFU</span></td><td>产品落地页</td><td>5-8%</td><td><span class="tag tag-high">立即</span></td></tr>
+        <tr><td>免费CRM软件</td><td><span class="tag tag-bofu">BOFU</span></td><td>免费试用页</td><td>10-15%</td><td><span class="tag tag-high">立即</span></td></tr>
+        <tr><td>教培行业CRM</td><td><span class="tag tag-mofu">MOFU</span></td><td>行业方案页</td><td>3-5%</td><td><span class="tag tag-medium">第2月</span></td></tr>
+        <tr><td>AI CRM系统</td><td><span class="tag tag-mofu">MOFU</span></td><td>功能特性页</td><td>3-5%</td><td><span class="tag tag-medium">第2月</span></td></tr>
+        <tr><td>如何选择CRM软件</td><td><span class="tag tag-tofu">TOFU</span></td><td>博客长文</td><td>0.5-1%</td><td>第3月</td></tr>
+        <tr><td>客户跟进话术技巧</td><td><span class="tag tag-tofu">TOFU</span></td><td>博客长文</td><td>0.5-1%</td><td>第3月</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout success">
+      <h4>✅ 内容集群策略（Topic Cluster）</h4>
+      <p><strong>集群1：CRM选型指南</strong>（支柱页）→ 中小企业CRM选型 / 各行业CRM对比 / CRM价格对比 / CRM功能清单 / 开源vs SaaS CRM<br>
+      <strong>集群2：客户管理实战</strong>（支柱页）→ 客户跟进策略 / 客户分层管理 / 客户流失预防 / 客户画像构建 / 客户标签体系<br>
+      <strong>集群3：销售自动化</strong>（支柱页）→ AI销售助手 / 自动跟进提醒 / 销售管道优化 / 销售数据分析 / 销售流程标准化<br>
+      <strong>集群4：行业CRM方案</strong>（支柱页）→ 教培CRM方案 / 医美CRM方案 / B2B CRM方案 / 助贷CRM方案 / 房产CRM方案</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 4. 落地页架构 ===== -->
+<div class="section">
+  <div class="container">
+    <h2 class="section-title"><span class="num">4</span>高转化落地页架构</h2>
+    <p class="section-desc">一个页面只做一件事：让访客注册免费试用</p>
+
+    <div class="lp-mockup">
+      <div class="lp-section lp-hero">
+        <div class="label" style="color:rgba(255,255,255,0.7);">第一屏 · Hero Section</div>
+        <h2>5分钟配置你的行业CRM<br>AI帮你跟进每一个客户</h2>
+        <p>全行业可配置 · AI话术生成 · 企业微信原生集成 · 14天免费试用</p>
+        <span class="lp-cta">立即免费试用 →</span>
+        <p style="font-size:12px;opacity:0.7;margin-top:8px;">无需信用卡 · 14天全功能体验 · 随时取消</p>
+      </div>
+
+      <div class="lp-section">
+        <div class="label">第二屏 · 痛点共鸣</div>
+        <div class="content">
+          <strong>你是否正在经历这些？</strong><br>
+          ✗ 客户资料散落在 Excel、微信、销售员脑子里<br>
+          ✗ 销售离职，客户资源直接带走<br>
+          ✗ 跟进全靠记忆，该跟的客户忘了跟<br>
+          ✗ 买了个CRM，团队不愿意用，太复杂了<br>
+          ✗ 行业特殊流程，通用CRM根本不适配
+        </div>
+      </div>
+
+      <div class="lp-section">
+        <div class="label">第三屏 · 解决方案（功能展示）</div>
+        <div class="content">
+          <strong>全行业可配置CRM — 你的行业，你的流程，5分钟配好</strong><br>
+          ▸ <strong>自定义字段系统</strong>：EAV模型，拖拽配置，4套行业模板一键切换<br>
+          ▸ <strong>可配置销售管道</strong>：5套行业管道模板，阶段自定义，看板可视化<br>
+          ▸ <strong>AI跟进话术</strong>：3种风格智能生成（关怀型/价值型/促成型），一键复制<br>
+          ▸ <strong>AI客户画像</strong>：自动生成客户一句话摘要，销售新人也能快速上手<br>
+          ▸ <strong>AI智能提醒</strong>：高意向客户沉默预警 / 管道滞留预警 / 紧急待跟提醒<br>
+          ▸ <strong>企业微信集成</strong>：原生企微侧边栏，客户聊天即看即用
+        </div>
+      </div>
+
+      <div class="lp-section">
+        <div class="label">第四屏 · 行业适配展示</div>
+        <div class="content">
+          <strong>不管你是什么行业，都能5分钟配好</strong><br>
+          🏫 教培：学员意向管理 / 课程跟进 / 续费提醒<br>
+          💊 医美：到院咨询 / 方案推荐 / 复购管理<br>
+          💼 B2B：商机跟单 / 多人决策 / 合同审批<br>
+          🏠 房产：带看管理 / 意向分级 / 成交推进<br>
+          💰 助贷：资质评估 / 进件跟进 / 放款管理<br>
+          <em>…更多行业模板持续上线中</em>
+        </div>
+      </div>
+
+      <div class="lp-section">
+        <div class="label">第五屏 · 社会证明</div>
+        <div class="content">
+          <strong>已有 200+ 企业正在使用</strong>（如果有真实数据替换）<br>
+          [客户Logo墙] [客户评价 × 3条] [使用数据：管理客户XX万 / 跟进XX万次 / 成单XX万笔]
+        </div>
+      </div>
+
+      <div class="lp-section">
+        <div class="label">第六屏 · 透明定价</div>
+        <div class="content">
+          <strong>简单透明的定价</strong><br>
+          🆓 <strong>免费版</strong>：3人以下 / 基础客户管理 / 永久免费<br>
+          💎 <strong>专业版</strong>：¥XX/人/月 / 全功能 / AI能力 / 行业模板<br>
+          🏢 <strong>企业版</strong>：¥XX/人/月 / 无限用户 / API集成 / 专属支持<br>
+          <em>所有套餐均含14天免费试用，无需信用卡</em>
+        </div>
+      </div>
+
+      <div class="lp-section">
+        <div class="label">第七屏 · FAQ</div>
+        <div class="content">
+          Q: 不是技术人员能用好这个CRM吗？ → 5分钟配置，零代码操作<br>
+          Q: 我的行业你们支持吗？ → 自定义字段+管道，理论上全行业适配<br>
+          Q: 数据安全吗？ → 阿里云ECS部署 / SSL加密 / 多租户隔离<br>
+          Q: 可以先试用再决定吗？ → 14天全功能免费试用，无需信用卡<br>
+          Q: 和企业微信怎么对接？ → 原生集成，一键授权即可使用
+        </div>
+      </div>
+
+      <div class="lp-section" style="background:linear-gradient(135deg,#f0f4ff,#f5f0ff);text-align:center;">
+        <div class="label">最终CTA</div>
+        <div class="content">
+          <strong style="font-size:20px;">现在开始，5分钟拥有你的行业CRM</strong><br><br>
+          <span style="display:inline-block;background:#667eea;color:#fff;padding:12px 36px;border-radius:8px;font-weight:700;font-size:16px;">立即免费试用 →</span>
+          <p style="font-size:13px;color:#6b7280;margin-top:8px;">已有账号？<a href="#" style="color:#667eea;">直接登录</a></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <h4>📐 落地页关键转化要素清单</h4>
+      <ul class="checklist" style="margin-top:8px;">
+        <li>单一转化目标：只引导注册免费试用，不放多个CTA分散注意力</li>
+        <li>标题写收益不写功能：「5分钟配置」>「支持自定义字段系统」</li>
+        <li>表单极简：仅需 手机号/邮箱 + 密码，减少字段 = 提高转化</li>
+        <li>消除风险：「无需信用卡」「14天免费」「随时取消」靠近CTA按钮</li>
+        <li>社会证明分散全页：不只放底部，每个关键section后穿插</li>
+        <li>FAQ用结构化数据（Schema.org）标记，争取搜索结果富摘要</li>
+        <li>移动端优先：45%以上B2B调研在手机上进行</li>
+        <li>页面加载 < 3秒：Core Web Vitals直接影响SEO排名和转化率</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 5. 自动化订阅漏斗 ===== -->
+<div class="section">
+  <div class="container">
+    <h2 class="section-title"><span class="num">5</span>自动化订阅漏斗</h2>
+    <p class="section-desc">从「陌生访客」到「付费订阅」的自动化全链路</p>
+
+    <div class="funnel">
+      <div class="funnel-step funnel-s1">
+        <span class="step-num">1</span>
+        SEO流量 / 内容引流
+        <div class="conv-rate">来源：搜索引擎自然流量 → 博客文章 → 行业方案页 → 落地页</div>
+      </div>
+      <div class="funnel-step funnel-s2">
+        <span class="step-num">2</span>
+        落地页注册
+        <div class="conv-rate">转化动作：填写手机号/邮箱 → 创建试用账号 → 预计转化率 5-8%</div>
+      </div>
+      <div class="funnel-step funnel-s3">
+        <span class="step-num">3</span>
+        自动引导配置
+        <div class="conv-rate">自动触发：注册后引导选择行业模板 → 自动加载字段+管道 → 3分钟完成配置</div>
+      </div>
+      <div class="funnel-step funnel-s4">
+        <span class="step-num">4</span>
+        试用期内自动触达
+        <div class="conv-rate">D1: 欢迎邮件+配置指南 / D3: AI功能使用提示 / D7: 行业最佳实践 / D10: 进阶功能解锁</div>
+      </div>
+      <div class="funnel-step funnel-s5">
+        <span class="step-num">5</span>
+        到期前转化提醒
+        <div class="conv-rate">D12: 试用即将到期提醒 + 限时优惠 / D13: 客户成功1对1沟通 / D14: 最终转化推送</div>
+      </div>
+      <div class="funnel-step funnel-s6">
+        <span class="step-num">6</span>
+        付费订阅
+        <div class="conv-rate">转化动作：选择套餐 → 支付宝在线支付 → 自动开通 → 预计转化率 15-25%（试用期→付费）</div>
+      </div>
+    </div>
+
+    <div class="card-grid" style="margin-top:24px;">
+      <div class="card">
+        <h3>📧 自动邮件序列设计</h3>
+        <p><strong>D0 注册后立即：</strong>欢迎邮件 + 快速开始指南 + 行业模板选择入口<br>
+        <strong>D1：</strong>「3步配置你的CRM」+ 配置截图引导<br>
+        <strong>D3：</strong>「试试AI帮你写跟进话术」+ 功能演示GIF<br>
+        <strong>D7：</strong>「这个团队用CRM把转化率提升了30%」+ 客户案例<br>
+        <strong>D10：</strong>「你还没试过的3个高级功能」+ 数据分析/审批流/转介绍<br>
+        <strong>D12：</strong>「你的免费试用还剩2天」+ 限时8折优惠码<br>
+        <strong>D14：</strong>「最后机会 — 立即订阅享8折」+ 紧迫感CTA</p>
+      </div>
+      <div class="card">
+        <h3>🔔 自动化触发规则</h3>
+        <p><strong>行为触发：</strong><br>
+        ▸ 注册未配置 → 24h后发送配置提醒<br>
+        ▸ 配置完成未导入客户 → 48h后发送导入指南<br>
+        ▸ 导入客户未使用AI功能 → 3天后推送AI功能演示<br>
+        ▸ 活跃度下降 → 发送「你本周还没登录」提醒<br>
+        <strong>时间触发：</strong><br>
+        ▸ 试用第7天 → 发送中期使用报告<br>
+        ▸ 试用第12天 → 发送到期提醒+优惠<br>
+        ▸ 试用到期未付费 → 7天后发送挽回邮件</p>
+      </div>
+      <div class="card">
+        <h3>📈 关键转化指标</h3>
+        <p><strong>访客→注册：</strong>目标 5%<br>
+        <strong>注册→配置完成：</strong>目标 60%<br>
+        <strong>配置完成→活跃使用：</strong>目标 40%<br>
+        <strong>活跃→付费转化：</strong>目标 20%<br>
+        <strong>整体（访客→付费）：</strong>0.24%<br>
+        <br>
+        <em>意味着：每月 10,000 SEO 访客 → 500 注册 → 300 配置 → 120 活跃 → 24 付费客户/月</em></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 6. 内容策略 ===== -->
+<div class="section">
+  <div class="container">
+    <h2 class="section-title"><span class="num">6</span>内容策略与发布计划</h2>
+    <p class="section-desc">内容不是博客——是获客机器。每篇文章都为一个关键词服务，每篇文章都指向落地页</p>
+
+    <h3 style="font-size:18px;margin:20px 0 12px;">📝 内容类型与优先级</h3>
+    <table class="data-table">
+      <thead>
+        <tr><th>内容类型</th><th>目标关键词</th><th>篇幅</th><th>发布频率</th><th>优先级</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>竞品对比页</td><td>纷享销客替代 / 销售易替代 / 悟空CRM替代</td><td>2000-3000字</td><td>第1月上线3篇</td><td><span class="tag tag-high">最高</span></td></tr>
+        <tr><td>产品落地页</td><td>中小企业CRM / 全行业CRM / 可配置CRM</td><td>1500-2000字</td><td>第1月上线</td><td><span class="tag tag-high">最高</span></td></tr>
+        <tr><td>行业方案页</td><td>教培CRM / 医美CRM / B2B CRM / 助贷CRM</td><td>1500-2500字</td><td>第2月上线4篇</td><td><span class="tag tag-medium">高</span></td></tr>
+        <tr><td>功能特性页</td><td>AI CRM / 销售管道管理 / 客户跟进系统</td><td>1000-1500字</td><td>第2月上线3篇</td><td><span class="tag tag-medium">高</span></td></tr>
+        <tr><td>支柱长文</td><td>CRM选型指南 / 客户管理实战 / 销售自动化</td><td>3000-5000字</td><td>第2-3月上线3篇</td><td><span class="tag tag-medium">中</span></td></tr>
+        <tr><td>博客文章</td><td>TOFU长尾词（如何选择CRM等）</td><td>1500-2000字</td><td>每周1-2篇</td><td>持续</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:18px;margin:28px 0 12px;">📅 前12周内容发布日历</h3>
+    <table class="calendar-table">
+      <thead>
+        <tr><th>周</th><th>内容标题</th><th>关键词</th><th>类型</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="week">W1</td><td class="content-cell">产品落地页上线</td><td class="content-cell">中小企业CRM系统</td><td class="content-cell">落地页</td></tr>
+        <tr><td class="week">W2</td><td class="content-cell">纷享销客替代方案：更灵活、更智能的选择</td><td class="content-cell">纷享销客替代</td><td class="content-cell">竞品对比页</td></tr>
+        <tr><td class="week">W3</td><td class="content-cell">悟空CRM替代：全行业适配 + AI原生CRM</td><td class="content-cell">悟空CRM替代</td><td class="content-cell">竞品对比页</td></tr>
+        <tr><td class="week">W4</td><td class="content-cell">2026年CRM软件推荐：中小企业首选</td><td class="content-cell">CRM软件推荐</td><td class="content-cell">对比落地页</td></tr>
+        <tr><td class="week">W5</td><td class="content-cell">教培行业CRM：从学员咨询到续费全流程</td><td class="content-cell">教培行业CRM</td><td class="content-cell">行业方案页</td></tr>
+        <tr><td class="week">W6</td><td class="content-cell">医美客户管理系统：到院/方案/复购一站式</td><td class="content-cell">医美CRM</td><td class="content-cell">行业方案页</td></tr>
+        <tr><td class="week">W7</td><td class="content-cell">AI CRM系统：让AI帮你跟进每一个客户</td><td class="content-cell">AI CRM系统</td><td class="content-cell">功能特性页</td></tr>
+        <tr><td class="week">W8</td><td class="content-cell">B2B销售管理软件：商机跟单+多人决策+审批流</td><td class="content-cell">B2B CRM</td><td class="content-cell">行业方案页</td></tr>
+        <tr><td class="week">W9</td><td class="content-cell">CRM选型完全指南（支柱长文）</td><td class="content-cell">如何选择CRM软件</td><td class="content-cell">支柱长文</td></tr>
+        <tr><td class="week">W10</td><td class="content-cell">销售管道管理：从混乱到可控的5个步骤</td><td class="content-cell">销售管道管理</td><td class="content-cell">功能特性页</td></tr>
+        <tr><td class="week">W11</td><td class="content-cell">客户跟进管理系统：告别Excel的5个理由</td><td class="content-cell">客户跟进系统</td><td class="content-cell">功能特性页</td></tr>
+        <tr><td class="week">W12</td><td class="content-cell">助贷CRM系统：资质评估到放款全流程</td><td class="content-cell">助贷CRM</td><td class="content-cell">行业方案页</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <h4>💡 内容创作要点</h4>
+      <p>① <strong>每篇文章末尾必须引导到落地页</strong>：「试试我们的CRM → 立即免费试用」<br>
+      ② <strong>竞品对比页要公平</strong>：承认竞品优势，突出我们的差异化（可配置性+AI+价格）<br>
+      ③ <strong>行业方案页要具体</strong>：展示该行业的字段模板、管道阶段、实际截图<br>
+      ④ <strong>所有页面加结构化数据</strong>：FAQ Schema / Product Schema / Review Schema 争取富摘要<br>
+      ⑤ <strong>内链策略</strong>：每篇文章链接到3-5篇相关文章+1次落地页CTA</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 7. 90天执行计划 ===== -->
+<div class="section">
+  <div class="container">
+    <h2 class="section-title"><span class="num">7</span>90天执行计划</h2>
+    <p class="section-desc">分三个阶段，每阶段有明确目标和验收标准</p>
+
+    <div class="metrics-row">
+      <div class="metric">
+        <div class="value">3</div>
+        <div class="label">落地页+对比页</div>
+      </div>
+      <div class="metric">
+        <div class="value">7</div>
+        <div class="label">行业方案+功能页</div>
+      </div>
+      <div class="metric">
+        <div class="value">15+</div>
+        <div class="label">SEO内容文章</div>
+      </div>
+      <div class="metric">
+        <div class="value">24</div>
+        <div class="label">预计月付费客户</div>
+      </div>
+    </div>
+
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="time">第1月（W1-W4）— 基础搭建期</div>
+        <div class="title">目标：获客基础设施上线</div>
+        <div class="desc">这个阶段不追求流量，先把转化漏斗跑通。</div>
+        <ul>
+          <li><strong>W1：</strong>产品落地页上线（含定价、FAQ、免费试用注册）</li>
+          <li><strong>W1：</strong>注册→配置→试用流程打通，自动邮件序列 D0-D3 配置完成</li>
+          <li><strong>W2：</strong>「纷享销客替代」对比页上线</li>
+          <li><strong>W3：</strong>「悟空CRM替代」对比页上线</li>
+          <li><strong>W4：</strong>「CRM软件推荐」综合对比页上线 + 提交百度/搜狗站长平台</li>
+          <li><strong>W4：</strong>自动邮件序列 D7-D14 配置完成 + 到期转化优惠设置</li>
+        </ul>
+        <div class="desc" style="margin-top:8px;color:#667eea;"><strong>验收标准：</strong>访客可完成 注册→配置→试用→付费 全流程，无人工介入</div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="time">第2月（W5-W8）— 内容引擎期</div>
+        <div class="title">目标：SEO内容矩阵上线，开始获取自然流量</div>
+        <div class="desc">这个阶段开始铺设内容，抢占中长尾关键词排名。</div>
+        <ul>
+          <li><strong>W5：</strong>教培行业方案页 + 博客：教培机构如何管理学员意向</li>
+          <li><strong>W6：</strong>医美行业方案页 + 博客：医美机构客户流失率怎么降低</li>
+          <li><strong>W7：</strong>AI CRM功能页 + 博客：AI如何帮销售自动跟进客户</li>
+          <li><strong>W8：</strong>B2B行业方案页 + 博客：B2B销售管道管理最佳实践</li>
+          <li><strong>持续：</strong>每周在知乎/百家号/微信公众号分发1篇内容（引流到官网）</li>
+          <li><strong>持续：</strong>监控百度统计/Google Search Console 关键词排名变化</li>
+        </ul>
+        <div class="desc" style="margin-top:8px;color:#667eea;"><strong>验收标准：</strong>15+页面被搜索引擎收录，开始有自然搜索流量进入</div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="time">第3月（W9-W12）— 优化迭代期</div>
+        <div class="title">目标：转化率优化 + 流量增长</div>
+        <div class="desc">根据数据优化，同时扩充内容覆盖面。</div>
+        <ul>
+          <li><strong>W9：</strong>CRM选型指南支柱长文上线（3000+字）+ 内链优化</li>
+          <li><strong>W10：</strong>销售管道管理功能页 + 博客：销售漏斗分析怎么做</li>
+          <li><strong>W11：</strong>客户跟进系统功能页 + 博客：客户跟进话术技巧</li>
+          <li><strong>W12：</strong>助贷行业方案页 + 季度复盘</li>
+          <li><strong>持续：</strong>A/B测试落地页标题、CTA文案、注册表单字段数</li>
+          <li><strong>持续：</strong>根据搜索词报告补充新内容选题</li>
+          <li><strong>持续：</strong>在CSDN/知乎/掘金发布技术向内容（开发者也是决策影响者）</li>
+        </ul>
+        <div class="desc" style="margin-top:8px;color:#667eea;"><strong>验收标准：</strong>月自然流量 5000+，注册转化率 ≥ 5%，试用→付费转化率 ≥ 15%</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 8. 预期效果 ===== -->
+<div class="section">
+  <div class="container">
+    <h2 class="section-title"><span class="num">8</span>预期效果与投入产出</h2>
+    <p class="section-desc">基于行业基准数据的保守估算</p>
+
+    <table class="data-table">
+      <thead>
+        <tr><th>指标</th><th>第1月</th><th>第2月</th><th>第3月</th><th>第6月</th><th>第12月</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>月自然搜索流量</td><td>500</td><td>2,000</td><td>5,000</td><td>15,000</td><td>40,000+</td></tr>
+        <tr><td>月注册用户</td><td>25</td><td>100</td><td>250</td><td>750</td><td>2,000+</td></tr>
+        <tr><td>月付费客户</td><td>1-2</td><td>5-8</td><td>15-25</td><td>50-75</td><td>150-200</td></tr>
+        <tr><td>累计付费客户</td><td>2</td><td>10</td><td>30</td><td>180</td><td>1,200+</td></tr>
+        <tr><td>月经常性收入(MRR)</td><td>¥2,000</td><td>¥8,000</td><td>¥25,000</td><td>¥75,000</td><td>¥200,000+</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout warning">
+      <h4>⚠️ 上述数据为保守估算</h4>
+      <p>基于以下假设：① SEO流量转化率5% ② 试用→付费转化率15% ③ 平均客单价 ¥1,500/月 ④ 内容持续更新。实际效果取决于内容质量、排名速度和产品体验。SEO是复利型投入——前3个月见效慢，6-12个月进入增长飞轮。</p>
+    </div>
+
+    <h3 style="font-size:18px;margin:28px 0 12px;">💰 需要投入的资源</h3>
+    <div class="card-grid">
+      <div class="card">
+        <h3>人力投入</h3>
+        <p><strong>内容创作：</strong>1人（全职/兼职），每周2-3篇SEO文章<br>
+        <strong>SEO优化：</strong>可外包或自学基础SEO（站长平台提交、结构化数据、内链）<br>
+        <strong>邮件营销：</strong>初期可手动配置序列，后期用自动化工具<br>
+        <strong>客服支持：</strong>试用用户的问题需要及时响应</p>
+      </div>
+      <div class="card">
+        <h3>工具投入</h3>
+        <p><strong>百度统计/Google Analytics：</strong>免费<br>
+        <strong>百度搜索资源平台：</strong>免费（必做）<br>
+        <strong>5118/爱站：</strong>¥200-500/月（关键词监控）<br>
+        <strong>邮件发送服务：</strong>¥0-300/月（SendGrid/阿里云邮件推送）<br>
+        <strong>总工具成本：</strong>约 ¥500-800/月</p>
+      </div>
+      <div class="card">
+        <h3>时间投入</h3>
+        <p><strong>前4周：</strong>密集搭建期，每天2-4小时<br>
+        <strong>第2-3月：</strong>内容创作期，每天1-2小时<br>
+        <strong>3个月后：</strong>维护优化期，每天30-60分钟<br>
+        <br>
+        <em>SEO是长期投资，6个月后内容资产开始产生复利效应</em></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 9. 行动清单 ===== -->
+<div class="section">
+  <div class="container">
+    <h2 class="section-title"><span class="num">9</span>立即行动清单</h2>
+    <p class="section-desc">打印这份清单，逐项打钩</p>
+
+    <h3 style="font-size:16px;margin:20px 0 12px;color:#dc2626;">🔴 本周必须完成</h3>
+    <ul class="checklist">
+      <li class="pending">确定产品定价方案（免费版/专业版/企业版的具体价格和功能边界）</li>
+      <li class="pending">确认免费试用注册流程可用（注册→自动开通→引导配置→可正常使用）</li>
+      <li class="pending">确认支付宝在线支付可用（客户可自主完成订阅付款）</li>
+      <li class="pending">注册百度搜索资源平台，提交网站 sitemap</li>
+      <li class="pending">在百度统计/Google Analytics 部署追踪代码</li>
+    </ul>
+
+    <h3 style="font-size:16px;margin:20px 0 12px;color:#d97706;">🟡 第2-4周完成</h3>
+    <ul class="checklist">
+      <li class="pending">产品落地页上线（按第4节架构设计）</li>
+      <li class="pending">「纷享销客替代」竞品对比页</li>
+      <li class="pending">「悟空CRM替代」竞品对比页</li>
+      <li class="pending">「CRM软件推荐」综合对比页</li>
+      <li class="pending">配置 D0-D3 自动欢迎邮件序列</li>
+      <li class="pending">配置 D7-D14 试用转化邮件序列</li>
+      <li class="pending">设置试用到期前限时优惠（如8折优惠码）</li>
+      <li class="pending">在知乎/百家号注册企业号，准备内容分发渠道</li>
+    </ul>
+
+    <h3 style="font-size:16px;margin:20px 0 12px;color:#2563eb;">🔵 第5-12周完成</h3>
+    <ul class="checklist">
+      <li class="pending">4个行业方案页（教培/医美/B2B/助贷）</li>
+      <li class="pending">3个功能特性页（AI CRM/销售管道/客户跟进）</li>
+      <li class="pending">3篇支柱长文（CRM选型指南/客户管理实战/销售自动化）</li>
+      <li class="pending">每周1-2篇博客文章（TOFU长尾词）</li>
+      <li class="pending">每周1篇知乎/百家号内容分发</li>
+      <li class="pending">落地页A/B测试（标题/CTA/表单字段）</li>
+      <li class="pending">月度数据复盘：流量/排名/注册/转化率</li>
+    </ul>
+
+    <div class="callout success" style="margin-top:24px;">
+      <h4>🚀 核心心法</h4>
+      <p><strong>SEO获客是复利投资，不是一夜暴富。</strong>前3个月你在种树，6个月后开始乘凉，12个月后你的内容资产就像一台 24 小时运转的获客机器。关键是：现在就开始，持续产出，不要停。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== FOOTER ===== -->
+<div class="footer">
+  <div class="container">
+    <p><strong>全行业通用 SaaS CRM — 自动化获客方案</strong></p>
+    <p>杭州中数云科智慧科技有限公司 ｜ 浙ICP备2026009605号-1</p>
+    <p style="margin-top:8px;opacity:0.5;">本方案基于2026年8月市场调研数据编制 ｜ 建议每季度更新一次关键词和竞品分析</p>
+  </div>
+</div>
+
+</body>
+</html>

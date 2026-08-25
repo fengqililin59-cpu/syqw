@@ -1,4 +1,4 @@
-# ZhiFlow 销售资料包 · 总索引
+# 中数云科 销售资料包 · 总索引
 
 > **本页用途**：销售、售前、老板/合伙人的**唯一入口**——按场景找到话术、演示脚本、竞品对比与上线检查，避免在仓库里散落翻找。  
 > **演示前必做**：[演示前检查清单（可打印）](./demo-pre-check-checklist-zh.md) · 生产环境：[生产上线 Runbook](../deploy/production-launch-runbook-zh.md)

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>中数云科软件说明书</title>
+<style>
+  @page { size: A4; margin: 2.5cm 2cm 2.5cm 3cm; }
+  body { font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; font-size: 12pt; line-height: 1.8; color: #222; }
+  h1 { text-align: center; font-size: 18pt; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+  h2 { font-size: 14pt; margin-top: 28px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+  h3 { font-size: 13pt; margin-top: 18px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 11pt; }
+  th, td { border: 1px solid #555; padding: 6px 10px; text-align: left; }
+  th { background: #f0f0f0; font-weight: bold; }
+  p { margin: 6px 0; text-indent: 2em; }
+  p.no-indent { text-indent: 0; }
+  pre { background: #f5f5f5; border: 1px solid #ddd; padding: 10px; font-size: 9pt; line-height: 1.4; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+  .highlight { background: #fff3cd; padding: 1px 4px; }
+  .footer { margin-top: 40px; text-align: right; font-size: 11pt; }
+  .page-break { page-break-before: always; }
+  .copyright-stamp { text-align: right; margin-top: 60px; font-size: 12pt; }
+  ul { margin: 6px 0; padding-left: 2em; }
+  li { margin: 3px 0; }
+</style>
+</head>
+<body>
+
+<h1>中数云科智行流智能客户关系管理系统 —— 软件说明书</h1>
+
+<h2>一、软件基本信息</h2>
+<table>
+  <tr><th style="width:25%">项目</th><th>内容</th></tr>
+  <tr><td>软件名称</td><td>中数云科智行流智能客户关系管理系统</td></tr>
+  <tr><td>版本号</td><td>V1.0</td></tr>
+  <tr><td>分类号</td><td>30200-0000（企业管理软件）</td></tr>
+  <tr><td>开发完成日期</td><td>2026年5月31日</td></tr>
+  <tr><td>首次发表日期</td><td>2026年6月1日</td></tr>
+  <tr><td>发表方式</td><td>通过自有网站公开发布（wework.syzs.top）</td></tr>
+  <tr><td>著作权人</td><td>杭州中数云科智慧科技有限公司</td></tr>
+  <tr><td>开发方式</td><td>独立开发</td></tr>
+  <tr><td>权利范围</td><td>全部权利</td></tr>
+  <tr><td>源程序量</td><td>约48,800行</td></tr>
+  <tr><td>编程语言</td><td>JavaScript（ES2022+）/ TypeScript</td></tr>
+  <tr><td>硬件环境</td><td>x86_64服务器（最低：2核CPU / 4GB RAM / 20GB SSD）</td></tr>
+  <tr><td>软件环境</td><td>服务端：Linux (Ubuntu 20.04+) / Node.js 18+ / MySQL 8.0；客户端：Chrome 90+ / Safari 15+</td></tr>
+</table>
+
+<h2>二、软件概述</h2>
+<h3>2.1 产品定位</h3>
+<p>中数云科智行流是一款<strong>面向全行业的通用型 SaaS 智能客户关系管理平台</strong>。系统以「可配置性」为核心竞争力，支持企业根据自身行业特点自定义客户字段、销售管道、仪表盘等核心业务模块，实现从营销获客、销售转化到客户服务、数据分析的全链路数字化管理。</p>
+
+<h3>2.2 目标用户</h3>
+<ul>
+  <li><strong>中小型企业</strong>：需要轻量级、快速上线的CRM系统</li>
+  <li><strong>销售团队</strong>：需要客户跟进、销售管道、成交管理工具</li>
+  <li><strong>营销部门</strong>：需要广告投放追踪、落地页获客、活动裂变能力</li>
+  <li><strong>客服部门</strong>：需要企业微信集成、收件箱统一接待、工单管理</li>
+  <li><strong>管理层</strong>：需要数据分析仪表盘、团队业绩报表、运营洞察</li>
+</ul>
+
+<h3>2.3 核心价值</h3>
+<ul>
+  <li><strong>全行业通用</strong>：通过自定义字段、可配置管道、可配置仪表盘三大能力，支撑教培、医美、B2B、房产、助贷等不同行业的业务需求</li>
+  <li><strong>AI 赋能</strong>：集成大语言模型（DeepSeek / 通义千问），提供AI跟进话术生成、客户画像摘要、智能跟进提醒等智能化能力</li>
+  <li><strong>企业微信深度集成</strong>：对接企业微信客户联系、消息推送、渠道活码、回调处理等完整能力</li>
+  <li><strong>全链路闭环</strong>：从广告投放追踪 → 落地页留资 → 客户管理 → 销售跟进 → 成交订单 → 服务工单，形成完整业务闭环</li>
+</ul>
+
+<h2>三、技术架构</h2>
+<h3>3.1 整体架构</h3>
+<p class="no-indent">系统采用 <strong>B/S 前后端分离架构</strong>，分为四大层：</p>
+<table>
+  <tr><th>层级</th><th>技术栈</th><th>说明</th></tr>
+  <tr><td>前端展示层</td><td>React 19 + TypeScript + Vite + Tailwind CSS</td><td>仪表盘、客户管理、销售管道、数据分析、AI工作台、营销活动、收件箱、系统设置</td></tr>
+  <tr><td>业务服务层</td><td>Node.js + Express + Sequelize ORM</td><td>61个控制器、147个服务、106个模型、58个路由</td></tr>
+  <tr><td>数据持久层</td><td>MySQL 8.0 + 100+ 迁移脚本</td><td>客户数据、业务数据、营销数据、分析数据，租户隔离，RBAC权限</td></tr>
+  <tr><td>外部集成层</td><td>企业微信API / 微信支付 / 支付宝 / 腾讯云TCCC / AI大模型</td><td>企微消息、支付网关、外呼、AI服务</td></tr>
+</table>
+
+<h3>3.2 关键技术选型</h3>
+<table>
+  <tr><th>层级</th><th>技术</th><th>版本</th><th>选型理由</th></tr>
+  <tr><td>前端框架</td><td>React</td><td>19.x</td><td>组件化开发，生态丰富</td></tr>
+  <tr><td>前端语言</td><td>TypeScript</td><td>6.x</td><td>类型安全，提升代码质量</td></tr>
+  <tr><td>构建工具</td><td>Vite</td><td>8.x</td><td>极速冷启动，HMR热更新</td></tr>
+  <tr><td>CSS框架</td><td>Tailwind CSS</td><td>3.x</td><td>原子化CSS，高效开发</td></tr>
+  <tr><td>服务端框架</td><td>Express.js</td><td>4.x</td><td>轻量灵活，生态成熟</td></tr>
+  <tr><td>ORM框架</td><td>Sequelize</td><td>6.x</td><td>完善的关系映射，MySQL支持好</td></tr>
+  <tr><td>数据库</td><td>MySQL</td><td>8.0</td><td>稳定可靠，事务支持强</td></tr>
+  <tr><td>认证</td><td>JWT</td><td>9.x</td><td>无状态鉴权，适合分布式</td></tr>
+  <tr><td>AI集成</td><td>DeepSeek / 通义千问</td><td>-</td><td>国产大模型，合规可控</td></tr>
+</table>
+
+<h2>四、核心功能模块</h2>
+
+<h3>4.1 客户管理模块（核心模块）</h3>
+<p>提供客户全生命周期管理，包括客户信息的增删改查、批量导入导出、标签分类、客户分群、跟进记录、转移分配等。主要功能包括：客户列表（搜索、筛选、排序、分页）；客户详情（基本信息、跟进历史、订单记录、附件管理）；批量操作（多选批量标签、批量转移、批量变阶段、批量删除）；批量导入导出（CSV/Excel，自动映射自定义字段）；自定义字段系统（EAV模型，租户级字段定义）；行业模板（教培/医美/B2B/助贷等预置模板）。</p>
+
+<h3>4.2 销售管道模块</h3>
+<p>可配置的销售阶段管理，支持看板视图展示客户在销售管道中的推进状态。包括：可配置销售管道（租户级JSON定义）；5个行业管道模板（房产/教培/医美/B2B/助贷）；销售看板（动态加载阶段，拖拽移动客户）；目标分配与进展追踪；阶段停留时间监控。</p>
+
+<h3>4.3 企业微信集成模块</h3>
+<p>深度对接企业微信开放平台，实现客户联系、消息管理、渠道分析等能力。包括：企业微信客户同步（自动同步外部联系人）；客户消息收发（文本/多媒体）；渠道活码（分组与员工活码）；客户添加回调（自动入库触发流程）；群发任务；消息加密解密（AES-256-CBC）。</p>
+
+<h3>4.4 AI 智能能力模块</h3>
+<p>集成大语言模型，为销售和服务人员提供智能化辅助。包括：AI跟进话术生成（三种风格）；AI客户画像摘要（基于历史数据）；AI智能跟进提醒（三类告警）；AI文案生成；AI员工自动回复；AI客服；AI教练建议。</p>
+
+<h3>4.5 营销获客模块</h3>
+<p>覆盖从广告投放到客户转化的完整营销链路。包括：落地页构建器；落地页留资自动入库；广告追踪与归因；广告消耗同步（腾讯广告Marketing API）；广告ROI分析；裂变活动；群发任务。</p>
+
+<h3>4.6 流程自动化引擎</h3>
+<p>可视化配置业务流程，实现营销、销售、服务的自动化流转。包括：可视化流程构建器（拖拽节点、连线、条件分支）；多种触发器（新客户进入、阶段变更、跟进到期、订单成交等）；多种动作（发消息、分配任务、打标签、发通知等）；流程执行日志与监控。</p>
+
+<h3>4.7 数据分析模块</h3>
+<p>多维度数据分析和可视化报表。包括：可配置仪表盘（19个Widget + 5个行业模板）；漏斗分析；团队业绩；客户分析；排行榜；时间筛选与同比对比；图表可视化（折线图、柱状图、饼图、漏斗图）。</p>
+
+<h3>4.8 计费与订阅模块</h3>
+<p>完整的SaaS计费体系。包括：多套餐体系；余额充值（微信支付、支付宝、线下转账）；自动续费；用量加购包；在线发票；优惠码系统；付款墙方案。</p>
+
+<h3>4.9 其他功能</h3>
+<table>
+  <tr><th>模块</th><th>功能描述</th></tr>
+  <tr><td>收件箱</td><td>统一消息中心，AI自动回复，人工接管，SLA管理</td></tr>
+  <tr><td>工单服务</td><td>服务工单创建/分配/处理/关闭，SLA超时提醒</td></tr>
+  <tr><td>产品目录</td><td>产品与服务管理，网格/列表视图，metadata扩展</td></tr>
+  <tr><td>成交订单</td><td>订单管理（5态流转），自动推进客户到成交阶段</td></tr>
+  <tr><td>合同管理</td><td>合同创建/审批/归档，附件上传</td></tr>
+  <tr><td>任务系统</td><td>销售任务分配与追踪，到期提醒</td></tr>
+  <tr><td>审批流程</td><td>多步骤审批，指定审批人/角色/无限制</td></tr>
+  <tr><td>RBAC权限</td><td>基于角色的访问控制，数据权限隔离</td></tr>
+  <tr><td>通知中心</td><td>10种通知类型，Bell图标+未读角标，30s轮询</td></tr>
+  <tr><td>审计日志</td><td>全量操作记录，满足合规要求</td></tr>
+</table>
+
+<h2>五、软件特色与创新点</h2>
+<h3>5.1 全行业可配置性（核心竞争力）</h3>
+<p>本系统区别于传统垂直行业CRM，通过三大可配置能力实现「所有行业都能用」：(1) 自定义字段系统——基于EAV模型，租户可自行定义客户字段；(2) 可配置销售管道——租户可自定义销售阶段；(3) 可配置仪表盘——19个可拖拽Widget，预置5个行业模板。</p>
+
+<h3>5.2 AI 深度集成</h3>
+<p>国产大模型集成（DeepSeek / 通义千问），合规可控；AI能力覆盖销售话术、客户画像、智能提醒、自动回复等多个场景。</p>
+
+<h3>5.3 企业微信生态深度融合</h3>
+<p>完整对接企微客户联系、消息推送、渠道活码、回调事件等能力，支持企微客户自动同步、消息自动入库。</p>
+
+<h3>5.4 SaaS 全链路闭环</h3>
+<p>从广告投放追踪 → 落地页获客 → 客户管理 → 销售跟进 → 成交订单 → 服务工单 → 数据分析，形成完整的业务数据闭环。</p>
+
+<h3>5.5 完善的商业化能力</h3>
+<p>多套餐多通道支付体系，余额/续费/加购/发票完整闭环，平台运营后台与支付对账。</p>
+
+<h2>六、开发与运行环境</h2>
+<table>
+  <tr><th>环境</th><th>最低配置</th><th>推荐配置</th></tr>
+  <tr><td>CPU</td><td>2核</td><td>4核</td></tr>
+  <tr><td>内存</td><td>4GB</td><td>8GB</td></tr>
+  <tr><td>磁盘</td><td>20GB SSD</td><td>50GB SSD</td></tr>
+  <tr><td>操作系统</td><td>Ubuntu 20.04+</td><td>Ubuntu 22.04 LTS</td></tr>
+  <tr><td>Node.js</td><td>18.x</td><td>20.x LTS</td></tr>
+  <tr><td>MySQL</td><td>8.0</td><td>8.0</td></tr>
+  <tr><td>反向代理</td><td>Nginx 1.20+</td><td>Nginx 1.24+</td></tr>
+</table>
+<p class="no-indent">客户端浏览器：Chrome 90+ / Safari 15+ / Edge 90+ / Firefox 100+</p>
+
+<h2>七、系统安全设计</h2>
+<ul>
+  <li><strong>认证与鉴权</strong>：JWT无状态认证，bcrypt密码哈希，RBAC角色权限控制，数据级权限隔离</li>
+  <li><strong>数据安全</strong>：多租户数据隔离，SQL注入防护（Sequelize ORM参数化查询），XSS防护，CORS白名单，速率限制，支付回调签名验证</li>
+  <li><strong>传输安全</strong>：全站HTTPS，API请求JWT Token鉴权，敏感配置通过环境变量注入</li>
+</ul>
+
+<h2>八、源程序说明</h2>
+<p>本软件源程序共计约 <strong>48,800行</strong>，由 controllers（61个）、services（147个）、models（106个）、routes（58个）、middlewares（11个）、jobs（27个）、config（3个）、constants（3个）、utils（8个）等模块构成，前端另有 72+ 页面组件。本说明书附源程序前30页和后30页（共60页），已连续无间断提交。</p>
+
+<hr style="margin-top:30px">
+<p style="text-align:center; font-size:11pt;">本说明书真实准确，与所提交的源程序一致。</p>
+
+<p class="copyright-stamp"><strong>著作权人（盖章）：杭州中数云科智慧科技有限公司</strong><br>日期：2026年6月28日</p>
+
+</body>
+</html>

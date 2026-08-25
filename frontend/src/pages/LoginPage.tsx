@@ -352,6 +352,17 @@ export function LoginPage() {
               </button>
             </div>
             <p className="w-full text-center text-[11px] leading-relaxed text-[#8aabb8]">
+              遇到问题？
+              <a
+                href="mailto:zhufacai@zsykai.cn?subject=%5B%E4%B8%AD%E6%95%B0%E4%BA%91CRM%E7%94%A8%E6%88%B7%E5%8F%8D%E9%A6%88%5D"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-[#5b8dd9]"
+              >
+                联系我们
+              </a>
+            </p>
+            <p className="w-full text-center text-[11px] leading-relaxed text-[#8aabb8]">
               登录即表示同意
               <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#5b8dd9]">
                 《服务条款》

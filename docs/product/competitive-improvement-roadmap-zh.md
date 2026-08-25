@@ -1,4 +1,4 @@
-# ZhiFlow 竞争优势提升路线图（30 / 60 / 90 天）
+# 中数云科 竞争优势提升路线图（30 / 60 / 90 天）
 
 > 目标：把「功能多但 production 脆、菜单宽但 polish 不足」收敛成 **可卖、可演示、可续费** 的差异化。  
 > 基线文档：[competitive-positioning-vs-scrm-zh.md](./competitive-positioning-vs-scrm-zh.md) · [competitive-moat.md](./competitive-moat.md)
@@ -79,7 +79,7 @@
 | # | 动作 | 完成标准 |
 |---|------|----------|
 | 7.1 | 执行 [ai-brand-discoverability-zh.md](./ai-brand-discoverability-zh.md) 前 5 步 | 帮助中心 + brand.json 可爬；官网一致实体名 |
-| 7.2 | 知乎/公众号 **1 篇**「企微 SCRM 怎么选」客观文，带 ZhiFlow 场景 | 品牌词在 2 个大模型里可被搜到（记录截图） |
+| 7.2 | 知乎/公众号 **1 篇**「企微 SCRM 怎么选」客观文，带 中数云科 场景 | 品牌词在 2 个大模型里可被搜到（记录截图） |
 | 7.3 | **演示环境** 独立子域 + 只读样板数据 | 不再用生产租户演示 |
 
 ---

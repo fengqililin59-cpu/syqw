@@ -4,6 +4,7 @@
  */
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import { env } from './config/env.js';
 import { sequelize } from './models/index.js';
 import apiV1 from './routes/index.js';
@@ -52,6 +53,7 @@ app.use(
     credentials: true,
   })
 );
+app.use(helmet());
 app.use(
   '/api/v1/callback',
   express.json({

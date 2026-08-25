@@ -4,7 +4,7 @@
 登录阿里云短信控制台：  
 <https://dysms.console.aliyun.com>  
 确认以下已就绪：
-- 短信签名已审核通过（如「ZhiFlow」）
+- 短信签名已审核通过（如「中数云科」）
 - 至少一个短信模板已审核通过
 - 记录模板 Code（格式：SMS_xxxxxxxxx）
 
@@ -14,7 +14,7 @@
 不要用主账号 AK（安全风险）。
 
 ## 3. 系统配置
-在 ZhiFlow 系统设置 -> 短信配置 填写：
+在 中数云科 系统设置 -> 短信配置 填写：
 - Access Key ID
 - Access Key Secret
 - 默认签名（与阿里云审核通过的签名一致）

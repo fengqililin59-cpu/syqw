@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>落地页文案 + 定价包装策略</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f5f7fa;color:#1a1a2e;line-height:1.8;}
+  .container{max-width:920px;margin:0 auto;padding:0 24px;}
+  .doc-header{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:40px 0;text-align:center;}
+  .doc-header h1{font-size:28px;font-weight:800;}
+  .doc-header p{font-size:14px;opacity:0.8;margin-top:8px;}
+  .section{padding:36px 0;border-bottom:1px solid #e8ecf1;}
+  .section h2{font-size:22px;font-weight:700;margin-bottom:16px;}
+  .section h2 .num{display:inline-block;background:#667eea;color:#fff;width:28px;height:28px;line-height:28px;text-align:center;border-radius:6px;font-size:14px;margin-right:8px;vertical-align:middle;}
+  .section h3{font-size:17px;font-weight:600;margin:20px 0 10px;color:#374151;}
+  .section p{font-size:15px;color:#4b5563;margin-bottom:10px;}
+  .section ul,.section ol{margin:10px 0 10px 24px;}
+  .section li{font-size:15px;color:#4b5563;margin-bottom:6px;}
+  
+  /* Copy block — actual text to use */
+  .copy-block{background:#fff;border-left:4px solid #667eea;border-radius:0 12px 12px 0;padding:20px 24px;margin:16px 0;}
+  .copy-block .label{font-size:11px;font-weight:700;color:#667eea;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+  .copy-block .copy{font-size:16px;color:#1a1a2e;line-height:1.9;}
+  .copy-block .copy strong{color:#667eea;}
+  .copy-block .note{font-size:13px;color:#9ca3af;margin-top:8px;font-style:italic;}
+  
+  /* Pricing comparison */
+  .pricing-comparison{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0;}
+  .price-card{background:#fff;border-radius:12px;padding:20px 16px;text-align:center;border:2px solid #e8ecf1;position:relative;}
+  .price-card.recommended{border-color:#667eea;background:linear-gradient(180deg,#f5f3ff 0%,#fff 100%);}
+  .price-card .badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#667eea;color:#fff;font-size:11px;font-weight:700;padding:3px 14px;border-radius:12px;white-space:nowrap;}
+  .price-card .plan-name{font-size:16px;font-weight:700;margin-bottom:8px;}
+  .price-card .plan-price{font-size:32px;font-weight:800;color:#1a1a2e;}
+  .price-card .plan-price .unit{font-size:14px;font-weight:400;color:#6b7280;}
+  .price-card .plan-desc{font-size:13px;color:#6b7280;margin-top:8px;}
+  .price-card .plan-features{margin-top:16px;text-align:left;}
+  .price-card .plan-features li{font-size:13px;margin-bottom:4px;list-style:none;padding-left:18px;position:relative;}
+  .price-card .plan-features li::before{content:'✓';position:absolute;left:0;color:#22c55e;font-weight:700;}
+  .price-card .plan-features li.no::before{content:'✗';color:#d1d5db;}
+  
+  /* Competitor table */
+  .comp-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;}
+  .comp-table th{background:#667eea;color:#fff;padding:10px;text-align:left;font-weight:600;}
+  .comp-table td{padding:10px;border-bottom:1px solid #e8ecf1;}
+  .comp-table tr:hover{background:#f9fafb;}
+  .comp-table .highlight{background:#f0fdf4;font-weight:600;}
+  
+  /* Callout */
+  .callout{padding:16px 20px;border-radius:12px;margin:16px 0;}
+  .callout.info{background:#eff6ff;border-left:4px solid #3b82f6;}
+  .callout.warn{background:#fff7ed;border-left:4px solid #f59e0b;}
+  .callout.success{background:#f0fdf4;border-left:4px solid #22c55e;}
+  .callout h4{font-size:15px;font-weight:700;margin-bottom:6px;}
+  .callout p{font-size:14px;margin:0;}
+  
+  /* CTA button mock */
+  .cta-mock{display:inline-block;background:#667eea;color:#fff;padding:12px 32px;border-radius:8px;font-weight:700;font-size:16px;text-decoration:none;}
+  .cta-mock:hover{background:#5568d3;}
+  
+  /* Note box */
+  .note-box{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin:12px 0;font-size:14px;color:#92400e;}
+  
+  @media(max-width:768px){.pricing-comparison{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div class="container">
+    <h1>落地页文案 + 定价包装策略</h1>
+    <p>全行业通用 SaaS CRM ｜ 基于现有计费系统（098_paywall_plans）｜ 2026-08-07</p>
+  </div>
+</div>
+
+<!-- ===== 定价包装策略 ===== -->
+<div class="section">
+  <div class="container">
+    <h2><span class="num">A</span>定价包装策略</h2>
+    <p>你的定价已经很有竞争力，但目前的呈现方式没有把优势打出来。核心问题：用户不知道「团队包月」和竞品「按人头收费」的差距有多大。</p>
+
+    <div class="callout success">
+      <h4>🔥 你的最大定价杀伤力</h4>
+      <p>专业版 ¥398/月 = 20人团队，相当于 <strong>¥19.9/人/月</strong>。<br>
+      纷享销客约 ¥80-200/人/月 → 20人团队 = ¥1,600-4,000/月。<br>
+      <strong>你比纷享销客便宜 4-10 倍</strong>，但用户现在看不出来——因为落地页没有这个对比。</p>
+    </div>
+
+    <h3>定价呈现优化建议</h3>
+    <table class="comp-table">
+      <thead>
+        <tr><th>维度</th><th>当前问题</th><th>优化建议</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>计价方式</td><td>只显示总价，用户以为是按人头</td><td class="highlight">标注「团队包月，不限人头分摊」+ 每人均价小字</td></tr>
+        <tr><td>免费版</td><td>30客户/1人太少，用户觉得没法用</td><td class="highlight">建议调整为 50客户/2人，让用户能真正体验</td></tr>
+        <tr><td>企业版</td><td>¥999仅比增长版¥998多1元，逻辑不合理</td><td class="highlight">改为「联系销售定制」或调整为¥1,999/月</td></tr>
+        <tr><td>年付优惠</td><td>年付=10个月价格（8折），但没强调</td><td class="highlight">标注「年付省¥796，相当于免费送2个月」</td></tr>
+        <tr><td>竞品对比</td><td>没有竞品价格锚定</td><td class="highlight">加一行「同类产品对比」表格</td></tr>
+      </tbody>
+    </table>
+
+    <h3>竞品价格锚定表（落地页展示用）</h3>
+    <table class="comp-table">
+      <thead>
+        <tr><th>产品</th><th>计价方式</th><th>20人团队月费</th><th>AI能力</th><th>行业模板</th></tr>
+      </thead>
+      <tbody>
+        <tr class="highlight"><td>我们的CRM（专业版）</td><td>团队包月</td><td>¥398</td><td>✓ 含2000次/月</td><td>✓ 4套</td></tr>
+        <tr><td>纷享销客</td><td>按人头</td><td>¥1,600-4,000</td><td>额外付费</td><td>✗ 需定制</td></tr>
+        <tr><td>销售易</td><td>按人头</td><td>¥2,000-6,000</td><td>额外付费</td><td>✗ 需定制</td></tr>
+        <tr><td>悟空CRM</td><td>按人头</td><td>¥600-2,000</td><td>✗ 无</td><td>✗ 无</td></tr>
+        <tr><td>HubSpot</td><td>按层级</td><td>¥4,000+</td><td>部分含</td><td>✗ 无</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:13px;color:#9ca3af;">注：竞品价格为基于公开信息的市场估算，实际以各厂商报价为准。</p>
+  </div>
+</div>
+
+<!-- ===== 落地页完整文案 ===== -->
+<div class="section">
+  <div class="container">
+    <h2><span class="num">B</span>落地页完整文案</h2>
+    <p>以下是按8层架构撰写的完整落地页文案，可直接用于页面开发。每一段标注了【文案】和【设计说明】。</p>
+
+    <!-- ===== 第一屏 Hero ===== -->
+    <h3 style="color:#667eea;">第一屏 · Hero Section</h3>
+    <div class="copy-block">
+      <div class="label">主标题 H1</div>
+      <div class="copy"><strong>5分钟配置你的行业CRM<br>AI帮你跟进每一个客户</strong></div>
+    </div>
+    <div class="copy-block">
+      <div class="label">副标题</div>
+      <div class="copy">全行业可配置 · AI话术生成 · 企业微信原生集成<br>20人团队仅需¥398/月，比纷享销客便宜4倍</div>
+    </div>
+    <div class="copy-block">
+      <div class="label">CTA 按钮文案</div>
+      <div class="copy"><span class="cta-mock">立即免费试用14天 →</span></div>
+      <div class="note">按钮下方小字：无需信用卡 · 14天全功能体验 · 到期自动降为免费版</div>
+    </div>
+    <div class="copy-block">
+      <div class="label">信任徽章（Hero区底部）</div>
+      <div class="copy">已在服务 200+ 企业 ｜ 阿里云安全部署 ｜ 浙ICP备2026009605号<br>支持：企业微信 · 支付宝 · 微信支付</div>
+      <div class="note">如果有真实客户数替换200+，没有就先不写具体数字</div>
+    </div>
+
+    <!-- ===== 第二屏 痛点 ===== -->
+    <h3 style="color:#667eea;margin-top:32px;">第二屏 · 痛点共鸣</h3>
+    <div class="copy-block">
+      <div class="label">区块标题</div>
+      <div class="copy"><strong>你的团队是不是还在这样管理客户？</strong></div>
+    </div>
+    <div class="copy-block">
+      <div class="label">痛点列表（每个配icon）</div>
+      <div class="copy">
+        😰 <strong>客户资料散落各处</strong> — Excel、微信聊天记录、销售员脑子里，谁也找不全<br>
+        😤 <strong>销售离职带走客户</strong> — 人一走，客户资源直接归零，心痛但没办法<br>
+        😫 <strong>该跟的客户忘了跟</strong> — 靠记忆和便签管理跟进，高意向客户沉默了都不知道<br>
+        😖 <strong>买了CRM团队不用</strong> — 系统太复杂，配置要IT人员，销售嫌麻烦拒绝使用<br>
+        😤 <strong>行业流程不匹配</strong> — 通用CRM不适配你的行业，定制开发又太贵太慢
+      </div>
+    </div>
+    <div class="copy-block">
+      <div class="label">过渡语</div>
+      <div class="copy"><strong>如果以上任何一条戳中了你 — 继续往下看。</strong></div>
+    </div>
+
+    <!-- ===== 第三屏 解决方案 ===== -->
+    <h3 style="color:#667eea;margin-top:32px;">第三屏 · 解决方案</h3>
+    <div class="copy-block">
+      <div class="label">区块标题</div>
+      <div class="copy"><strong>全行业可配置CRM — 你的行业，你的流程，5分钟配好</strong></div>
+      <div class="note">设计说明：每个功能配产品截图/GIF演示</div>
+    </div>
+    <div class="copy-block">
+      <div class="label">功能1：自定义字段系统</div>
+      <div class="copy">
+        <strong>不管什么行业，字段你自己定</strong><br>
+        EAV架构，拖拽式配置客户字段。教培加「学员年级」，医美加「咨询项目」，B2B加「采购周期」— 4套行业模板一键加载，零代码操作。<br>
+        <span style="color:#667eea;font-size:14px;">→ 教培模板：学员姓名/年级/意向课程/试听时间/家长电话</span><br>
+        <span style="color:#667eea;font-size:14px;">→ 医美模板：客户姓名/咨询项目/到院时间/预算范围/决策周期</span>
+      </div>
+    </div>
+    <div class="copy-block">
+      <div class="label">功能2：可配置销售管道</div>
+      <div class="copy">
+        <strong>你的销售流程，看板一目了然</strong><br>
+        5套行业管道模板（房产/教培/医美/B2B/助贷），阶段名称自定义，拖拽推进。销售看板实时可视化，哪个客户卡在哪个阶段，清清楚楚。
+      </div>
+    </div>
+    <div class="copy-block">
+      <div class="label">功能3：AI跟进话术（核心卖点）</div>
+      <div class="copy">
+        <strong>不知道怎么跟客户说？AI帮你写</strong><br>
+        基于客户画像和跟进历史，AI一键生成3种风格话术：关怀型（暖场维系）、价值型（卖点输出）、促成型（逼单成交）。一键复制，直接发送。<br>
+        <span style="color:#667eea;font-size:14px;">「张总，上次聊到您团队在选型CRM，这边帮您对比了3家方案，您看周四下午方便通个电话吗？」</span>
+      </div>
+    </div>
+    <div class="copy-block">
+      <div class="label">功能4：AI客户画像摘要</div>
+      <div class="copy">
+        <strong>新人销售也能3秒看懂客户</strong><br>
+        AI自动汇总客户一句话画像：「高意向·预算充足·决策周期2周·上次跟进7天前·关注价格和售后」— 不用翻聊天记录，打开就看重点。
+      </div>
+    </div>
+    <div class="copy-block">
+      <div class="label">功能5：AI智能跟进提醒</div>
+      <div class="copy">
+        <strong>该跟的客户，系统主动告诉你</strong><br>
+        三类智能告警：① 高意向客户沉默超3天 ② 管道中滞留超7天 ③ 紧急待跟任务 — 每天推送，再也不会漏跟。
+      </div>
+    </div>
+    <div class="copy-block">
+      <div class="label">功能6：企业微信原生集成</div>
+      <div class="copy">
+        <strong>销售在企微聊客户，CRM自动同步</strong><br>
+        企微侧边栏直接查看客户画像、跟进记录、AI话术。聊天即看即用，销售不用切系统，数据自动沉淀。
+      </div>
+    </div>
+
+    <!-- ===== 第四屏 行业适配 ===== -->
+    <h3 style="color:#667eea;margin-top:32px;">第四屏 · 行业适配展示</h3>
+    <div class="copy-block">
+      <div class="label">区块标题</div>
+      <div class="copy"><strong>不管你是什么行业，5分钟配好专属CRM</strong></div>
+    </div>
+    <div class="copy-block">
+      <div class="label">行业卡片（4个并列，点击展开详情）</div>
+      <div class="copy">
+        🏫 <strong>教育培训</strong> — 学员意向管理 / 试听跟进 / 续费提醒 / 家长沟通<br>
+        管道：咨询→试听→意向→报名→续费<br><br>
+        💊 <strong>医疗美容</strong> — 到院咨询记录 / 方案推荐 / 预算管理 / 复购跟进<br>
+        管道：咨询→到院→方案→成交→复购<br><br>
+        💼 <strong>B2B企业服务</strong> — 商机跟单 / 多人决策链 / 合同审批 / 回款管理<br>
+        管道：线索→需求确认→方案报价→商务谈判→签约→回款<br><br>
+        🏠 <strong>房产经纪</strong> — 带看管理 / 意向分级 / 房源匹配 / 成交推进<br>
+        管道：委托→匹配→带看→意向→谈判→成交<br><br>
+        💰 <strong>助贷金融</strong> — 资质评估 / 进件跟进 / 审批进度 / 放款管理<br>
+        管道：咨询→资质评估→进件→审批→放款<br><br>
+        <em>…更多行业模板持续上线。你的行业不在列表里？自定义字段+管道，什么行业都能配。</em>
+      </div>
+    </div>
+
+    <!-- ===== 第五屏 社会证明 ===== -->
+    <h3 style="color:#667eea;margin-top:32px;">第五屏 · 社会证明</h3>
+    <div class="copy-block">
+      <div class="label">区块标题</div>
+      <div class="copy"><strong>越来越多的团队选择我们</strong></div>
+      <div class="note">设计说明：客户Logo墙 + 3条评价 + 数据统计。如果暂时没有真实客户评价，先用产品功能数据替代</div>
+    </div>
+    <div class="copy-block">
+      <div class="label">数据统计（4列大数字）</div>
+      <div class="copy">
+        <strong>4套</strong> 行业模板 ｜ <strong>5套</strong> 管道模板 ｜ <strong>19个</strong> 可配置Widget ｜ <strong>3种</strong> AI话术风格
+      </div>
+    </div>
+    <div class="copy-block">
+      <div class="label">客户评价（收集到真实评价后替换）</div>
+      <div class="copy">
+        「之前用Excel管客户，销售走了客户就丢了。换了这个CRM后，所有客户跟进记录都在系统里，新人接手秒上手。」<br>— 某教培机构销售总监<br><br>
+        「AI话术功能真的好用，特别是对新销售。不用再愁怎么跟客户开口了。」<br>— 某B2B企业销售经理<br><br>
+        「之前看纷享销客太贵了，按人头算我们20人团队要好几千。这个团队包月398，功能还全。」<br>— 某房产经纪老板
+      </div>
+      <div class="note">⚠️ 以上评价为示例文案，上线前需替换为真实客户评价</div>
+    </div>
+
+    <!-- ===== 第六屏 定价 ===== -->
+    <h3 style="color:#667eea;margin-top:32px;">第六屏 · 透明定价</h3>
+    <div class="copy-block">
+      <div class="label">区块标题</div>
+      <div class="copy"><strong>简单透明的定价 — 团队包月，不按人头收费</strong></div>
+      <div class="copy" style="font-size:14px;color:#6b7280;">所有套餐均含14天免费试用 · 无需信用卡 · 到期自动降为免费版</div>
+    </div>
+
+    <div class="pricing-comparison">
+      <div class="price-card">
+        <div class="plan-name">体验版</div>
+        <div class="plan-price">¥0<span class="unit">/月</span></div>
+        <div class="plan-desc">永久免费 · 适合个人试用</div>
+        <ul class="plan-features">
+          <li>30个客户</li>
+          <li>1人使用</li>
+          <li>基础客户管理</li>
+          <li>销售看板</li>
+          <li>50次/月群发</li>
+          <li>20次/月AI调用</li>
+          <li class="no">AI话术生成</li>
+          <li class="no">行业模板</li>
+        </ul>
+      </div>
+      <div class="price-card recommended">
+        <div class="badge">最受欢迎</div>
+        <div class="plan-name">专业版</div>
+        <div class="plan-price">¥398<span class="unit">/月</span></div>
+        <div class="plan-desc">年付¥3,980（省¥796）<br>≈¥19.9/人/月（20人）</div>
+        <ul class="plan-features">
+          <li>5,000个客户</li>
+          <li>20人团队</li>
+          <li>全部AI能力</li>
+          <li>4套行业模板</li>
+          <li>5套管道模板</li>
+          <li>10,000次/月群发</li>
+          <li>2,000次/月AI调用</li>
+          <li>审批工作流</li>
+        </ul>
+      </div>
+      <div class="price-card">
+        <div class="plan-name">增长版</div>
+        <div class="plan-price">¥998<span class="unit">/月</span></div>
+        <div class="plan-desc">年付¥9,980（省¥1,996）<br>≈¥20/人/月（50人）</div>
+        <ul class="plan-features">
+          <li>20,000个客户</li>
+          <li>50人团队</li>
+          <li>专业版全部功能</li>
+          <li>巨量表单引擎</li>
+          <li>话术库管理</li>
+          <li>30,000次/月群发</li>
+          <li>5,000次/月AI调用</li>
+          <li>高级数据分析</li>
+        </ul>
+      </div>
+      <div class="price-card">
+        <div class="plan-name">企业版</div>
+        <div class="plan-price">定制</div>
+        <div class="plan-desc">不限客户/席位<br>私有化部署支持</div>
+        <ul class="plan-features">
+          <li>客户数不限</li>
+          <li>使用人数不限</li>
+          <li>增长版全部功能</li>
+          <li>API集成对接</li>
+          <li>专属客户成功</li>
+          <li>私有化部署</li>
+          <li>定制开发支持</li>
+          <li>SLA服务保障</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="copy-block">
+      <div class="label">定价区CTA</div>
+      <div class="copy" style="text-align:center;">
+        <span class="cta-mock">14天免费试用专业版 →</span><br>
+        <span style="font-size:13px;color:#6b7280;">无需信用卡 · 全功能体验 · 满意再付费</span>
+      </div>
+    </div>
+
+    <!-- ===== 第七屏 FAQ ===== -->
+    <h3 style="color:#667eea;margin-top:32px;">第七屏 · 常见问题</h3>
+    <div class="copy-block">
+      <div class="label">FAQ（用结构化数据标记，争取搜索富摘要）</div>
+      <div class="copy">
+        <strong>Q：我不是技术人员，能用好这个CRM吗？</strong><br>
+        A：完全可以。5分钟配置，零代码操作。选择你的行业模板，系统自动加载对应的字段和管道，直接开始用。<br><br>
+        <strong>Q：我的行业比较特殊，你们支持吗？</strong><br>
+        A：我们的CRM采用可配置架构，自定义字段+自定义管道，理论上全行业适配。目前预置了教培/医美/B2B/助贷/房产5套模板，更多行业模板持续上线中。<br><br>
+        <strong>Q：和纷享销客、销售易比有什么区别？</strong><br>
+        A：① 价格：我们是团队包月制，20人团队¥398/月；纷享销客按人头收，20人团队约¥1,600-4,000/月。② AI：我们内置AI话术/画像/提醒，开箱即用；竞品AI能力需额外付费。③ 上手速度：我们5分钟配好，竞品需要实施团队配置1-2周。<br><br>
+        <strong>Q：数据安全吗？</strong><br>
+        A：阿里云ECS部署，SSL加密传输，多租户数据隔离。企业版支持私有化部署，数据完全在你的服务器上。<br><br>
+        <strong>Q：可以先试用再决定吗？</strong><br>
+        A：当然。注册即享14天专业版全功能免费试用，无需信用卡。试用到期后自动降为免费版，不会自动扣费。<br><br>
+        <strong>Q：和企业微信怎么对接？</strong><br>
+        A：原生集成，企微后台一键授权即可。销售在企微侧边栏直接查看客户画像、跟进记录、使用AI话术，数据自动同步。<br><br>
+        <strong>Q：支持哪些支付方式？</strong><br>
+        A：支持支付宝、微信支付在线付款，也支持线下转账和余额预充值自动续费。<br><br>
+        <strong>Q：试用到期后我的数据会丢吗？</strong><br>
+        A：不会。降为免费版后，超出免费版配额的客户数据会保留但不可编辑，升级后即可恢复使用。
+      </div>
+    </div>
+
+    <!-- ===== 第八屏 最终CTA ===== -->
+    <h3 style="color:#667eea;margin-top:32px;">第八屏 · 最终CTA</h3>
+    <div class="copy-block" style="background:linear-gradient(135deg,#f0f4ff,#f5f0ff);">
+      <div class="label">最终转化区</div>
+      <div class="copy" style="text-align:center;font-size:18px;">
+        <strong>现在开始，5分钟拥有你的行业CRM</strong><br><br>
+        <span class="cta-mock" style="font-size:18px;">立即免费试用14天 →</span><br><br>
+        <span style="font-size:14px;color:#6b7280;">已有账号？<a href="#" style="color:#667eea;">直接登录</a> · 有疑问？<a href="#" style="color:#667eea;">联系销售</a></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 落地页 SEO 元数据 ===== -->
+<div class="section">
+  <div class="container">
+    <h2><span class="num">C</span>落地页 SEO 元数据</h2>
+    <p>以下是落地页的 title、description、OG 标签等 SEO 元数据，直接粘贴到页面 head 中。</p>
+
+    <div class="copy-block">
+      <div class="label">Title 标签（≤60字符）</div>
+      <div class="copy">&lt;title&gt;全行业可配置CRM系统 - AI驱动·5分钟配置·14天免费试用&lt;/title&gt;</div>
+    </div>
+    <div class="copy-block">
+      <div class="label">Meta Description（≤160字符）</div>
+      <div class="copy">&lt;meta name="description" content="全行业通用CRM系统，自定义字段+可配置管道+AI话术生成。教培/医美/B2B/助贷/房产5套行业模板。20人团队仅¥398/月，比纷享销客便宜4倍。14天免费试用，无需信用卡。"&gt;</div>
+    </div>
+    <div class="copy-block">
+      <div class="label">OG 标签（社交媒体分享用）</div>
+      <div class="copy">
+        &lt;meta property="og:title" content="全行业可配置CRM - AI帮你跟进每一个客户"&gt;<br>
+        &lt;meta property="og:description" content="5分钟配置你的行业CRM。AI话术生成+企业微信集成。20人团队¥398/月。14天免费试用。"&gt;<br>
+        &lt;meta property="og:type" content="website"&gt;<br>
+        &lt;meta property="og:image" content="[产品截图URL]"&gt;
+      </div>
+    </div>
+    <div class="copy-block">
+      <div class="label">FAQ 结构化数据（Schema.org）</div>
+      <div class="copy" style="font-size:13px;">
+        &lt;script type="application/ld+json"&gt;<br>
+        {<br>
+        &nbsp;&nbsp;"@context": "https://schema.org",<br>
+        &nbsp;&nbsp;"@type": "FAQPage",<br>
+        &nbsp;&nbsp;"mainEntity": [<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;{"@type":"Question","name":"不是技术人员能用好吗？","acceptedAnswer":{"@type":"Answer","text":"5分钟配置，零代码操作，选择行业模板自动加载。"}},<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;{"@type":"Question","name":"和纷享销客有什么区别？","acceptedAnswer":{"@type":"Answer","text":"团队包月制¥398/月含AI能力，纷享销客按人头20人约¥1600-4000/月。"}},<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;{"@type":"Question","name":"可以免费试用吗？","acceptedAnswer":{"@type":"Answer","text":"14天专业版全功能免费试用，无需信用卡，到期自动降为免费版。"}}<br>
+        &nbsp;&nbsp;]<br>
+        }<br>
+        &lt;/script&gt;
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 上线检查清单 ===== -->
+<div class="section">
+  <div class="container">
+    <h2><span class="num">D</span>上线前检查清单</h2>
+    <div class="note-box">以下事项需要在落地页上线前完成，否则会影响转化率</div>
+    <ul style="list-style:none;padding:0;">
+      <li style="padding:8px 0 8px 28px;position:relative;border-bottom:1px solid #f3f4f6;">☐ <strong>注册流程可用</strong>：访客点击CTA → 填写手机号/邮箱 → 自动创建账号 → 自动开通14天专业版试用</li>
+      <li style="padding:8px 0 8px 28px;position:relative;border-bottom:1px solid #f3f4f6;">☐ <strong>行业模板选择流程</strong>：注册后引导用户选择行业 → 自动加载对应字段和管道</li>
+      <li style="padding:8px 0 8px 28px;position:relative;border-bottom:1px solid #f3f4f6;">☐ <strong>支付流程可用</strong>：试用到期/主动升级 → 选择套餐 → 支付宝/微信支付 → 自动开通</li>
+      <li style="padding:8px 0 8px 28px;position:relative;border-bottom:1px solid #f3f4f6;">☐ <strong>产品截图/GIF</strong>：每个功能描述配真实截图或GIF演示（不是占位图）</li>
+      <li style="padding:8px 0 8px 28px;position:relative;border-bottom:1px solid #f3f4f6;">☐ <strong>页面加载速度</strong>：< 3秒（Core Web Vitals 达标）</li>
+      <li style="padding:8px 0 8px 28px;position:relative;border-bottom:1px solid #f3f4f6;">☐ <strong>移动端适配</strong>：手机端浏览体验正常，CTA按钮可点击</li>
+      <li style="padding:8px 0 8px 28px;position:relative;border-bottom:1px solid #f3f4f6;">☐ <strong>百度统计/GA部署</strong>：追踪注册转化漏斗</li>
+      <li style="padding:8px 0 8px 28px;position:relative;">☐ <strong>企业版定价调整</strong>：当前¥999仅比增长版多¥1，建议改为「联系销售」</li>
+    </ul>
+
+    <div class="callout success" style="margin-top:20px;">
+      <h4>✅ 文案已就绪</h4>
+      <p>以上文案可直接交给前端开发，按区块逐一实现。每个 copy-block 就是一个页面 section。需要我直接做成 HTML 页面或 React 组件吗？</p>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;padding:24px;background:#1a1a2e;color:#9ca3af;font-size:13px;">
+  全行业通用 SaaS CRM ｜ 杭州中数云科智慧科技有限公司 ｜ 2026-08-07
+</div>
+
+</body>
+</html>

@@ -176,7 +176,7 @@ export async function createPrecreateOrder({ outTradeNo, subject, totalAmountYua
   const payload = await gatewayRequest('alipay.trade.precreate', {
     out_trade_no: String(outTradeNo),
     total_amount: Number(totalAmountYuan).toFixed(2),
-    subject: String(subject || 'ZhiFlow套餐').slice(0, 256),
+    subject: String(subject || '中数云科套餐').slice(0, 256),
   });
 
   if (!payload.qr_code) throw new HttpError(502, '支付宝未返回支付二维码', 502);
@@ -199,7 +199,7 @@ export function buildPagePayUrl({ outTradeNo, subject, totalAmountYuan, returnUr
   const bizContent = JSON.stringify({
     out_trade_no: String(outTradeNo),
     total_amount: Number(totalAmountYuan).toFixed(2),
-    subject: String(subject || 'ZhiFlow套餐').slice(0, 256),
+    subject: String(subject || '中数云科套餐').slice(0, 256),
     product_code: 'FAST_INSTANT_TRADE_PAY',
     ...(returnUrl ? { return_url: returnUrl } : {}),
   });

@@ -225,7 +225,7 @@ export async function getChurnRiskSummary(tenantId) {
 
 function formatAlertMessage(tenantName, risks, appUrl) {
   const lines = [
-    `【ZhiFlow 活跃提醒】${tenantName || ''}`.trim(),
+    `【中数云科 活跃提醒】${tenantName || ''}`.trim(),
     '系统检测到以下风险，建议本周处理：',
     '',
     ...risks.map((r, i) => `${i + 1}. ${r.title}\n   ${r.detail}`),

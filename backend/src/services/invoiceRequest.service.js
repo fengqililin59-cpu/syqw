@@ -195,8 +195,8 @@ export async function updatePlatformInvoiceRequest(requestId, body) {
   if (isSmtpConfigured() && ['issued', 'rejected'].includes(value.status)) {
     const subject =
       value.status === 'issued'
-        ? `【ZhiFlow】发票已开具 · ¥${mapped.amount}`
-        : `【ZhiFlow】开票申请未通过`;
+        ? `【中数云科】发票已开具 · ¥${mapped.amount}`
+        : `【中数云科】开票申请未通过`;
     const text = [
       `您好，`,
       value.status === 'issued'
@@ -277,7 +277,7 @@ export function generateInvoiceHtml(invoice) {
     </thead>
     <tbody>
       <tr>
-        <td>ZhiFlow SaaS服务费</td>
+        <td>中数云科 SaaS服务费</td>
         <td>套餐订阅</td>
         <td>1</td>
         <td>${amount.toFixed(2)}</td>
@@ -292,7 +292,7 @@ export function generateInvoiceHtml(invoice) {
   <div class="footer">
     <p>销货方：${tenantName}</p>
     <p>备注：${row.remark || '—'}</p>
-    <p>本发票由ZhiFlow平台代开具，电子发票与纸质发票具有同等法律效力。</p>
+    <p>本发票由中数云科平台代开具，电子发票与纸质发票具有同等法律效力。</p>
   </div>
 </body>
 </html>`;

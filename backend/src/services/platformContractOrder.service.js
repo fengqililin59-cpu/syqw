@@ -52,7 +52,7 @@ export function buildContractNoticeText({
 }) {
   const cycleLabel = billingCycle === 'yearly' ? '年付' : '月付';
   const lines = [
-    `【ZhiFlow 合同开通确认】`,
+    `【中数云科 合同开通确认】`,
     `客户：${tenantName}`,
     `套餐：${planName}（${cycleLabel}）`,
     `金额：¥${Number(amount).toLocaleString('zh-CN')}`,

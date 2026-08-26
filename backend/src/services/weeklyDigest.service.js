@@ -163,7 +163,7 @@ export async function getWeeklyWins(auth) {
 
 export function formatWeeklyWinsShareText(wins, tenantName, { scopeLabel = '团队' } = {}) {
   const lines = [
-    `【ZhiFlow ${scopeLabel}周报】${tenantName || ''}`.trim(),
+    `【中数云科 ${scopeLabel}周报】${tenantName || ''}`.trim(),
     `周期：${wins.week_label}`,
     '',
     ...(wins.highlights.length
@@ -235,7 +235,7 @@ export async function buildWeeklyWinsExportHtml(auth) {
   const tenantName = tenant?.name || '团队';
   const generatedAt = dayjs().tz(TZ).format('YYYY-MM-DD HH:mm');
   const safeName = tenantName.replace(/[^\w\u4e00-\u9fa5-]+/g, '_').slice(0, 32);
-  const filename = `ZhiFlow-${scope}周报-${wins.week_label.replace(/\s/g, '')}-${safeName}.html`;
+  const filename = `中数云科-${scope}周报-${wins.week_label.replace(/\s/g, '')}-${safeName}.html`;
 
   const statRows = [
     ['新增客户', wins.new_customers],
@@ -251,7 +251,7 @@ export async function buildWeeklyWinsExportHtml(auth) {
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <title>ZhiFlow ${escapeHtml(scope)}周报 · ${escapeHtml(tenantName)}</title>
+  <title>中数云科 ${escapeHtml(scope)}周报 · ${escapeHtml(tenantName)}</title>
   <style>
     * { box-sizing: border-box; }
     body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; color: #0f172a; margin: 0; padding: 32px; background: #f8fafc; }
@@ -275,7 +275,7 @@ export async function buildWeeklyWinsExportHtml(auth) {
 </head>
 <body>
   <div class="page">
-    <h1>ZhiFlow ${escapeHtml(scope)}周报</h1>
+    <h1>中数云科 ${escapeHtml(scope)}周报</h1>
     <p class="meta">${escapeHtml(tenantName)} · 周期 ${escapeHtml(wins.week_label)} · 生成于 ${generatedAt}</p>
     <div class="grid">
       ${statRows
@@ -294,7 +294,7 @@ export async function buildWeeklyWinsExportHtml(auth) {
     }
     <h2>行动建议</h2>
     <div class="insight">${escapeHtml(wins.insight)}</div>
-    <p class="footer">仪表盘：${escapeHtml(wins.app_url)}/app · 由 ZhiFlow 企微私域系统自动生成</p>
+    <p class="footer">仪表盘：${escapeHtml(wins.app_url)}/app · 由 中数云科 企微私域系统自动生成</p>
     <p class="no-print" style="margin-top:20px;font-size:13px;color:#64748b">提示：按 Ctrl/Cmd+P 选择「另存为 PDF」即可导出。</p>
   </div>
   <script class="no-print">window.addEventListener('load',function(){setTimeout(function(){window.print()},400)})</script>

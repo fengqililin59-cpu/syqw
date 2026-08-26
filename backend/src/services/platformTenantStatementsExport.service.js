@@ -144,7 +144,7 @@ export async function buildPlatformTenantStatementsZip(opts) {
   }
 
   const readme = [
-    `ZhiFlow 平台批量账单导出`,
+    `中数云科 平台批量账单导出`,
     `账单月份：${monthKey}`,
     `筛选：${SCOPE_LABELS[scope]}`,
     `匹配租户：${totalMatched}（本次导出 ${tenantIds.length}，成功 ${successCount}）`,
@@ -160,7 +160,7 @@ export async function buildPlatformTenantStatementsZip(opts) {
   await archive.finalize();
   const buffer = await bufferPromise;
 
-  const filename = `ZhiFlow-租户账单-${monthKey}-${successCount}份.zip`;
+  const filename = `中数云科-租户账单-${monthKey}-${successCount}份.zip`;
 
   return {
     buffer,

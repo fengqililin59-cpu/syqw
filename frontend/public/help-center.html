@@ -91,7 +91,7 @@
       </div>
       <footer>
         <div>
-          © 2026 ZhiFlow<br />
+          © 2026 中数云科<br />
           杭州中数云科智慧科技有限公司 ·
           <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">浙ICP备2026009605号-1</a>
         </div>
@@ -120,7 +120,7 @@
           return
         }
 
-        const apiBase = window.ZhiFlowTrack ? window.ZhiFlowTrack.apiBase() : location.origin + '/api/v1'
+        const apiBase = window.中数云科Track ? window.中数云科Track.apiBase() : location.origin + '/api/v1'
         const qTenant = 'tenant=' + encodeURIComponent(tenantId)
         let activeCat = params.get('category_id') || ''
 
@@ -180,7 +180,7 @@
           main.innerHTML = '<p class="sub">加载中…</p>'
           const articles = await apiGet('/kb/public/articles' + (activeCat ? '?category_id=' + activeCat : ''))
           if (!articles.length) {
-            main.innerHTML = '<p class="sub">暂无已发布的帮助文章。请在 ZhiFlow 知识库管理中发布文章。</p>'
+            main.innerHTML = '<p class="sub">暂无已发布的帮助文章。请在 中数云科 知识库管理中发布文章。</p>'
             return
           }
           main.innerHTML =

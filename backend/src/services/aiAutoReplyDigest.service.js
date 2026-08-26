@@ -54,7 +54,7 @@ export function formatAiAutoReplyDigestMessage(tenantName, stats) {
   const wd = ['日', '一', '二', '三', '四', '五', '六'][d.day()];
 
   const lines = [
-    `【ZhiFlow AI 自动回复日报】${tenantName || ''}`.trim(),
+    `【中数云科 AI 自动回复日报】${tenantName || ''}`.trim(),
     `${d.format('YYYY-MM-DD')} 周${wd}`,
     '',
     `今日 AI 自动发送：${stats.auto_sent_count} 条`,

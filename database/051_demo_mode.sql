@@ -10,7 +10,7 @@ SET @exists_col := (
 );
 SET @ddl := IF(
   @exists_col = 0,
-  'ALTER TABLE tenants ADD COLUMN is_demo TINYINT(1) NOT NULL DEFAULT 0 AFTER sms_default_sign',
+  'ALTER TABLE tenants ADD COLUMN is_demo TINYINT(1) NOT NULL DEFAULT 0',
   'SELECT 1'
 );
 PREPARE stmt FROM @ddl;
@@ -26,7 +26,7 @@ SET @exists_col := (
 );
 SET @ddl := IF(
   @exists_col = 0,
-  'ALTER TABLE tenants ADD COLUMN demo_expires_at DATETIME NULL AFTER is_demo',
+  'ALTER TABLE tenants ADD COLUMN demo_expires_at DATETIME NULL',
   'SELECT 1'
 );
 PREPARE stmt FROM @ddl;
@@ -43,7 +43,7 @@ SET @exists_col := (
 );
 SET @ddl := IF(
   @exists_col = 0,
-  'ALTER TABLE users ADD COLUMN demo_mode TINYINT(1) NOT NULL DEFAULT 1 AFTER role_id',
+  'ALTER TABLE users ADD COLUMN demo_mode TINYINT(1) NOT NULL DEFAULT 1',
   'SELECT 1'
 );
 PREPARE stmt FROM @ddl;

@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import dayjs from 'dayjs'
-import { AlertTriangle, Bot, FileDown, Gift, Mail } from 'lucide-react'
+import { AlertTriangle, Bot, FileDown, Gift, Mail, Zap } from 'lucide-react'
 import {
   downloadPlatformTenantStatement,
   sendPlatformTenantReminder,
@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { PlatformTenantAiAuditCard } from '@/components/platform/PlatformTenantAiAuditCard'
+import { QuickGrantDialog } from '@/components/platform/QuickGrantDialog'
 
 type OpsNote = {
   id: number
@@ -96,6 +97,7 @@ export function PlatformTenantDetailPage() {
   const [statementMonth, setStatementMonth] = useState(dayjs().format('YYYY-MM'))
   const [exportingBill, setExportingBill] = useState(false)
   const [sendingMail, setSendingMail] = useState<'expiring' | 'churn' | null>(null)
+  const [quickGrantOpen, setQuickGrantOpen] = useState(false)
 
   const load = useCallback(async () => {
     if (!tenantId) return
@@ -106,14 +108,6 @@ export function PlatformTenantDetailPage() {
   useEffect(() => {
     void load()
   }, [load])
-
-  async function grant(planCode: string) {
-    if (!tenantId) return
-    if (!window.confirm(`确认为该企业开通 ${planCode === 'enterprise' ? '企业版' : '专业版'}（年付）？`)) return
-    await postJson(`/platform/tenants/${tenantId}/subscription`, { plan_code: planCode, billing_cycle: 'yearly' })
-    setMsg(`已开通 ${planCode === 'enterprise' ? '企业版' : '专业版'}（年付）`)
-    await load()
-  }
 
   async function extendTrial(days?: number) {
     if (!tenantId) return
@@ -395,12 +389,28 @@ export function PlatformTenantDetailPage() {
       <Card className="border-violet-200 bg-violet-50/30">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">运营快捷操作</CardTitle>
-          <CardDescription>延长试用、开通套餐、创建兑换码（挽回流失风险租户）。</CardDescription>
+          <CardDescription>快速开通套餐、延长试用、创建兑换码。</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-end gap-3">
+          {/* 快速开通 — 主操作 */}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              size="default"
+              className="bg-green-600 hover:bg-green-700"
+              onClick={() => setQuickGrantOpen(true)}
+            >
+              <Zap className="mr-1.5 h-4 w-4" />
+              快速开通套餐
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              选套餐 → 选周期 → 一键激活，客户刷新即用
+            </span>
+          </div>
+
+          {/* 延长试用 — 次要操作 */}
+          <div className="flex flex-wrap items-end gap-3 border-t border-violet-200/50 pt-3">
             <div className="space-y-1">
-              <Label>延长试用（天）</Label>
+              <Label className="text-xs">延长试用（天）</Label>
               <Input
                 type="number"
                 min={1}
@@ -410,32 +420,35 @@ export function PlatformTenantDetailPage() {
                 onChange={(e) => setTrialDays(Number(e.target.value) || 14)}
               />
             </div>
-            <Button size="sm" onClick={() => void extendTrial()}>
-              延长专业版试用
+            <Button size="sm" variant="outline" onClick={() => void extendTrial()}>
+              延长试用
             </Button>
-            <Button size="sm" variant="outline" onClick={() => void extendTrial(7)}>
+            <Button size="sm" variant="ghost" onClick={() => void extendTrial(7)}>
               +7 天
             </Button>
-            <Button size="sm" variant="outline" onClick={() => void extendTrial(30)}>
+            <Button size="sm" variant="ghost" onClick={() => void extendTrial(30)}>
               +30 天
             </Button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => void grant('pro')}>
-              开通专业版（年）
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => void grant('enterprise')}>
-              开通企业版（年）
-            </Button>
-            <Button size="sm" variant="secondary" asChild>
+            <Button size="sm" variant="secondary" asChild className="ml-auto">
               <Link to="/app/platform/billing">
                 <Gift className="mr-1 h-4 w-4" />
-                创建兑换码
+                兑换码
               </Link>
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      <QuickGrantDialog
+        open={quickGrantOpen}
+        onOpenChange={setQuickGrantOpen}
+        tenantId={Number(tenantId)}
+        tenantName={data.tenant.name}
+        onSuccess={(m) => {
+          setMsg(m)
+          void load()
+        }}
+      />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

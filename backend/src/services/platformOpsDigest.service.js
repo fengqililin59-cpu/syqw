@@ -39,7 +39,7 @@ export async function buildPlatformOpsDigest() {
   const warnAi = aiAnomalies.list.filter((t) => t.level === 'warn');
 
   const lines = [
-    `【ZhiFlow 平台运营日报】${dayjs().format('YYYY-MM-DD')}`,
+    `【中数云科 平台运营日报】${dayjs().format('YYYY-MM-DD')}`,
     '',
     '📊 全站概览',
     `· 注册企业：${overview.tenants_total}`,
@@ -247,7 +247,7 @@ function buildDigestHtml(message, appUrl, stats = {}) {
     .join('</tr><tr>');
 
   return `<!DOCTYPE html><html lang="zh-CN"><body style="font-family:PingFang SC,Microsoft YaHei,sans-serif;font-size:14px;color:#0f172a;line-height:1.6;max-width:640px;margin:0 auto;padding:16px">
-<h2 style="margin:0 0 12px;font-size:18px">ZhiFlow 平台运营日报</h2>
+<h2 style="margin:0 0 12px;font-size:18px">中数云科 平台运营日报</h2>
 <table style="border-collapse:collapse;width:100%;margin-bottom:16px"><tr>${kpiRows}</tr></table>
 <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;font-size:13px">${body}</div>
 <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0"/>
@@ -257,7 +257,7 @@ function buildDigestHtml(message, appUrl, stats = {}) {
 <a href="${base}/app/platform/inbox-ai-anomalies">AI 自动发异常</a> ·
 <a href="${base}/app/platform/ops-followups">待回访</a> ·
 <a href="${base}/app/platform/billing">订单确认</a></p>
-<p style="font-size:11px;color:#64748b">本邮件由 ZhiFlow 平台定时任务发送，请勿直接回复。</p>
+<p style="font-size:11px;color:#64748b">本邮件由 中数云科 平台定时任务发送，请勿直接回复。</p>
 </body></html>`;
 }
 
@@ -289,7 +289,7 @@ export async function sendPlatformOpsDigestEmails() {
 
   const { message, stats } = await buildPlatformOpsDigest();
   const appUrl = appBase();
-  const subject = `ZhiFlow 平台运营日报 ${dayjs().format('YYYY-MM-DD')}`;
+  const subject = `中数云科 平台运营日报 ${dayjs().format('YYYY-MM-DD')}`;
   const html = buildDigestHtml(message, appUrl, stats);
   const targets = [];
 

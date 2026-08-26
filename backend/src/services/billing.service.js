@@ -408,7 +408,7 @@ function buildAlipayRedirectForRecord(record, plan) {
   const planName = plan?.name || '套餐';
   return alipayService.buildPagePayUrl({
     outTradeNo: record.out_trade_no,
-    subject: `ZhiFlow ${planName} ${cycleLabel}`,
+    subject: `中数云科 ${planName} ${cycleLabel}`,
     totalAmountYuan: record.amount,
     returnUrl: `${alipayService.notifyBaseUrl || ''}/app/billing?status=paid`,
   });
@@ -497,7 +497,7 @@ export async function createWechatPayment(tenantId, planCode, billingCycle) {
   const cycleLabel = billingCycle === 'yearly' ? '年付' : '月付';
   const { code_url, mock } = await wechatPayService.createNativeOrder({
     outTradeNo: record.out_trade_no,
-    description: `ZhiFlow ${plan.name} ${cycleLabel}`,
+    description: `中数云科 ${plan.name} ${cycleLabel}`,
     amountFen,
   });
 
@@ -549,7 +549,7 @@ export async function createWechatJsapiPayment(auth, planCode, billingCycle) {
   const cycleLabel = billingCycle === 'yearly' ? '年付' : '月付';
   const { prepay_id, mock, jsapi_params } = await wechatPayService.createJsapiOrder({
     outTradeNo: record.out_trade_no,
-    description: `ZhiFlow ${plan.name} ${cycleLabel}`,
+    description: `中数云科 ${plan.name} ${cycleLabel}`,
     amountFen,
     openid: openid || 'mock_openid_dev',
   });

@@ -25,8 +25,8 @@ export async function getPublicBranding(tenantId) {
   return {
     tenant_id: Number(tenant.id),
     name: tenant.name,
-    product_name: 'ZhiFlow',
-    description: `${tenant.name} 使用 ZhiFlow 进行私域客户运营与增长。`,
+    product_name: '中数云科',
+    description: `${tenant.name} 使用 中数云科 进行私域客户运营与增长。`,
     help_center_url: helpCenterUrl,
     brand_page_url: brandPageUrl,
     logo_url: origin ? `${origin}/favicon.ico` : null,

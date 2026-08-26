@@ -88,7 +88,7 @@ export async function createNativeOrder({ outTradeNo, description, amountFen }) 
   const body = {
     appid: env.wechatPay.appId,
     mchid: env.wechatPay.mchId,
-    description: String(description || 'ZhiFlow套餐').slice(0, 127),
+    description: String(description || '中数云科套餐').slice(0, 127),
     out_trade_no: String(outTradeNo),
     notify_url: notifyUrl,
     amount: {
@@ -133,7 +133,7 @@ export async function createJsapiOrder({ outTradeNo, description, amountFen, ope
   const body = {
     appid: env.wechatPay.appId,
     mchid: env.wechatPay.mchId,
-    description: String(description || 'ZhiFlow套餐').slice(0, 127),
+    description: String(description || '中数云科套餐').slice(0, 127),
     out_trade_no: String(outTradeNo),
     notify_url: notifyUrl,
     amount: {

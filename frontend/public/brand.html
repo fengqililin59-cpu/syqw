@@ -57,7 +57,7 @@
       <p id="links"></p>
     </div>
     <footer>
-      © 2026 ZhiFlow · 杭州中数云科智慧科技有限公司 ·
+      © 2026 中数云科 · 杭州中数云科智慧科技有限公司 ·
       <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">浙ICP备2026009605号-1</a>
     </footer>
     <script>
@@ -86,7 +86,7 @@
             if (json.code !== 0 || !json.data) throw new Error(json.message || '加载失败')
             const d = json.data
             nameEl.textContent = d.name
-            document.title = d.name + ' · ' + (d.product_name || 'ZhiFlow')
+            document.title = d.name + ' · ' + (d.product_name || '中数云科')
             const desc = d.description || ''
             descEl.textContent = desc
             metaDesc.content = desc
@@ -109,7 +109,7 @@
             const product = {
               '@context': 'https://schema.org',
               '@type': 'SoftwareApplication',
-              name: d.product_name || 'ZhiFlow',
+              name: d.product_name || '中数云科',
               applicationCategory: 'BusinessApplication',
               operatingSystem: 'Web',
               description: desc,

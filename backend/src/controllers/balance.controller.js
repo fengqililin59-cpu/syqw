@@ -108,8 +108,8 @@ export async function createRechargeOrder(req, res) {
 
   const outTradeNo = `BAL${Date.now()}${tenantId}`;
   const subject = packageName
-    ? `ZhiFlow 余额充值 - ${packageName}`
-    : 'ZhiFlow 余额充值';
+    ? `中数云科 余额充值 - ${packageName}`
+    : '中数云科 余额充值';
 
   let codeUrl = '';
   let redirectUrl = '';   // 支付宝跳转支付 URL

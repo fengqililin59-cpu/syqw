@@ -70,22 +70,22 @@ function buildExpiringEmail(row, billingUrl) {
       : `剩余 ${row.days_remaining} 天`;
   const endDate = dayjs(row.ends_at).format('YYYY年MM月DD日');
   const statusLabel = row.subscription_status === 'trialing' ? '试用' : '订阅';
-  const subject = `【ZhiFlow】您的${statusLabel}即将到期（${daysLabel}）`;
+  const subject = `【中数云科】您的${statusLabel}即将到期（${daysLabel}）`;
   const text = [
     `您好，`,
     '',
-    `您的企业「${row.tenant_name}」在 ZhiFlow 的 ${row.plan_name} ${statusLabel}将于 ${endDate} 到期（${daysLabel}）。`,
+    `您的企业「${row.tenant_name}」在 中数云科 的 ${row.plan_name} ${statusLabel}将于 ${endDate} 到期（${daysLabel}）。`,
     '',
     `为避免功能受限，请尽快登录续费或联系商务：`,
     billingUrl,
     '',
     `如有疑问，欢迎回复本邮件或联系您的客户成功经理。`,
     '',
-    'ZhiFlow 团队',
+    '中数云科 团队',
   ].join('\n');
   const html = `<!DOCTYPE html><html lang="zh-CN"><body style="font-family:PingFang SC,Microsoft YaHei,sans-serif;font-size:14px;line-height:1.7;color:#0f172a;max-width:560px">
 <p>您好，</p>
-<p>您的企业 <strong>${escapeHtml(row.tenant_name)}</strong> 在 ZhiFlow 的 <strong>${escapeHtml(row.plan_name)}</strong> ${statusLabel}将于 <strong>${endDate}</strong> 到期（${escapeHtml(daysLabel)}）。</p>
+<p>您的企业 <strong>${escapeHtml(row.tenant_name)}</strong> 在 中数云科 的 <strong>${escapeHtml(row.plan_name)}</strong> ${statusLabel}将于 <strong>${endDate}</strong> 到期（${escapeHtml(daysLabel)}）。</p>
 <p>请尽快登录续费，避免自动化、AI 等能力受限：</p>
 <p><a href="${billingUrl}" style="color:#0369a1">打开计费中心 →</a></p>
 <p style="color:#64748b;font-size:12px">本邮件由平台运营发送，请勿直接回复系统邮箱。</p>
@@ -96,7 +96,7 @@ function buildExpiringEmail(row, billingUrl) {
 function buildChurnEmail(row, billingUrl) {
   const levelLabel = row.level === 'critical' ? '需尽快关注' : '建议关注';
   const risks = row.risks.map((r) => r.title).join('、');
-  const subject = `【ZhiFlow】账号使用提醒（${levelLabel}）`;
+  const subject = `【中数云科】账号使用提醒（${levelLabel}）`;
   const text = [
     `您好，`,
     '',
@@ -105,13 +105,13 @@ function buildChurnEmail(row, billingUrl) {
     '',
     `登录查看与续费：${billingUrl}`,
     '',
-    'ZhiFlow 客户成功团队',
+    '中数云科 客户成功团队',
   ].join('\n');
   const html = `<!DOCTYPE html><html lang="zh-CN"><body style="font-family:PingFang SC,Microsoft YaHei,sans-serif;font-size:14px;line-height:1.7;color:#0f172a;max-width:560px">
 <p>您好，</p>
 <p>我们注意到企业 <strong>${escapeHtml(row.tenant_name)}</strong> 近期使用情况有变化（${escapeHtml(risks)}），${escapeHtml(levelLabel)}。</p>
 <p>如需协助续费、培训或功能开通，欢迎登录：</p>
-<p><a href="${billingUrl}" style="color:#0369a1">打开 ZhiFlow →</a></p>
+<p><a href="${billingUrl}" style="color:#0369a1">打开 中数云科 →</a></p>
 </body></html>`;
   return { subject, text, html };
 }
@@ -389,7 +389,7 @@ async function sendOpsReminderSummaryEmail(kind, rows, sendResult) {
     return `· ${r.tenant_name}（${r.level === 'critical' ? '严重' : '关注'}）`;
   });
   const text = [
-    `【ZhiFlow 平台】批量${label}邮件已发送`,
+    `【中数云科 平台】批量${label}邮件已发送`,
     `成功 ${sendResult.sent} · 跳过 ${sendResult.skipped} · 无邮箱 ${sendResult.no_email} · 失败 ${sendResult.failed}`,
     '',
     ...lines,
@@ -404,7 +404,7 @@ async function sendOpsReminderSummaryEmail(kind, rows, sendResult) {
       // eslint-disable-next-line no-await-in-loop
       await sendMail({
         to,
-        subject: `ZhiFlow · 批量${label}发送摘要 ${dayjs().format('YYYY-MM-DD')}`,
+        subject: `中数云科 · 批量${label}发送摘要 ${dayjs().format('YYYY-MM-DD')}`,
         text,
       });
       sent += 1;

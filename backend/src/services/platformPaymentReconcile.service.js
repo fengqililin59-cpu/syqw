@@ -167,7 +167,7 @@ export async function buildPaymentsReconcileExport(query = {}) {
   const header = Object.keys(detailRows[0] || { 订单ID: '' });
   const dataLines = detailRows.map((row) => rowToCsv(header.map((k) => row[k])));
   const metaLines = [
-    `# ZhiFlow 支付对账导出`,
+    `# 中数云科 支付对账导出`,
     `# 生成时间,${summary.generated_at}`,
     `# 日期字段,${summary.date_field_label}`,
     `# 区间,${summary.from} ~ ${summary.to}`,
@@ -234,7 +234,7 @@ export async function sendMonthlyPaymentReconcileEmail(options = {}) {
   });
 
   const { summary } = exportResult;
-  const subject = `ZhiFlow ${range.label} 支付对账表`;
+  const subject = `中数云科 ${range.label} 支付对账表`;
   const text = [
     `您好，`,
     ``,
@@ -251,7 +251,7 @@ export async function sendMonthlyPaymentReconcileEmail(options = {}) {
 <li>已支付：${summary.paid_count} 笔，合计 ¥${summary.paid_amount.toLocaleString('zh-CN')}</li>
 <li>统计区间：${summary.from} ~ ${summary.to}（按支付时间）</li>
 </ul>
-<p style="font-size:12px;color:#64748b">由 ZhiFlow 平台定时任务自动发送。</p>`;
+<p style="font-size:12px;color:#64748b">由 中数云科 平台定时任务自动发送。</p>`;
 
   const targets = [];
   for (const to of recipients) {

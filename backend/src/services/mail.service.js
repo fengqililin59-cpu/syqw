@@ -40,7 +40,7 @@ export async function sendMail(opts) {
   await transport.sendMail({
     from: env.registerOtp.smtpFrom || env.registerOtp.smtpUser,
     to,
-    subject: String(opts.subject || 'ZhiFlow 通知').slice(0, 200),
+    subject: String(opts.subject || '中数云科 通知').slice(0, 200),
     text: opts.text,
     html: opts.html || undefined,
     attachments: opts.attachments,

@@ -170,7 +170,7 @@ export async function exportExpiringSubscriptionsCsv(query = {}) {
     ]),
   );
   const csv = [rowToCsv(header), ...lines].join('\n');
-  const filename = `ZhiFlow-即将到期订阅-${dayjs().format('YYYYMMDD')}.csv`;
+  const filename = `中数云科-即将到期订阅-${dayjs().format('YYYYMMDD')}.csv`;
   return { csv, filename, total: data.total, days: data.days };
 }
 

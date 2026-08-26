@@ -3,15 +3,23 @@
 // 保存: pm2 save
 // 开机自启: pm2 startup
 
+// 生产机路径：务必从仓库根目录启动，或直接用绝对 cwd（见 ecs_recover_and_sync.sh）
+const path = require('path');
+const ROOT = path.resolve(__dirname, '..');
+const BACKEND = process.env.SYQW_BACKEND_DIR || path.join(ROOT, 'backend');
+
 module.exports = {
   apps: [
     {
       // ===== 后端 API 服务 =====
       name: 'syqw-api',
-      cwd: './backend',
+      cwd: BACKEND,
       script: 'src/app.js',
       node_args: '--max-old-space-size=512',
       env: {
+        NODE_ENV: 'production',
+      },
+      env_production: {
         NODE_ENV: 'production',
       },
 

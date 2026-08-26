@@ -231,7 +231,7 @@ export async function getAcquisitionWizard(auth) {
       summary: '把私信转到统一收件箱；与「投流监测」是两套接口',
       steps: [
         '设置 → 运维工具 → 配置 douyin_client_secret',
-        '在抖音开放平台配置消息 Webhook 到 ZhiFlow 公域收件箱地址',
+        '在抖音开放平台配置消息 Webhook 到 中数云科 公域收件箱地址',
         '销售在收件箱回复；不会自动全网获客',
       ],
       links: [
@@ -257,6 +257,6 @@ export async function getAcquisitionWizard(auth) {
     checklist,
     channels,
     disclaimer:
-      'ZhiFlow 不负责替您创建/投放广告计划；请在各平台广告后台投放，用本系统做监测、线索承接与私域跟进。',
+      '中数云科 不负责替您创建/投放广告计划；请在各平台广告后台投放，用本系统做监测、线索承接与私域跟进。',
   };
 }

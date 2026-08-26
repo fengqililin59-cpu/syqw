@@ -125,8 +125,8 @@ export async function gatherSubscriptionStatementData(opts) {
     : `ZS-${tenantId}-${dayjs().format('YYYYMMDD')}`;
   const safeName = tenantName.replace(/[^\w\u4e00-\u9fa5-]+/g, '_').slice(0, 24);
   const htmlFilename = monthKey
-    ? `ZhiFlow-订阅账单-${safeName}-${monthKey}.html`
-    : `ZhiFlow-订阅账单-${safeName}-${dayjs().format('YYYYMMDD')}.html`;
+    ? `中数云科-订阅账单-${safeName}-${monthKey}.html`
+    : `中数云科-订阅账单-${safeName}-${dayjs().format('YYYYMMDD')}.html`;
   const pdfFilename = htmlFilename.replace(/\.html$/i, '.pdf');
 
   const { subscription, plan, usage, days_remaining: daysRemaining } = subData;
@@ -205,7 +205,7 @@ function renderSubscriptionStatementHtml(data) {
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <title>ZhiFlow 订阅账单 · ${escapeHtml(data.tenantName)}</title>
+  <title>中数云科 订阅账单 · ${escapeHtml(data.tenantName)}</title>
   <style>
     * { box-sizing: border-box; }
     body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; color: #0f172a; margin: 0; padding: 28px; background: #f1f5f9; }
@@ -235,7 +235,7 @@ function renderSubscriptionStatementHtml(data) {
   <div class="page">
     <div class="head">
       <div>
-        <div class="brand">ZhiFlow 订阅账单</div>
+        <div class="brand">中数云科 订阅账单</div>
         <div style="font-size:13px;color:#64748b;margin-top:4px">Subscription Statement</div>
       </div>
       <div class="bill-meta">
@@ -267,12 +267,12 @@ function renderSubscriptionStatementHtml(data) {
     <p class="summary">期间已支付合计：<strong>¥${escapeHtml(data.paidTotal)}</strong>（${data.paidCount} 笔）</p>
 
     <div class="note">
-      本账单为系统根据订阅与支付记录自动生成，仅供对账与存档。<strong>如需增值税发票</strong>，请登录 ZhiFlow 在「套餐计费 → 发票申请」提交开票信息。
+      本账单为系统根据订阅与支付记录自动生成，仅供对账与存档。<strong>如需增值税发票</strong>，请登录 中数云科 在「套餐计费 → 发票申请」提交开票信息。
     </div>
 
     <p class="footer">
       计费中心：${escapeHtml(data.appUrl)}/app/billing · 客服与合同事宜请联系平台商务<br/>
-      ZhiFlow 企微私域 · 本文件不构成税务发票
+      中数云科 企微私域 · 本文件不构成税务发票
     </p>
     <p class="no-print" style="margin-top:16px;font-size:13px;color:#64748b">提示：也可在计费页使用「下载 PDF」直接获取服务端生成的 PDF。</p>
   </div>
@@ -328,7 +328,7 @@ async function renderSubscriptionStatementPdfBuffer(data) {
     const sub = data.subscription;
     const daysHint = sub.daysRemaining != null ? `（剩余 ${sub.daysRemaining} 天）` : '';
 
-    doc.fillColor('#0c4a6e').fontSize(18).text('ZhiFlow 订阅账单', { continued: false });
+    doc.fillColor('#0c4a6e').fontSize(18).text('中数云科 订阅账单', { continued: false });
     doc.fillColor('#64748b').fontSize(10).text('Subscription Statement');
     doc.moveDown(0.5);
     doc.fillColor('#334155').fontSize(10);
@@ -392,7 +392,7 @@ async function renderSubscriptionStatementPdfBuffer(data) {
     );
     doc.moveDown(0.6);
     doc.fillColor('#94a3b8').fontSize(8).text(
-      `计费中心：${data.appUrl}/app/billing · ZhiFlow 企微私域 · 本文件不构成税务发票`,
+      `计费中心：${data.appUrl}/app/billing · 中数云科 企微私域 · 本文件不构成税务发票`,
       { width: 500 },
     );
 

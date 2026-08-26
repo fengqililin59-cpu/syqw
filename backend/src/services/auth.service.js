@@ -499,7 +499,6 @@ async function ensureGuestUser() {
       username: 'guest',
       real_name: '访客体验',
       password_hash: 'GUEST_NOT_LOGIN',
-      role: 'sales',
       demo_mode: 1,
       status: 1,
     },
@@ -515,9 +514,10 @@ async function ensureGuestUser() {
     });
   }
 
+  // 访客 JWT 使用预设权限，不依赖 roles.perm_codes（生产库可能尚未跑 036）
   return User.findOne({
     where: { id: GUEST_USER_ID, tenant_id: DEMO_TENANT_ID, status: 1 },
-    include: [{ model: Role, attributes: ['id', 'name', 'permissions', 'perm_codes'] }],
+    attributes: { exclude: ['password_hash'] },
   });
 }
 

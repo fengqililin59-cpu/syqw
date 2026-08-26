@@ -6,10 +6,10 @@ INSERT IGNORE INTO tenants (id, name, is_demo, created_at)
 VALUES (9999, 'ZhiFlow 演示企业', 1, NOW());
 
 INSERT IGNORE INTO users (
-  id, tenant_id, username, real_name, role, password_hash, status, created_at
+  id, tenant_id, username, real_name, password_hash, status, created_at
 )
 VALUES (
-  9999, 9999, 'demo_sales', '张销售', 'sales', 'DEMO_NOT_LOGIN', 1, NOW()
+  9999, 9999, 'demo_sales', '张销售', 'DEMO_NOT_LOGIN', 1, NOW()
 );
 
 -- 防止重复执行插入重复客户：
@@ -140,11 +140,11 @@ DROP PROCEDURE IF EXISTS seed_demo_data;
 -- 访客账号（供未注册用户直接体验）
 INSERT IGNORE INTO users (
   id, tenant_id, username, real_name,
-  role, password_hash, demo_mode,
+  password_hash, demo_mode,
   status, created_at
 ) VALUES (
   9998, 9999, 'guest', '访客体验',
-  'sales', 'GUEST_NOT_LOGIN', 1, 1, NOW()
+  'GUEST_NOT_LOGIN', 1, 1, NOW()
 );
 
 -- 给访客账号分配销售角色

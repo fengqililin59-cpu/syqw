@@ -44,7 +44,7 @@ function buildSalesAuth(tenantId, salesUser) {
 export function formatTodayActionsWeworkMessage(tenantName, payload) {
   const base = String(env.appUrl || '').replace(/\/$/, '');
   const lines = [
-    `【ZhiFlow 今日必做】${tenantName || ''}`.trim(),
+    `【中数云科 今日必做】${tenantName || ''}`.trim(),
     (() => {
       const d = dayjs().tz(TZ);
       const wd = ['日', '一', '二', '三', '四', '五', '六'][d.day()];

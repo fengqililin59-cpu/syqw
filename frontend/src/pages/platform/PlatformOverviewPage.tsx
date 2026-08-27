@@ -185,8 +185,8 @@ export function PlatformOverviewPage() {
         needWework && needEmail
           ? '无法发送：请配置企微或邮件（见上方提示）'
           : needWework
-            ? '无法发送企微：请检查 PLATFORM_ADMIN 与 wework_userid'
-            : '无法发送邮件：请配置 SMTP_* 与收件邮箱',
+            ? '无法发送企微：请先完成平台超管与企微员工绑定'
+            : '无法发送邮件：请先完成发信与收件邮箱配置',
       )
       return
     }
@@ -490,20 +490,19 @@ export function PlatformOverviewPage() {
                   ) : null}
                   {digestPreview.delivery_mode === 'email_only' ? (
                     <span className="block mt-1 text-blue-800/80">
-                      仅邮件模式：无需企微即可每日 08:30 收日报（PLATFORM_OPS_DIGEST_DELIVERY=email_only）。
+                      仅邮件模式：无需企微即可每日早上自动收取运营日报。
                     </span>
                   ) : null}
                 </p>
               ) : null}
               {!(digestPreview.can_send_wework ?? digestPreview.can_send) ? (
                 <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                  企微：需 PLATFORM_ADMIN_USER_IDS、超管 wework_userid 及已配企微租户（可选
-                  PLATFORM_DIGEST_TENANT_ID）。
+                  企微推送暂不可用：请确认平台超管已绑定企微账号，且演示/运营租户已配置企微。
                 </p>
               ) : null}
               {!digestPreview.can_send_email ? (
                 <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-                  邮件：需配置 SMTP_*，并在超管 users.email 或 PLATFORM_OPS_DIGEST_EMAILS 中填写收件地址。
+                  邮件推送暂不可用：请先完成发信服务与收件邮箱配置。
                 </p>
               ) : null}
               {digestPreview.stats ? (

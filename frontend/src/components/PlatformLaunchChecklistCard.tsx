@@ -33,7 +33,7 @@ const ITEMS = [
   },
   {
     id: 'wework',
-    label: '企微回调与 PLATFORM_ADMIN_USER_IDS 已配置',
+    label: '企微回调与平台超管账号已配置',
   },
   {
     id: 'legal',

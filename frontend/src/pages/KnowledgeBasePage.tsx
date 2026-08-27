@@ -120,7 +120,7 @@ export function KnowledgeBasePage() {
   }
 
   async function onReindexAll() {
-    if (!window.confirm('将为全部启用文档重建向量索引（需配置 OPENAI_API_KEY 或兼容 Embeddings API）。继续？')) return
+    if (!window.confirm('将为全部启用文档重建检索索引，可能需要几分钟。是否继续？')) return
     setIndexMsg(null)
     try {
       const res = await reindexAllKbDocuments()
@@ -150,7 +150,7 @@ export function KnowledgeBasePage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">AI 知识库</h1>
           <p className="text-sm text-muted-foreground">
-            维护产品说明、价格政策与售后话术。已配置 OPENAI_API_KEY 时自动向量检索；否则按关键词匹配。
+            维护产品说明、价格政策与售后话术，供 AI 助手与收件箱草稿引用。
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

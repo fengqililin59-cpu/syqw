@@ -1,5 +1,5 @@
 /**
- * @file AI 文案生成：调用 POST /api/v1/ai/generate-copy（需登录与 DEEPSEEK_API_KEY 等）。
+ * @file AI 文案生成：调用 POST /api/v1/ai/generate-copy。
  */
 import { useState } from 'react'
 import { Loader2, Copy, Check, Sparkles } from 'lucide-react'
@@ -80,8 +80,7 @@ export function AICopywritingPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">AI 文案生成</h1>
           <p className="text-sm text-muted-foreground">
-            后端需配置 <code className="text-xs">DEEPSEEK_API_KEY</code> 或{' '}
-            <code className="text-xs">OPENAI_API_KEY</code>
+            输入产品卖点，一键生成可用于朋友圈、私聊与落地页的营销文案
           </p>
         </div>
       </div>

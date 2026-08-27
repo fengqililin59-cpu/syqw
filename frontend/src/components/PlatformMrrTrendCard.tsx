@@ -245,7 +245,7 @@ export function PlatformMrrTrendCard() {
             </Button>
             {!hasMrrLine ? (
               <span className="text-xs text-muted-foreground">
-                尚无历史快照；可手动补录或开启 ENABLE_PLATFORM_MRR_SNAPSHOT_CRON=1
+                尚无历史快照；可手动补录，或联系运维开启每日 MRR 快照任务
               </span>
             ) : null}
             {snapshotMsg ? <span className="text-xs text-violet-800">{snapshotMsg}</span> : null}

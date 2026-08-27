@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#7c3aed" />
+<title>企微私域营销管家 · 美业 AI 销售助手｜杭州中数云科</title>
+<meta name="description" content="美业老板的 AI 销售助手：AI 30 秒输出朋友圈+回访+邀约全套话术，客户意向实时预警，今日待跟进自动提醒。8 人皮肤管理门店回访执行率 35%→82%。" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          brand: { 50: '#f5f3ff', 500: '#7c3aed', 600: '#6d28d9', 700: '#5b21b6' },
+          accent: { 500: '#ec4899', 600: '#db2777' }
+        },
+        fontFamily: {
+          sans: ['"PingFang SC"', '"Helvetica Neue"', 'system-ui', 'sans-serif']
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  body { -webkit-tap-highlight-color: transparent; }
+  .hero-grad {
+    background: linear-gradient(135deg, #7c3aed 0%, #ec4899 100%);
+  }
+  .card-shadow { box-shadow: 0 10px 30px -10px rgba(124,58,237,.25); }
+  @keyframes float-up { from {opacity:0; transform:translateY(20px);} to {opacity:1; transform:translateY(0);} }
+  .fade-in { animation: float-up .8s ease both; }
+  .stat-num { font-variant-numeric: tabular-nums; }
+  input, select, textarea { font-size: 16px; }
+  .pulse-cta { animation: pulse 2s infinite; }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(236,72,153,.6); }
+    50% { box-shadow: 0 0 0 14px rgba(236,72,153,0); }
+  }
+</style>
+</head>
+<body class="font-sans text-slate-800 bg-slate-50">
+
+<!-- ============== 顶部品牌条 ============== -->
+<header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-100">
+  <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg hero-grad flex items-center justify-center text-white font-bold text-sm">中</div>
+      <div class="leading-tight">
+        <div class="text-sm font-semibold text-slate-900">中数云科</div>
+        <div class="text-[10px] text-slate-500">私域增长平台</div>
+      </div>
+    </div>
+    <a href="#form" class="text-xs px-3 py-1.5 rounded-full bg-brand-500 text-white">免费演示</a>
+  </div>
+</header>
+
+<main class="max-w-md mx-auto">
+
+<!-- ============== Hero ============== -->
+<section class="hero-grad text-white px-5 pt-10 pb-12 fade-in">
+  <div class="inline-block text-[11px] px-2.5 py-1 rounded-full bg-white/20 mb-4">美业 · AI 销售助手</div>
+  <h1 class="text-2xl font-bold leading-tight mb-3">
+    你的美容师每天花<br/>半小时写回访朋友圈？
+  </h1>
+  <p class="text-sm text-white/90 mb-5 leading-relaxed">
+    AI 30 秒输出全套美业话术 · 8 人皮肤管理门店回访执行率 35% → 82%
+  </p>
+  <a href="#form" class="inline-flex items-center justify-center w-full py-3.5 rounded-2xl bg-white text-brand-700 font-bold text-base pulse-cta">
+    免费领取演示
+  </a>
+  <p class="text-center text-[11px] text-white/70 mt-2">无需注册 · 30 秒上手体验</p>
+</section>
+
+<!-- ============== 痛点共鸣 ============== -->
+<section class="px-5 py-10 bg-white">
+  <h2 class="text-lg font-bold text-slate-900 mb-1">美业老板的 4 个痛点</h2>
+  <p class="text-xs text-slate-500 mb-5">中招一个，每月都在悄悄亏钱</p>
+  <div class="space-y-3">
+    <div class="flex gap-3 p-3.5 rounded-xl bg-rose-50 border border-rose-100">
+      <div class="text-2xl">⏰</div>
+      <div>
+        <div class="text-sm font-semibold text-slate-900">美容师不会写朋友圈</div>
+        <div class="text-xs text-slate-600 mt-0.5">朋友圈是哑的，客户看不到价值，复购率上不去</div>
+      </div>
+    </div>
+    <div class="flex gap-3 p-3.5 rounded-xl bg-amber-50 border border-amber-100">
+      <div class="text-2xl">😵‍💫</div>
+      <div>
+        <div class="text-sm font-semibold text-slate-900">今天该跟谁，全靠口口相传</div>
+        <div class="text-xs text-slate-600 mt-0.5">老员工一请假，跟进链路就断，意向客户悄悄流失</div>
+      </div>
+    </div>
+    <div class="flex gap-3 p-3.5 rounded-xl bg-purple-50 border border-purple-100">
+      <div class="text-2xl">📉</div>
+      <div>
+        <div class="text-sm font-semibold text-slate-900">高意向客户错过最佳时机</div>
+        <div class="text-xs text-slate-600 mt-0.5">意向信号散在聊天里，没人盯，2 天后客户就被同行抢走</div>
+      </div>
+    </div>
+    <div class="flex gap-3 p-3.5 rounded-xl bg-cyan-50 border border-cyan-100">
+      <div class="text-2xl">🤷</div>
+      <div>
+        <div class="text-sm font-semibold text-slate-900">门店数据全靠感觉</div>
+        <div class="text-xs text-slate-600 mt-0.5">老板不知道哪个员工在摸鱼、哪个渠道在赚钱</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 产品演示 4 大能力 ============== -->
+<section class="px-5 py-10 bg-slate-50">
+  <h2 class="text-lg font-bold text-slate-900 mb-1">AI 全套解决，一个工具搞掂</h2>
+  <p class="text-xs text-slate-500 mb-5">人审 AI + 私域运营，中小门店也用得起</p>
+
+  <div class="space-y-4">
+    <!-- 能力 1 -->
+    <div class="bg-white rounded-2xl p-4 card-shadow">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-xs px-2 py-0.5 rounded bg-brand-50 text-brand-700 font-medium">AI 话术</span>
+        <span class="text-[11px] text-slate-400">30 秒生成</span>
+      </div>
+      <div class="text-base font-bold text-slate-900 mb-1.5">朋友圈文案 + 回访话术 + 邀约脚本</div>
+      <div class="text-xs text-slate-600 leading-relaxed">
+        粘贴产品卖点，选「种草/专业/促销」风格，AI 30 秒输出全套美业话术，一键复制发朋友圈，美容师再也不用憋半小时。
+      </div>
+      <div class="mt-3 bg-slate-50 rounded-lg p-2.5 text-[11px] text-slate-500 italic">
+        📱 "姐妹这个补水套餐太香了！原价1280，体验价598，肩颈也一起放松了…" — AI 自动生成
+      </div>
+    </div>
+
+    <!-- 能力 2 -->
+    <div class="bg-white rounded-2xl p-4 card-shadow">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-xs px-2 py-0.5 rounded bg-rose-50 text-rose-600 font-medium">意向预警</span>
+        <span class="text-[11px] text-slate-400">秒级识别</span>
+      </div>
+      <div class="text-base font-bold text-slate-900 mb-1.5">高意向客户实时弹出提醒</div>
+      <div class="text-xs text-slate-600 leading-relaxed">
+        AI 监听企微对话，识别"价格/对比/约时间"等意向信号，意向分高的客户自动飘红预警，老板立刻知道该亲自盯。
+      </div>
+    </div>
+
+    <!-- 能力 3 -->
+    <div class="bg-white rounded-2xl p-4 card-shadow">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-xs px-2 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">跟进提醒</span>
+        <span class="text-[11px] text-slate-400">谁漏谁补</span>
+      </div>
+      <div class="text-base font-bold text-slate-900 mb-1.5">今日待跟进客户一览无余</div>
+      <div class="text-xs text-slate-600 leading-relaxed">
+        逾期跟进自动飘红，每个客户该跟、跟过没跟过、谁负责，一眼看穿，再也不会"我以为他跟了"。
+      </div>
+    </div>
+
+    <!-- 能力 4 -->
+    <div class="bg-white rounded-2xl p-4 card-shadow">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-xs px-2 py-0.5 rounded bg-cyan-50 text-cyan-600 font-medium">经营看板</span>
+        <span class="text-[11px] text-slate-400">一目了然</span>
+      </div>
+      <div class="text-base font-bold text-slate-900 mb-1.5">老板看板：业绩+战力+ROI</div>
+      <div class="text-xs text-slate-600 leading-relaxed">
+        不开电脑、不问员工，打开手机就能看：今日新增、成交、回访执行率、广告 ROI、员工战力榜。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 案例数据 ============== -->
+<section class="px-5 py-10 bg-white">
+  <h2 class="text-lg font-bold text-slate-900 mb-1">8 人皮肤管理门店实战数据</h2>
+  <p class="text-xs text-slate-500 mb-5">用 3 个月，靠 AI 工具而非员工勤奋</p>
+
+  <div class="grid grid-cols-2 gap-3">
+    <div class="p-4 rounded-xl bg-gradient-to-br from-brand-50 to-purple-50 border border-brand-100">
+      <div class="text-[11px] text-slate-500 mb-1">回访执行率</div>
+      <div class="flex items-baseline gap-1">
+        <span class="text-2xl font-bold text-brand-700 stat-num">82%</span>
+        <span class="text-xs text-slate-400 line-through">35%</span>
+      </div>
+    </div>
+    <div class="p-4 rounded-xl bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-100">
+      <div class="text-[11px] text-slate-500 mb-1">写话术耗时</div>
+      <div class="flex items-baseline gap-1">
+        <span class="text-2xl font-bold text-rose-600 stat-num">30秒</span>
+        <span class="text-xs text-slate-400 line-through">30分钟</span>
+      </div>
+    </div>
+    <div class="p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100">
+      <div class="text-[11px] text-slate-500 mb-1">客户复购率</div>
+      <div class="flex items-baseline gap-1">
+        <span class="text-2xl font-bold text-emerald-600 stat-num">+47%</span>
+      </div>
+    </div>
+    <div class="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-100">
+      <div class="text-[11px] text-slate-500 mb-1">意向客户跟进及时率</div>
+      <div class="flex items-baseline gap-1">
+        <span class="text-2xl font-bold text-amber-600 stat-num">96%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-5 p-4 rounded-xl bg-slate-50 border border-slate-200">
+    <div class="text-xs text-slate-500 mb-2">客户原话</div>
+    <p class="text-sm text-slate-700 italic leading-relaxed">
+      "以前美容师离职就丢客户，现在 AI 帮我盯着，今天谁没跟、意向谁冒头，我打开手机比员工还先知道。"
+    </p>
+    <div class="text-[11px] text-slate-400 mt-2">— 诗曼皮肤管理中心 · 王店长</div>
+  </div>
+</section>
+
+<!-- ============== 表单留资 ============== -->
+<section id="form" class="px-5 py-10 bg-gradient-to-b from-brand-50 to-white">
+  <div class="text-center mb-6">
+    <h2 class="text-xl font-bold text-slate-900 mb-2">免费领取演示</h2>
+    <p class="text-xs text-slate-500">填写信息，顾问 1 个工作日内联系您<br/>演示版无需注册，立刻可体验</p>
+  </div>
+
+  <form id="leadForm" class="bg-white rounded-2xl p-5 card-shadow space-y-4" novalidate>
+    <div>
+      <label class="block text-xs font-medium text-slate-700 mb-1.5">手机号 <span class="text-rose-500">*</span></label>
+      <input type="tel" name="phone" maxlength="11" inputmode="numeric" required
+        class="w-full px-3.5 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none text-sm"
+        placeholder="请输入手机号" />
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-slate-700 mb-1.5">门店名称 <span class="text-rose-500">*</span></label>
+      <input type="text" name="company" maxlength="50" required
+        class="w-full px-3.5 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none text-sm"
+        placeholder="如：诗曼皮肤管理中心" />
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-slate-700 mb-1.5">您的称呼 <span class="text-rose-500">*</span></label>
+      <input type="text" name="name" maxlength="20" required
+        class="w-full px-3.5 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none text-sm"
+        placeholder="如：王店长" />
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-slate-700 mb-1.5">门店类型</label>
+      <select name="storeType" class="w-full px-3.5 py-3 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none text-sm bg-white">
+        <option value="">请选择</option>
+        <option value="皮肤管理">皮肤管理</option>
+        <option value="生活美容">生活美容院</option>
+        <option value="医美">医美机构</option>
+        <option value="SPA">SPA / 按摩</option>
+        <option value="美甲美睫">美甲美睫</option>
+        <option value="综合美业">综合美业</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-slate-700 mb-1.5">门店人数</label>
+      <div class="grid grid-cols-3 gap-2">
+        <label class="cursor-pointer">
+          <input type="radio" name="staffSize" value="5人以下" class="peer hidden" />
+          <div class="text-center text-xs py-2.5 rounded-xl border border-slate-200 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">5 人以下</div>
+        </label>
+        <label class="cursor-pointer">
+          <input type="radio" name="staffSize" value="5-10人" class="peer hidden" />
+          <div class="text-center text-xs py-2.5 rounded-xl border border-slate-200 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">5-10 人</div>
+        </label>
+        <label class="cursor-pointer">
+          <input type="radio" name="staffSize" value="10人以上" class="peer hidden" />
+          <div class="text-center text-xs py-2.5 rounded-xl border border-slate-200 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">10 人以上</div>
+        </label>
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-slate-700 mb-1.5">当前最大痛点（可多选）</label>
+      <div class="flex flex-wrap gap-2">
+        <label class="cursor-pointer">
+          <input type="checkbox" name="pain" value="美容师不会写朋友圈" class="peer hidden" />
+          <span class="text-xs px-3 py-1.5 rounded-full border border-slate-200 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">不会写朋友圈</span>
+        </label>
+        <label class="cursor-pointer">
+          <input type="checkbox" name="pain" value="客户跟进跟不上" class="peer hidden" />
+          <span class="text-xs px-3 py-1.5 rounded-full border border-slate-200 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">跟进跟不上</span>
+        </label>
+        <label class="cursor-pointer">
+          <input type="checkbox" name="pain" value="高意向客户流失" class="peer hidden" />
+          <span class="text-xs px-3 py-1.5 rounded-full border border-slate-200 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">意向客户流失</span>
+        </label>
+        <label class="cursor-pointer">
+          <input type="checkbox" name="pain" value="门店数据看不清" class="peer hidden" />
+          <span class="text-xs px-3 py-1.5 rounded-full border border-slate-200 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">数据看不清</span>
+        </label>
+        <label class="cursor-pointer">
+          <input type="checkbox" name="pain" value="广告 ROI 算不准" class="peer hidden" />
+          <span class="text-xs px-3 py-1.5 rounded-full border border-slate-200 peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700">广告 ROI 算不准</span>
+        </label>
+      </div>
+    </div>
+
+    <button type="submit" id="submitBtn"
+      class="w-full py-3.5 rounded-2xl hero-grad text-white font-bold text-base pulse-cta disabled:opacity-60 disabled:cursor-not-allowed">
+      立即免费领取演示
+    </button>
+
+    <p class="text-center text-[11px] text-slate-400 leading-relaxed">
+      提交即表示同意<a href="#" class="underline">《隐私协议》</a>，您的信息仅用于本次咨询
+    </p>
+
+    <div id="formMsg" class="hidden text-center text-sm py-3 rounded-xl"></div>
+  </form>
+</section>
+
+<!-- ============== 信任背书 ============== -->
+<section class="px-5 py-10 bg-white">
+  <h2 class="text-lg font-bold text-slate-900 mb-4">为什么选择中数云科</h2>
+  <div class="space-y-3 text-sm text-slate-700">
+    <div class="flex items-start gap-2.5">
+      <span class="text-emerald-500 mt-0.5">✓</span>
+      <div>
+        <div class="font-medium">杭州中数云科智慧科技有限公司</div>
+        <div class="text-xs text-slate-500">企业级服务商，支持私有化部署</div>
+      </div>
+    </div>
+    <div class="flex items-start gap-2.5">
+      <span class="text-emerald-500 mt-0.5">✓</span>
+      <div>
+        <div class="font-medium">人审 AI，安全可控</div>
+        <div class="text-xs text-slate-500">AI 生成内容人工审核，避免翻车，数据全程加密</div>
+      </div>
+    </div>
+    <div class="flex items-start gap-2.5">
+      <span class="text-emerald-500 mt-0.5">✓</span>
+      <div>
+        <div class="font-medium">中小门店也能用得起</div>
+        <div class="text-xs text-slate-500">无需大团队配置，1 个美容师就能上手</div>
+      </div>
+    </div>
+    <div class="flex items-start gap-2.5">
+      <span class="text-emerald-500 mt-0.5">✓</span>
+      <div>
+        <div class="font-medium">美业实战数据验证</div>
+        <div class="text-xs text-slate-500">8 人门店回访执行率 35% → 82%，复购率 +47%</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 底部 ============== -->
+<footer class="px-5 py-8 bg-slate-900 text-slate-400 text-xs">
+  <div class="space-y-2 text-center">
+    <div class="text-white font-medium">杭州中数云科智慧科技有限公司</div>
+    <div>企微私域营销管家 · 美业 AI 销售助手</div>
+    <div class="text-[10px] text-slate-500">
+      <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" class="underline">浙ICP备2026009605号-1</a>
+      ·
+      <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=33010502012823" target="_blank" rel="noopener noreferrer" class="underline">浙公网安备33010502012823号</a>
+    </div>
+    <div class="flex justify-center gap-4 pt-2">
+      <a href="#" class="underline">服务条款</a>
+      <a href="#" class="underline">隐私政策</a>
+    </div>
+  </div>
+</footer>
+
+</main>
+
+<script>
+// ============================================================
+// 落地页配置
+// ============================================================
+const CONFIG = {
+  // 后端 API 地址：留空表示同域（生产部署推荐）
+  // 本地开发会自动检测
+  apiBase: '',
+
+  // 租户 ID（中数云科自己的企业ID）
+  // 默认 10010，可通过 URL 参数 ?t=xxx 覆盖
+  tenantId: '10010',
+
+  // 巨量引擎转化回传（开户后在巨量引擎后台「转化中心」创建落地页转化获取）
+  bdConvId: '',
+};
+
+// URL 参数覆盖（?t=租户ID&conv=转化ID）
+const urlParams = new URLSearchParams(location.search);
+if (urlParams.get('t')) CONFIG.tenantId = urlParams.get('t');
+if (urlParams.get('conv')) CONFIG.bdConvId = urlParams.get('conv');
+
+// 本地开发：5173 走 Vite 代理无需 apiBase；其他端口指向后端
+if ((location.hostname === '127.0.0.1' || location.hostname === 'localhost')
+    && location.port !== '3000' && location.port !== '5173') {
+  CONFIG.apiBase = `http://${location.hostname}:3000`;
+}
+
+// UTM 参数收集
+const utmFields = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'];
+const utmData = {};
+utmFields.forEach(f => { const v = urlParams.get(f); if (v) utmData[f] = v; });
+// 巨量引擎点击ID
+['clickid','click_id','gdt_vid','bd_vid'].forEach(f => {
+  const v = urlParams.get(f); if (v) utmData[f] = v;
+});
+
+// ============================================================
+// 巨量引擎转化统计 SDK（开户后启用）
+// ============================================================
+// 部署说明：
+// 1. 在巨量引擎后台「转化中心 → 落地页」创建转化，拿到落地页转化ID
+// 2. 将下方 bdConvId 填入，或通过 URL ?conv=xxx 传入
+// 3. 启用下方的回传调用
+//
+// 巨量引擎官方推荐用「落地页事件回传」方式，可参考官方文档：
+// https://abcdef.com（实际以巨量引擎后台说明为准）
+//
+// function reportBdConversion(phone) {
+//   if (!CONFIG.bdConvId) return;
+//   // 巨量引擎回传统计代码（开户后由广告顾问提供具体接入方式）
+// }
+
+// ============================================================
+// 表单提交
+// ============================================================
+const form = document.getElementById('leadForm');
+const btn = document.getElementById('submitBtn');
+const msg = document.getElementById('formMsg');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const fd = new FormData(form);
+  const phone = String(fd.get('phone') || '').trim();
+  const name = String(fd.get('name') || '').trim();
+  const company = String(fd.get('company') || '').trim();
+  const storeType = String(fd.get('storeType') || '').trim();
+  const staffSize = String(fd.get('staffSize') || '').trim();
+  const pains = fd.getAll('pain');
+
+  // 校验
+  if (!/^1\d{10}$/.test(phone)) {
+    showMsg('请输入正确的 11 位手机号', 'error');
+    return;
+  }
+  if (!name) { showMsg('请填写您的称呼', 'error'); return; }
+  if (!company) { showMsg('请填写门店名称', 'error'); return; }
+  if (!CONFIG.tenantId) {
+    showMsg('落地页尚未配置企业ID，请联系管理员', 'error');
+    return;
+  }
+
+  // 组装备注
+  const remarkParts = [];
+  if (storeType) remarkParts.push(`门店类型：${storeType}`);
+  if (staffSize) remarkParts.push(`人数：${staffSize}`);
+  if (pains.length) remarkParts.push(`痛点：${pains.join('、')}`);
+
+  const payload = {
+    phone, name, company,
+    remark: remarkParts.join('\n'),
+    need: pains.length ? `希望解决：${pains.join('、')}` : '',
+    source: '抖音落地页',
+    landing_from: 'landing',
+    landing_variant: 'beauty-a',
+    landing_cta: '免费演示',
+    ...utmData,
+  };
+
+  btn.disabled = true;
+  btn.textContent = '提交中…';
+  showMsg('', 'loading');
+
+  try {
+    const base = CONFIG.apiBase || '';
+    const url = `${base}/api/v1/leads/${CONFIG.tenantId}/submit`;
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await r.json();
+
+    if (r.ok && (data.code === 0 || data.code === 200)) {
+      showMsg('✓ 提交成功！顾问将在 1 个工作日内联系您', 'success');
+      form.querySelectorAll('input,select').forEach(el => el.value = '');
+      // 巨量引擎转化回传（开户后启用）
+      // reportBdConversion(phone);
+    } else {
+      showMsg(data.message || '提交失败，请稍后再试', 'error');
+    }
+  } catch (err) {
+    showMsg('网络异常，请检查后重试', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '立即免费领取演示';
+  }
+});
+
+function showMsg(text, type) {
+  if (!text) { msg.classList.add('hidden'); return; }
+  msg.classList.remove('hidden');
+  msg.textContent = text;
+  msg.className = 'text-center text-sm py-3 rounded-xl ' + ({
+    success: 'bg-emerald-50 text-emerald-700',
+    error: 'bg-rose-50 text-rose-600',
+    loading: 'bg-slate-50 text-slate-500',
+  })[type];
+}
+</script>
+</body>
+</html>

@@ -1,19 +1,23 @@
 SET NAMES utf8mb4;
 
--- 演示租户 / 用户基础数据（幂等）
--- 说明：id 为 AUTO_INCREMENT 时，显式列出 id 仍可手动插入固定值
-INSERT IGNORE INTO tenants (id, name, is_demo, created_at)
-VALUES (9999, 'ZhiFlow 演示企业', 1, NOW());
+-- 052: 演示租户 / 用户 / 客户种子（幂等）
+-- 演示销售 id=9997（勿用 9999，避免与真实用户自增 ID 冲突）
+-- 访客 id=9998；租户 id=9999
 
-INSERT IGNORE INTO users (
-  id, tenant_id, username, real_name, password_hash, status, created_at
-)
-VALUES (
-  9999, 9999, 'demo_sales', '张销售', 'DEMO_NOT_LOGIN', 1, NOW()
-);
+INSERT INTO tenants (id, name, is_demo, plan, status, max_users, created_at)
+VALUES (9999, '中数云科演示企业', 1, 'pro', 1, 20, NOW())
+ON DUPLICATE KEY UPDATE name='中数云科演示企业', is_demo=1, status=1;
 
--- 防止重复执行插入重复客户：
--- 仅在 tenant_id=9999 没有任何 customers 时，才批量插入演示客户与演示记录
+INSERT INTO users (
+  id, tenant_id, username, real_name, password_hash, demo_mode, role, status, created_at
+) VALUES
+  (9997, 9999, 'demo_sales', '张销售', 'DEMO_NOT_LOGIN', 1, 'sales', 1, NOW()),
+  (9998, 9999, 'guest', '访客体验', 'GUEST_NOT_LOGIN', 1, 'sales', 1, NOW())
+ON DUPLICATE KEY UPDATE
+  tenant_id=9999, demo_mode=1, status=1,
+  username=VALUES(username), real_name=VALUES(real_name);
+
+-- 仅当演示租户尚无客户时插入（完整重种请用 099_demo_reseed_safe.sql）
 SET @demo_customer_count := (
   SELECT COUNT(*) FROM customers WHERE tenant_id = 9999
 );
@@ -27,50 +31,39 @@ BEGIN
       tenant_id, owner_id, name, company, position, phone, stage, intent_score,
       intent_tier, source, added_at, created_at
     ) VALUES
-    -- 高意向客户 8 条
-    (9999,9999,'王建国','深圳某科技有限公司','总经理','13800138001','intent',82,'高意向','朋友介绍',DATE_SUB(NOW(),INTERVAL 5 DAY),DATE_SUB(NOW(),INTERVAL 5 DAY)),
-    (9999,9999,'李晓梅','上海某贸易公司','采购总监','13800138002','intent',78,'高意向','广告投放',DATE_SUB(NOW(),INTERVAL 8 DAY),DATE_SUB(NOW(),INTERVAL 8 DAY)),
-    (9999,9999,'张伟','北京某咨询公司','销售VP','13800138003','contacted',75,'高意向','渠道活码',DATE_SUB(NOW(),INTERVAL 3 DAY),DATE_SUB(NOW(),INTERVAL 3 DAY)),
-    (9999,9999,'刘芳','广州某电商公司','运营总监','13800138004','contacted',71,'高意向','展会',DATE_SUB(NOW(),INTERVAL 12 DAY),DATE_SUB(NOW(),INTERVAL 12 DAY)),
-    (9999,9999,'陈明','成都某教育机构','校长','13800138005','intent',88,'高意向','朋友介绍',DATE_SUB(NOW(),INTERVAL 2 DAY),DATE_SUB(NOW(),INTERVAL 2 DAY)),
-    (9999,9999,'赵丽','杭州某品牌公司','市场总监','13800138006','contacted',73,'高意向','短信营销',DATE_SUB(NOW(),INTERVAL 7 DAY),DATE_SUB(NOW(),INTERVAL 7 DAY)),
-    (9999,9999,'孙强','武汉某制造企业','CEO','13800138007','intent',85,'高意向','渠道活码',DATE_SUB(NOW(),INTERVAL 4 DAY),DATE_SUB(NOW(),INTERVAL 4 DAY)),
-    (9999,9999,'周静','南京某软件公司','产品总监','13800138008','contacted',70,'高意向','广告投放',DATE_SUB(NOW(),INTERVAL 9 DAY),DATE_SUB(NOW(),INTERVAL 9 DAY)),
+    (9999,9997,'王建国','星辰教育集团','校长','13800138001','intent',88,'高意向','广告投放',DATE_SUB(NOW(),INTERVAL 2 DAY),DATE_SUB(NOW(),INTERVAL 2 DAY)),
+    (9999,9997,'李晓梅','启航素质教育','教务主任','13800138002','intent',82,'高意向','朋友介绍',DATE_SUB(NOW(),INTERVAL 5 DAY),DATE_SUB(NOW(),INTERVAL 5 DAY)),
+    (9999,9997,'张伟','北辰咨询','销售VP','13800138003','contacted',78,'高意向','渠道活码',DATE_SUB(NOW(),INTERVAL 3 DAY),DATE_SUB(NOW(),INTERVAL 3 DAY)),
+    (9999,9997,'刘芳','海川供应链','采购总监','13800138004','contacted',74,'高意向','展会',DATE_SUB(NOW(),INTERVAL 12 DAY),DATE_SUB(NOW(),INTERVAL 12 DAY)),
+    (9999,9997,'陈明','未来编程俱乐部','创始人','13800138005','intent',85,'高意向','渠道活码',DATE_SUB(NOW(),INTERVAL 2 DAY),DATE_SUB(NOW(),INTERVAL 2 DAY)),
+    (9999,9997,'赵丽','悦己医美门诊','店长','13800138006','intent',80,'高意向','广告投放',DATE_SUB(NOW(),INTERVAL 7 DAY),DATE_SUB(NOW(),INTERVAL 7 DAY)),
+    (9999,9997,'孙强','云启科技','CEO','13800138007','intent',86,'高意向','展会',DATE_SUB(NOW(),INTERVAL 4 DAY),DATE_SUB(NOW(),INTERVAL 4 DAY)),
+    (9999,9997,'周静','花间美容会所','运营总监','13800138008','contacted',76,'高意向','广告投放',DATE_SUB(NOW(),INTERVAL 9 DAY),DATE_SUB(NOW(),INTERVAL 9 DAY)),
+    (9999,9997,'吴磊','启明外语','招生主管','13800138009','contacted',55,'中意向','朋友介绍',DATE_SUB(NOW(),INTERVAL 15 DAY),DATE_SUB(NOW(),INTERVAL 15 DAY)),
+    (9999,9997,'郑秀','美莱轻医美','市场经理','13800138010','contacted',48,'中意向','展会',DATE_SUB(NOW(),INTERVAL 20 DAY),DATE_SUB(NOW(),INTERVAL 20 DAY)),
+    (9999,9997,'冯涛','拓界软件','总经理','13800138011','new',52,'中意向','广告投放',DATE_SUB(NOW(),INTERVAL 1 DAY),DATE_SUB(NOW(),INTERVAL 1 DAY)),
+    (9999,9997,'蒋华','优品连锁','采购经理','13800138012','contacted',45,'中意向','渠道活码',DATE_SUB(NOW(),INTERVAL 18 DAY),DATE_SUB(NOW(),INTERVAL 18 DAY)),
+    (9999,9997,'韩雪','童心托管','园长','13800138013','contacted',60,'中意向','朋友介绍',DATE_SUB(NOW(),INTERVAL 11 DAY),DATE_SUB(NOW(),INTERVAL 11 DAY)),
+    (9999,9997,'杨帆','清颜皮肤管理','顾问主管','13800138014','new',42,'中意向','短信营销',DATE_SUB(NOW(),INTERVAL 2 DAY),DATE_SUB(NOW(),INTERVAL 2 DAY)),
+    (9999,9997,'朱敏','联创工贸','销售经理','13800138015','contacted',58,'中意向','展会',DATE_SUB(NOW(),INTERVAL 25 DAY),DATE_SUB(NOW(),INTERVAL 25 DAY)),
+    (9999,9997,'秦莉','数联科技','运营总监','13800138016','contacted',50,'中意向','广告投放',DATE_SUB(NOW(),INTERVAL 14 DAY),DATE_SUB(NOW(),INTERVAL 14 DAY)),
+    (9999,9997,'许波','远航汽配','采购总监','13800138017','new',38,'中意向','渠道活码',DATE_SUB(NOW(),INTERVAL 3 DAY),DATE_SUB(NOW(),INTERVAL 3 DAY)),
+    (9999,9997,'何洁','家美家政','市场总监','13800138018','contacted',55,'中意向','朋友介绍',DATE_SUB(NOW(),INTERVAL 30 DAY),DATE_SUB(NOW(),INTERVAL 30 DAY)),
+    (9999,9997,'谢强','锐思智能','技术总监','13800138019','contacted',47,'中意向','广告投放',DATE_SUB(NOW(),INTERVAL 16 DAY),DATE_SUB(NOW(),INTERVAL 16 DAY)),
+    (9999,9997,'邓芳','博雅培训','业务总监','13800138020','new',40,'中意向','展会',DATE_SUB(NOW(),INTERVAL 5 DAY),DATE_SUB(NOW(),INTERVAL 5 DAY)),
+    (9999,9997,'曹阳','金桥地产','总裁','13800138021','deal',95,'高意向','朋友介绍',DATE_SUB(NOW(),INTERVAL 45 DAY),DATE_SUB(NOW(),INTERVAL 45 DAY)),
+    (9999,9997,'任娟','华信金融','总经理','13800138022','deal',92,'高意向','渠道活码',DATE_SUB(NOW(),INTERVAL 38 DAY),DATE_SUB(NOW(),INTERVAL 38 DAY)),
+    (9999,9997,'范浩','迅达物流','采购总监','13800138023','deal',90,'高意向','展会',DATE_SUB(NOW(),INTERVAL 52 DAY),DATE_SUB(NOW(),INTERVAL 52 DAY)),
+    (9999,9997,'唐静','美妆连锁总部','市场VP','13800138024','deal',88,'高意向','广告投放',DATE_SUB(NOW(),INTERVAL 60 DAY),DATE_SUB(NOW(),INTERVAL 60 DAY)),
+    (9999,9997,'卢明','智学在线','CEO','13800138025','deal',94,'高意向','朋友介绍',DATE_SUB(NOW(),INTERVAL 35 DAY),DATE_SUB(NOW(),INTERVAL 35 DAY)),
+    (9999,9997,'薛涛','旧日贸易','采购经理','13800138026','lost',15,'低意向','广告投放',DATE_SUB(NOW(),INTERVAL 60 DAY),DATE_SUB(NOW(),INTERVAL 60 DAY)),
+    (9999,9997,'侯雯','停滞制造','总经理','13800138027','lost',10,'低意向','展会',DATE_SUB(NOW(),INTERVAL 55 DAY),DATE_SUB(NOW(),INTERVAL 55 DAY)),
+    (9999,9997,'崔磊','沉默零售','运营经理','13800138028','lost',8,'低意向','渠道活码',DATE_SUB(NOW(),INTERVAL 70 DAY),DATE_SUB(NOW(),INTERVAL 70 DAY)),
+    (9999,9997,'毛静','流失餐饮','市场经理','13800138029','lost',12,'低意向','广告投放',DATE_SUB(NOW(),INTERVAL 65 DAY),DATE_SUB(NOW(),INTERVAL 65 DAY)),
+    (9999,9997,'段芳','旁观科技','产品经理','13800138030','lost',5,'低意向','朋友介绍',DATE_SUB(NOW(),INTERVAL 80 DAY),DATE_SUB(NOW(),INTERVAL 80 DAY));
 
-    -- 中意向客户 12 条
-    (9999,9999,'吴磊','苏州某外贸公司','业务经理','13800138009','contacted',55,'中意向','朋友介绍',DATE_SUB(NOW(),INTERVAL 15 DAY),DATE_SUB(NOW(),INTERVAL 15 DAY)),
-    (9999,9999,'郑秀','厦门某餐饮集团','运营总监','13800138010','contacted',48,'中意向','展会',DATE_SUB(NOW(),INTERVAL 20 DAY),DATE_SUB(NOW(),INTERVAL 20 DAY)),
-    (9999,9999,'冯涛','青岛某物流公司','总经理','13800138011','new',52,'中意向','广告投放',DATE_SUB(NOW(),INTERVAL 1 DAY),DATE_SUB(NOW(),INTERVAL 1 DAY)),
-    (9999,9999,'蒋华','重庆某零售企业','采购经理','13800138012','contacted',45,'中意向','渠道活码',DATE_SUB(NOW(),INTERVAL 18 DAY),DATE_SUB(NOW(),INTERVAL 18 DAY)),
-    (9999,9999,'韩雪','天津某医疗公司','市场经理','13800138013','contacted',60,'中意向','朋友介绍',DATE_SUB(NOW(),INTERVAL 11 DAY),DATE_SUB(NOW(),INTERVAL 11 DAY)),
-    (9999,9999,'杨帆','长沙某互联网公司','运营经理','13800138014','new',42,'中意向','短信营销',DATE_SUB(NOW(),INTERVAL 2 DAY),DATE_SUB(NOW(),INTERVAL 2 DAY)),
-    (9999,9999,'朱敏','郑州某建材公司','销售经理','13800138015','contacted',58,'中意向','展会',DATE_SUB(NOW(),INTERVAL 25 DAY),DATE_SUB(NOW(),INTERVAL 25 DAY)),
-    (9999,9999,'秦莉','西安某文化公司','总监','13800138016','contacted',50,'中意向','广告投放',DATE_SUB(NOW(),INTERVAL 14 DAY),DATE_SUB(NOW(),INTERVAL 14 DAY)),
-    (9999,9999,'许波','沈阳某汽配公司','采购总监','13800138017','new',38,'中意向','渠道活码',DATE_SUB(NOW(),INTERVAL 3 DAY),DATE_SUB(NOW(),INTERVAL 3 DAY)),
-    (9999,9999,'何洁','哈尔滨某食品公司','市场总监','13800138018','contacted',55,'中意向','朋友介绍',DATE_SUB(NOW(),INTERVAL 30 DAY),DATE_SUB(NOW(),INTERVAL 30 DAY)),
-    (9999,9999,'谢强','合肥某科技公司','技术总监','13800138019','contacted',47,'中意向','广告投放',DATE_SUB(NOW(),INTERVAL 16 DAY),DATE_SUB(NOW(),INTERVAL 16 DAY)),
-    (9999,9999,'邓芳','福州某贸易公司','业务总监','13800138020','new',40,'中意向','展会',DATE_SUB(NOW(),INTERVAL 5 DAY),DATE_SUB(NOW(),INTERVAL 5 DAY)),
-
-    -- 已成交客户 5 条
-    (9999,9999,'曹阳','北京某地产公司','总裁','13800138021','deal',95,'高意向','朋友介绍',DATE_SUB(NOW(),INTERVAL 45 DAY),DATE_SUB(NOW(),INTERVAL 45 DAY)),
-    (9999,9999,'任娟','上海某金融公司','总经理','13800138022','deal',92,'高意向','渠道活码',DATE_SUB(NOW(),INTERVAL 38 DAY),DATE_SUB(NOW(),INTERVAL 38 DAY)),
-    (9999,9999,'范浩','深圳某供应链公司','采购总监','13800138023','deal',90,'高意向','展会',DATE_SUB(NOW(),INTERVAL 52 DAY),DATE_SUB(NOW(),INTERVAL 52 DAY)),
-    (9999,9999,'唐静','广州某品牌公司','市场VP','13800138024','deal',88,'高意向','广告投放',DATE_SUB(NOW(),INTERVAL 60 DAY),DATE_SUB(NOW(),INTERVAL 60 DAY)),
-    (9999,9999,'卢明','杭州某科技公司','CEO','13800138025','deal',94,'高意向','朋友介绍',DATE_SUB(NOW(),INTERVAL 35 DAY),DATE_SUB(NOW(),INTERVAL 35 DAY)),
-
-    -- 流失客户 5 条
-    (9999,9999,'薛涛','成都某贸易公司','采购经理','13800138026','lost',15,'低意向','广告投放',DATE_SUB(NOW(),INTERVAL 60 DAY),DATE_SUB(NOW(),INTERVAL 60 DAY)),
-    (9999,9999,'侯雯','武汉某制造企业','总经理','13800138027','lost',10,'低意向','展会',DATE_SUB(NOW(),INTERVAL 55 DAY),DATE_SUB(NOW(),INTERVAL 55 DAY)),
-    (9999,9999,'崔磊','南京某零售公司','运营经理','13800138028','lost',8,'低意向','渠道活码',DATE_SUB(NOW(),INTERVAL 70 DAY),DATE_SUB(NOW(),INTERVAL 70 DAY)),
-    (9999,9999,'毛静','西安某餐饮公司','市场经理','13800138029','lost',12,'低意向','广告投放',DATE_SUB(NOW(),INTERVAL 65 DAY),DATE_SUB(NOW(),INTERVAL 65 DAY)),
-    (9999,9999,'段芳','沈阳某科技公司','产品经理','13800138030','lost',5,'低意向','朋友介绍',DATE_SUB(NOW(),INTERVAL 80 DAY),DATE_SUB(NOW(),INTERVAL 80 DAY));
-
-    -- 演示跟进记录（基于已插入 customers，不指定 id）
     INSERT INTO customer_follow_ups (customer_id, user_id, type, content, created_at)
-    SELECT
-      c.id,
-      9999,
-      'other',
+    SELECT c.id, 9997, 'other',
       CASE c.stage
         WHEN 'intent' THEN '客户对产品很感兴趣，询问了具体价格和实施周期，已发送方案'
         WHEN 'contacted' THEN '电话沟通20分钟，客户有明确需求，下周安排线下演示'
@@ -79,56 +72,30 @@ BEGIN
       END,
       DATE_ADD(c.created_at, INTERVAL 1 DAY)
     FROM customers c
-    WHERE c.tenant_id = 9999
-      AND c.intent_score >= 60;
+    WHERE c.tenant_id = 9999 AND c.intent_score >= 60;
 
-    -- intent 客户：设置逾期跟进（next_follow_at 在昨天）→ 待跟进列表可见
     INSERT INTO customer_follow_ups (customer_id, user_id, type, content, next_follow_at, created_at)
-    SELECT
-      c.id,
-      9999,
-      'other',
-      '再次跟进，客户确认了预算，等待内部审批',
-      DATE_SUB(NOW(), INTERVAL 1 DAY),
-      DATE_SUB(NOW(), INTERVAL 1 DAY)
-    FROM customers c
-    WHERE c.tenant_id = 9999
-      AND c.stage = 'intent';
+    SELECT c.id, 9997, 'other', '再次跟进，客户确认了预算，等待内部审批',
+      DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY)
+    FROM customers c WHERE c.tenant_id = 9999 AND c.stage = 'intent';
 
-    -- contacted 客户：插入单条逾期跟进（2 天前到期）
     INSERT INTO customer_follow_ups (customer_id, user_id, type, content, next_follow_at, created_at)
-    SELECT
-      c.id,
-      9999,
-      'other',
-      '客户有意向，需要再跟进确认具体时间安排',
-      DATE_SUB(NOW(), INTERVAL 2 DAY),
-      DATE_SUB(NOW(), INTERVAL 2 DAY)
+    SELECT c.id, 9997, 'other', '客户有意向，需要再跟进确认具体时间安排',
+      DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(),INTERVAL 2 DAY)
     FROM customers c
-    WHERE c.tenant_id = 9999
-      AND c.stage = 'contacted'
-      AND c.intent_score >= 70;
+    WHERE c.tenant_id = 9999 AND c.stage = 'contacted' AND c.intent_score >= 70;
 
-    -- 演示意向预警（3 条）
-    -- NOTE: 后续可将 ai_script 升级为更自然的多模板话术，以提升演示真实感（下次重置演示数据时再替换）
     INSERT IGNORE INTO intent_alerts (
       tenant_id, customer_id, owner_id, score_before, score_after, score_delta,
       ai_script, status, sent_at, created_at
     )
     SELECT
-      9999,
-      c.id,
-      9999,
-      GREATEST(c.intent_score - 18, 0),
-      c.intent_score,
-      LEAST(c.intent_score, 18),
-      CONCAT('您好 ', c.name, '，我是ZhiFlow的顾问，看到您最近对我们的方案很感兴趣，想和您进一步沟通一下具体需求，方便的话今天下午有时间通话吗？'),
-      'sent',
-      DATE_SUB(NOW(), INTERVAL 2 HOUR),
-      DATE_SUB(NOW(), INTERVAL 3 HOUR)
+      9999, c.id, 9997,
+      GREATEST(c.intent_score - 18, 0), c.intent_score, LEAST(c.intent_score, 18),
+      CONCAT('您好 ', c.name, '，我是中数云科的顾问，看到您最近对我们的方案很感兴趣，想和您进一步沟通一下具体需求，方便的话今天下午有时间通话吗？'),
+      'sent', DATE_SUB(NOW(), INTERVAL 2 HOUR), DATE_SUB(NOW(), INTERVAL 3 HOUR)
     FROM customers c
-    WHERE c.tenant_id = 9999
-      AND c.stage = 'intent'
+    WHERE c.tenant_id = 9999 AND c.stage = 'intent'
     LIMIT 3;
   END IF;
 END $$
@@ -137,22 +104,10 @@ DELIMITER ;
 CALL seed_demo_data();
 DROP PROCEDURE IF EXISTS seed_demo_data;
 
--- 访客账号（供未注册用户直接体验）
-INSERT IGNORE INTO users (
-  id, tenant_id, username, real_name,
-  password_hash, demo_mode,
-  status, created_at
-) VALUES (
-  9998, 9999, 'guest', '访客体验',
-  'GUEST_NOT_LOGIN', 1, 1, NOW()
-);
-
--- 给访客账号分配销售角色
 UPDATE users
 SET role_id = (
   SELECT id FROM roles
-  WHERE tenant_id = 9999
-    AND name = '销售'
-  LIMIT 1
+  WHERE tenant_id = 9999 AND (name = '销售' OR name LIKE '%销售%')
+  ORDER BY id ASC LIMIT 1
 )
-WHERE id = 9998;
+WHERE id IN (9997, 9998) AND tenant_id = 9999;

@@ -27,15 +27,7 @@ import {
 } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-
-const QUICK_CATEGORIES = [
-  'general',
-  'opening',
-  'quote',
-  'follow',
-  'close',
-  'after_sale',
-]
+import { SCRIPT_CATEGORY_OPTIONS, categoryLabel } from '@/lib/categoryLabels'
 
 export function ScriptLibraryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -56,7 +48,8 @@ export function ScriptLibraryPage() {
   const [importingPack, setImportingPack] = useState<string | null>(null)
 
   const allCategoryOptions = useMemo(() => {
-    const set = new Set([...QUICK_CATEGORIES, ...categories])
+    const known = SCRIPT_CATEGORY_OPTIONS.map((x) => x.value)
+    const set = new Set([...known, ...categories])
     return Array.from(set)
   }, [categories])
 
@@ -206,7 +199,7 @@ export function ScriptLibraryPage() {
               <option value="">全部</option>
               {allCategoryOptions.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {categoryLabel(c)}
                 </option>
               ))}
             </select>
@@ -250,7 +243,7 @@ export function ScriptLibraryPage() {
             ) : (
               list.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell className="font-mono text-xs">{row.category}</TableCell>
+                  <TableCell className="text-xs">{categoryLabel(row.category)}</TableCell>
                   <TableCell className="font-medium">{row.title}</TableCell>
                   <TableCell>
                     <div className="max-w-[520px] truncate text-sm text-muted-foreground" title={row.body}>
@@ -284,7 +277,20 @@ export function ScriptLibraryPage() {
             <div className="grid gap-2 md:grid-cols-2">
               <div className="space-y-1">
                 <Label>分类</Label>
-                <Input value={formCategory} onChange={(e) => setFormCategory(e.target.value)} />
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  value={formCategory}
+                  onChange={(e) => setFormCategory(e.target.value)}
+                >
+                  {SCRIPT_CATEGORY_OPTIONS.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                  {!SCRIPT_CATEGORY_OPTIONS.some((c) => c.value === formCategory) && formCategory ? (
+                    <option value={formCategory}>{categoryLabel(formCategory)}</option>
+                  ) : null}
+                </select>
               </div>
               <div className="space-y-1">
                 <Label>排序（降序）</Label>

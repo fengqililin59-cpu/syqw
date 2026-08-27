@@ -25,8 +25,7 @@ import {
 } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-
-const CATEGORIES = ['product', 'pricing', 'after_sale', 'faq', 'policy', 'general']
+import { KB_CATEGORY_OPTIONS, categoryLabel } from '@/lib/categoryLabels'
 
 export function KnowledgeBasePage() {
   const [data, setData] = useState<Paginated<KbDocumentRow> | null>(null)
@@ -215,7 +214,7 @@ export function KnowledgeBasePage() {
             {data?.list.map((row) => (
               <TableRow key={row.id}>
                 <TableCell className="font-medium">{row.title}</TableCell>
-                <TableCell>{row.category || '—'}</TableCell>
+                <TableCell>{categoryLabel(row.category)}</TableCell>
                 <TableCell>
                   <Badge variant={row.status === 'active' ? 'default' : 'secondary'}>
                     {row.status === 'active' ? '启用' : '归档'}
@@ -266,9 +265,9 @@ export function KnowledgeBasePage() {
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+                {KB_CATEGORY_OPTIONS.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
                   </option>
                 ))}
               </select>

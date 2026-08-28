@@ -4,6 +4,7 @@
 import { Router } from 'express';
 import * as customerController from '../controllers/customer.controller.js';
 import * as customFieldController from '../controllers/customField.controller.js';
+import * as customerCardController from '../controllers/customerCard.controller.js';
 import { requireAuth } from '../middlewares/auth.js';
 import { requirePerm } from '../middlewares/requirePerm.js';
 import { requireQuota } from '../middlewares/requireQuota.js';
@@ -62,6 +63,8 @@ router.get(
   requirePerm('customer:view'),
   asyncHandler(customerController.intentPlaybook),
 );
+
+router.get('/customers/:id/cards', requirePerm('card:view'), asyncHandler(customerCardController.listByCustomer));
 
 router.get('/customers/:id/custom-fields', requirePerm('customer:view'), asyncHandler(customFieldController.getCustomerFields));
 router.put('/customers/:id/custom-fields', requirePerm('customer:edit'), asyncHandler(customFieldController.saveCustomerFields));

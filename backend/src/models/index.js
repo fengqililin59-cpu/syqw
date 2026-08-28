@@ -107,6 +107,10 @@ import { NotificationRuleLog } from './notificationRuleLog.model.js';
 import { BrowserPushSubscription } from './browserPushSubscription.model.js';
 import { LandingPage, LandingSubmission } from './landingPage.model.js';
 import { CoachingSuggestion } from './coachingSuggestion.model.js';
+import { Appointment } from './appointment.model.js';
+import { StaffSchedule } from './staffSchedule.model.js';
+import { CustomerCard } from './customerCard.model.js';
+import { CardTransaction } from './cardTransaction.model.js';
 
 Tenant.initModel(sequelize);
 Role.initModel(sequelize);
@@ -215,6 +219,10 @@ BrowserPushSubscription.initModel(sequelize);
 LandingPage.initModel(sequelize);
 LandingSubmission.initModel(sequelize);
 CoachingSuggestion.initModel(sequelize);
+Appointment.initModel(sequelize);
+StaffSchedule.initModel(sequelize);
+CustomerCard.initModel(sequelize);
+CardTransaction.initModel(sequelize);
 
 Tenant.hasMany(KpiTarget, { foreignKey: 'tenant_id' });
 Tenant.hasMany(Contract, { foreignKey: 'tenant_id' });
@@ -314,6 +322,25 @@ Tenant.hasMany(CoachingSuggestion, { foreignKey: 'tenant_id' });
 CoachingSuggestion.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 User.hasMany(CoachingSuggestion, { foreignKey: 'user_id', as: 'coaching_suggestions' });
 CoachingSuggestion.belongsTo(User, { foreignKey: 'user_id', as: 'target_user' });
+
+// 预约到店关联
+Tenant.hasMany(Appointment, { foreignKey: 'tenant_id' });
+Appointment.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Customer.hasMany(Appointment, { foreignKey: 'customer_id' });
+Appointment.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });
+Appointment.belongsTo(User, { foreignKey: 'staff_id', as: 'staff' });
+Appointment.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+Tenant.hasMany(StaffSchedule, { foreignKey: 'tenant_id' });
+StaffSchedule.belongsTo(User, { foreignKey: 'staff_id', as: 'staff' });
+
+// 卡项与消耗流水关联
+Tenant.hasMany(CustomerCard, { foreignKey: 'tenant_id' });
+Customer.hasMany(CustomerCard, { foreignKey: 'customer_id' });
+CustomerCard.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });
+CustomerCard.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+CustomerCard.hasMany(CardTransaction, { foreignKey: 'card_id', as: 'transactions' });
+CardTransaction.belongsTo(CustomerCard, { foreignKey: 'card_id', as: 'card' });
+CardTransaction.belongsTo(User, { foreignKey: 'operator_id', as: 'operator' });
 
 KpiTarget.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 User.hasMany(KpiTarget, { foreignKey: 'user_id', as: 'kpi_targets' });
@@ -797,6 +824,10 @@ export {
   KbCategory,
   KbArticle,
   CoachingSuggestion,
+  Appointment,
+  StaffSchedule,
+  CustomerCard,
+  CardTransaction,
   Contract,
   Task,
   KpiTarget,

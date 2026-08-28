@@ -195,6 +195,8 @@ export const env = {
   enableBroadcastCron: process.env.ENABLE_BROADCAST_CRON === '1',
   /** 意向预警：每 5 分钟扫描 24 小时内 pending，生成话术并通知销售 */
   enableIntentAlertCron: process.env.ENABLE_INTENT_ALERT_CRON === '1',
+  /** 复购扫描：每日扫描卡项剩余量/有效期与到店间隔，触发续卡与唤醒流程；默认关闭 */
+  enableRepurchaseScanCron: process.env.ENABLE_REPURCHASE_SCAN_CRON === '1',
   /** 计费：每晚同步 customers/seats 到 usage_stats */
   enableUsageSyncCron: process.env.ENABLE_USAGE_SYNC_CRON === '1',
   /** 计费：订阅到期/临期提醒 */

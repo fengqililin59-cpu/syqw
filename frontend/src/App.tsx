@@ -92,6 +92,11 @@ import LandingPageList from '@/pages/LandingPageList'
 import LandingPageBuilder from '@/pages/LandingPageBuilder'
 import LandingSubmissionsPage from '@/pages/LandingSubmissionsPage'
 import LandingPageView from '@/pages/LandingPageView'
+import { AppointmentsPage } from '@/pages/AppointmentsPage'
+import { TodayVisitsPage } from '@/pages/TodayVisitsPage'
+import { StaffSchedulePage } from '@/pages/StaffSchedulePage'
+import { CardAlertsPage } from '@/pages/CardAlertsPage'
+import { CockpitPage } from '@/pages/CockpitPage'
 
 function RootRedirect() {
   const token = useAuthStore((s) => s.token)
@@ -112,7 +117,8 @@ export default function App() {
 
         <Route element={<ProtectedRoute />}>
           <Route path="/app" element={<DashboardLayout />}>
-            <Route index element={<DashboardHomePage />} />
+            <Route index element={<CockpitPage />} />
+            <Route path="dashboard" element={<DashboardHomePage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="roles" element={<RolesPage />} />
             <Route path="settings" element={<SettingsPage />} />
@@ -181,6 +187,10 @@ export default function App() {
             <Route path="landing-pages" element={<LandingPageList />} />
             <Route path="landing-pages/:id/edit" element={<LandingPageBuilder />} />
             <Route path="landing-pages/:id/submissions" element={<LandingSubmissionsPage />} />
+            <Route path="appointments" element={<AppointmentsPage />} />
+            <Route path="appointments/today" element={<TodayVisitsPage />} />
+            <Route path="appointments/schedules" element={<StaffSchedulePage />} />
+            <Route path="cards/alerts" element={<CardAlertsPage />} />
             <Route
               path="platform"
               element={

@@ -31,6 +31,9 @@ import {
   Shield,
   AlertTriangle,
   CalendarClock,
+  CalendarCheck,
+  CalendarRange,
+  RefreshCcw,
   Bell,
   FileText,
   Receipt,
@@ -72,6 +75,8 @@ export type SidebarNavContext = {
   canAiReview: boolean
   canKb: boolean
   canTicket: boolean
+  canAppointment: boolean
+  canCard: boolean
   canTransfer: boolean
   showPermissionCheck: boolean
   isPlatformAdmin?: boolean
@@ -95,6 +100,12 @@ export function buildSidebarNavGroups(ctx: SidebarNavContext): NavGroupDef[] {
         (ctx.canFollowups || ctx.canCustomers) && {
           to: '/app/follow-ups?overdue=1', icon: ClipboardList, label: '今日待跟进客户', featured: true,
         },
+        ctx.canAppointment && {
+          to: '/app/appointments/today', icon: CalendarCheck, label: '今日到店', featured: true,
+        },
+        ctx.canCard && {
+          to: '/app/cards/alerts', icon: RefreshCcw, label: '复购提醒台', featured: true,
+        },
         ctx.canDash && {
           to: '/app/intent-alerts', icon: BellRing, label: '高意向客户列表', featured: true,
         },
@@ -105,8 +116,9 @@ export function buildSidebarNavGroups(ctx: SidebarNavContext): NavGroupDef[] {
         ctx.canDash && {
           to: '/app/leaderboard', icon: Trophy, label: '销售战力榜', featured: true,
         },
+        { to: '/app', end: true, icon: Gauge, label: '经营驾驶舱', featured: true },
         ctx.canDash && {
-          to: '/app', end: true, icon: LayoutDashboard, label: '老板经营看板', featured: true,
+          to: '/app/dashboard', icon: LayoutDashboard, label: '经营看板', featured: true,
         },
       ]),
     },
@@ -135,6 +147,7 @@ export function buildSidebarNavGroups(ctx: SidebarNavContext): NavGroupDef[] {
       defaultOpen: false,
       items: pick([
         ctx.canCustomers && { to: '/app/customers', icon: Contact, label: '客户管理' },
+        ctx.canAppointment && { to: '/app/appointments', icon: CalendarRange, label: '预约档期' },
         ctx.canInbox && { to: '/app/inbox', icon: Inbox, label: '统一收件箱' },
         ctx.canCustomers && { to: '/app/call-records', icon: PhoneCall, label: '通话记录' },
         ctx.canCustomers && { to: '/app/orders', icon: Receipt, label: '成交订单' },

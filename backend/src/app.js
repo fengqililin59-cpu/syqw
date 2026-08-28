@@ -27,6 +27,7 @@ import { registerAggregationWorkerCron } from './jobs/aggregationWorker.cron.js'
 import { registerAggregationNightlyCron } from './jobs/aggregationNightly.cron.js';
 import { registerCampaignRewardWorkerCron } from './jobs/campaignRewardWorker.cron.js';
 import { registerIntentAlertWorkerCron } from './jobs/intentAlertWorker.cron.js';
+import { registerRepurchaseScanCron } from './jobs/repurchaseScan.cron.js';
 import { registerUsageSyncCron } from './jobs/usageSync.cron.js';
 import { registerSubscriptionExpiryCron } from './jobs/subscriptionExpiry.cron.js';
 import { registerPaymentExpiryCron } from './jobs/paymentExpiry.cron.js';
@@ -133,6 +134,7 @@ async function main() {
     registerAggregationNightlyCron();
     registerCampaignRewardWorkerCron();
     registerIntentAlertWorkerCron();
+    registerRepurchaseScanCron();
     registerUsageSyncCron();
     registerSubscriptionExpiryCron();
     registerPaymentExpiryCron();

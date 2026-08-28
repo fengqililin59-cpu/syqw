@@ -559,11 +559,13 @@ export async function processWaitingFlowRuns() {
 }
 
 /**
- * 新客户入库后尝试匹配触发器且状态 active 的流程。
+ * 按触发器类型分发 active 流程。
  * @param {number} tenantId
  * @param {number} customerId
+ * @param {string} triggerType
+ * @param {(cfg: Record<string, unknown>) => boolean} [matchConfig] 触发器配置的额外过滤
  */
-export async function dispatchNewCustomerFlows(tenantId, customerId) {
+export async function dispatchFlowsByTrigger(tenantId, customerId, triggerType, matchConfig) {
   const flows = await Flow.findAll({
     where: { tenant_id: tenantId, status: 'active' },
     attributes: ['id'],
@@ -573,13 +575,23 @@ export async function dispatchNewCustomerFlows(tenantId, customerId) {
       where: { flow_id: f.id, type: 'trigger' },
     });
     const cfg = trigger?.get('config') || {};
-    if (cfg.type !== FLOW_TRIGGER_TYPES.NEW_CUSTOMER) continue;
+    if (cfg.type !== triggerType) continue;
+    if (matchConfig && !matchConfig(cfg)) continue;
     try {
       await startFlowRun({ tenantId, flowId: f.id, customerId });
     } catch (e) {
-      console.error('[flow-engine] new_customer flow', f.id, e);
+      console.error(`[flow-engine] ${triggerType} flow`, f.id, e);
     }
   }
+}
+
+/**
+ * 新客户入库后尝试匹配触发器且状态 active 的流程。
+ * @param {number} tenantId
+ * @param {number} customerId
+ */
+export async function dispatchNewCustomerFlows(tenantId, customerId) {
+  await dispatchFlowsByTrigger(tenantId, customerId, FLOW_TRIGGER_TYPES.NEW_CUSTOMER);
 }
 
 /**

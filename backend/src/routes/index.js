@@ -49,6 +49,11 @@ import notificationRuleRoutes from './notificationRule.routes.js';
 import browserPushRoutes from './browserPush.routes.js';
 import coachingRoutes from './coaching.routes.js';
 import landingPageRoutes from './landingPage.routes.js';
+import appointmentRoutes from './appointment.routes.js';
+import publicBookingRoutes from './publicBooking.routes.js';
+import staffScheduleRoutes from './staffSchedule.routes.js';
+import customerCardRoutes from './customerCard.routes.js';
+import cockpitRoutes from './cockpit.routes.js';
 
 const router = Router();
 
@@ -98,6 +103,11 @@ router.use('/notification-rules', notificationRuleRoutes);
 router.use('/browser-push', browserPushRoutes);
 router.use('/coaching', coachingRoutes);
 router.use('/landing-pages', landingPageRoutes);
+router.use('/appointments', appointmentRoutes);
+router.use('/staff-schedules', staffScheduleRoutes);
+router.use('/customer-cards', customerCardRoutes);
+router.use('/cockpit', cockpitRoutes);
+router.use('/public/booking', publicBookingRoutes);
 router.use('/', customerRoutes);
 
 export default router;

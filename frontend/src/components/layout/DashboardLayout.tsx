@@ -50,6 +50,8 @@ export function DashboardLayout() {
   const canAiReview = hasPerm('ai:approve') || hasPerm('ai:use')
   const canKb = hasPerm('inbox:manage') || hasPerm('ai:use')
   const canTicket = hasPerm('ticket:view') || hasPerm('customer:view')
+  const canAppointment = hasPerm('appointment:view') || hasPerm('customer:view')
+  const canCard = hasPerm('card:view') || hasPerm('customer:view')
   const canTransfer = hasPerm('user:manage')
   const { isPlatformAdmin } = usePlatformAdmin()
 
@@ -82,6 +84,8 @@ export function DashboardLayout() {
       canAiReview,
       canKb,
       canTicket,
+      canAppointment,
+      canCard,
       canTransfer,
       showPermissionCheck: Boolean(user),
       isPlatformAdmin,
@@ -104,6 +108,8 @@ export function DashboardLayout() {
       canAiReview,
       canKb,
       canTicket,
+      canAppointment,
+      canCard,
       canTransfer,
       user,
       isPlatformAdmin,
@@ -117,7 +123,12 @@ export function DashboardLayout() {
 
   const PAGE_TITLES: Record<string, string> = useMemo(
     () => ({
-      '/app': '数据概览',
+      '/app': '经营驾驶舱',
+      '/app/dashboard': '经营看板',
+      '/app/appointments': '预约档期',
+      '/app/appointments/today': '今日到店',
+      '/app/appointments/schedules': '服务人员排班',
+      '/app/cards/alerts': '复购提醒台',
       '/app/customers': '客户管理',
       '/app/customers/pipeline': '销售看板',
       '/app/automation-rules': '自动跟进',

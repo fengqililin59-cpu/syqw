@@ -50,6 +50,14 @@ export class Customer extends Model {
         priority: { type: DataTypes.STRING(20), allowNull: true },
         /** 客户退订流程/自动化直发消息 */
         opt_out_auto_msg: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+        /** 下次预约到店时间（由预约模块维护） */
+        next_appointment_at: { type: DataTypes.DATE, allowNull: true },
+        /** 最近一次到店时间 */
+        last_visit_at: { type: DataTypes.DATE, allowNull: true },
+        /** 累计到店次数 */
+        visit_count: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
+        /** 累计消费金额（LTV 缓存，由卡项/订单模块维护） */
+        total_paid_amount: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 0 },
       },
       {
         sequelize,

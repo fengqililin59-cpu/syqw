@@ -52,6 +52,7 @@ import {
   type TimelineItem,
   type TimelineSummary,
 } from '@/components/CustomerTimelineSection'
+import { CustomerCardsSection } from '@/components/CustomerCardsSection'
 import CallButton, { PhoneCallLink } from '@/components/CallButton'
 import SmsButton from '@/components/SmsButton'
 
@@ -652,6 +653,8 @@ export function CustomerDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {id ? <CustomerCardsSection customerId={Number(id)} canEdit={canEdit} /> : null}
 
           <Card className="rounded-2xl shadow-sm">
             <CardHeader className="pb-2">

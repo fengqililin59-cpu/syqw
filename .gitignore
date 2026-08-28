@@ -1,6 +1,18 @@
 node_modules/
 .env
+.env.*
+!.env.example
+!.env.*.example
 *.log
+
+# 密钥与证书：任何情况下都不得入库
+*.pem
+*.p12
+*.pfx
+*.key
+*.jks
+backend/certs/
+!backend/certs/**/README.md
 .DS_Store
 dist-workbench/
 

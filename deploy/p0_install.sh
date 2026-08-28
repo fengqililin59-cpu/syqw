@@ -165,7 +165,82 @@ pm2_app_by_port() {
   ' "$1"
 }
 
-# 供 deploy/tests/test_detect_stack.sh 单测解析函数用，不执行安装流程
+# stdin 为 pm2 jlist 的 JSON，$1 为应用名；输出运行该应用的用户名（取不到则输出空）
+pm2_user_by_app() {
+  node -e '
+    let raw = "";
+    process.stdin.on("data", d => raw += d).on("end", () => {
+      let apps = [];
+      try { apps = JSON.parse(raw); } catch (e) { /* 拿不到就回退 */ }
+      const a = apps.find(x => x && x.name === process.argv[1]);
+      const env = (a && a.pm2_env) || {};
+      process.stdout.write(String(env.username || env.USER || ""));
+    });
+  ' "$1"
+}
+
+# ---------------------------------------------------------------
+# 目录同步：绝不把打包机的属主/属组/权限带到生产
+# 打包机是 macOS（uid 501 / staff / 0700），rsync -a 含 -o -g -p，
+# 会把这套元数据原样搬到服务器，nginx(www-data) stat() 失败 → 整站 403。
+# ---------------------------------------------------------------
+detect_owner() { stat -c '%U:%G' "$1" 2>/dev/null || true; }
+
+# --chmod 必须配合 -p 才生效（rsync 只在「要设置权限」时才套用 --chmod 规则），
+# 所以用 -rlpt 保留 -p 而丢掉 -o -g -D；老版本 rsync（如 macOS 自带 openrsync）
+# 没有 --chmod，此时退回纯 -rlpt，由后面的显式 chmod 兜底。
+rsync_perm_flags() {
+  printf '%s\n' '-rlpt'
+  if rsync --chmod=D755,F644 --version >/dev/null 2>&1; then
+    printf '%s\n' '--chmod=D755,F644'
+  fi
+}
+
+# 把目录权限规范成 目录 755 / 文件 644，并 chown 到 $2
+normalize_tree() {
+  local dir="$1" owner="$2"
+  run find "$dir" -type d -exec chmod 755 {} +
+  run find "$dir" -type f -exec chmod 644 {} +
+  run chown -R "$owner" "$dir"
+  echo "  ${dir} 属主 → ${owner}，权限 → 目录 755 / 文件 644"
+}
+
+# $1 源目录 $2 目标目录 $3 属主 其余参数透传给 rsync
+sync_tree() {
+  local src="$1" dst="$2" owner="$3"; shift 3
+  local flags=()
+  while IFS= read -r f; do flags+=("$f"); done < <(rsync_perm_flags)
+  run rsync "${flags[@]}" "$@" "$src" "$dst"
+  normalize_tree "${dst%/}" "$owner"
+}
+
+# ---------------------------------------------------------------
+# 静态站点校验：仅看状态码会漏掉「发到了错误目录」（旧站点照样 200），
+# 仅比对文件名会漏掉权限错（403 时根本没有 HTML）。两者都查才能同时覆盖。
+# $1 期望在首页 HTML 中出现的构建产物文件名，可为空
+# ---------------------------------------------------------------
+verify_static_site() {
+  local expect_asset="${1:-}" code body
+  local args=(-s -k -L -m 10
+    --resolve "${SITE_DOMAIN}:80:127.0.0.1"
+    --resolve "${SITE_DOMAIN}:443:127.0.0.1")
+  code="$(curl "${args[@]}" -o /dev/null -w '%{http_code}' "http://${SITE_DOMAIN}/" || echo 000)"
+  echo "  静态站点 http://${SITE_DOMAIN}/ -> $code"
+  if [[ "$code" != "200" ]]; then
+    red "  静态站点未返回 200（403 通常是 dist 属主/权限不对）"
+    return 1
+  fi
+  [[ -n "$expect_asset" ]] || return 0
+  body="$(curl "${args[@]}" "http://${SITE_DOMAIN}/" || true)"
+  if printf '%s' "$body" | grep -q -- "$expect_asset"; then
+    echo "  首页引用构建产物 $expect_asset ✓"
+    return 0
+  fi
+  red "  首页 HTML 未引用本次构建产物 ${expect_asset}（可能发到了错误目录）"
+  return 1
+}
+
+# 供 deploy/tests/ 单测解析/校验函数用，不执行安装流程
 if [[ "${P0_LIB_ONLY:-0}" == "1" ]]; then
   return 0 2>/dev/null || exit 0
 fi
@@ -230,7 +305,7 @@ fi
 BACKEND_DIR="${BACKEND_DIR%/}"
 FRONTEND_DIR="${FRONTEND_DIR%/}"
 ENV_FILE="$BACKEND_DIR/.env"
-[[ -f "$ENV_FILE" ]] || die "未找到 $ENV_FILE，无法读取数据库配置"
+[[ -f "$ENV_FILE" ]] || die "未找到 ${ENV_FILE}，无法读取数据库配置"
 
 get_env() { grep -m1 "^$1=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '\r "' || true; }
 DB_HOST=$(get_env DB_HOST); DB_HOST=${DB_HOST:-127.0.0.1}
@@ -275,7 +350,18 @@ echo "  部署前 /health -> $HEALTH_CODE"
 pm2 describe "$PM2_APP" >/dev/null 2>&1 || die "PM2 中不存在应用 $PM2_APP"
 
 [[ -n "$DB_NAME" && -n "$DB_USER" ]] || die "无法从 .env 解析数据库配置"
-MYSQL=(mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME")
+# 不走 -p<密码>：既避免每条命令的 Warning，也避免密码短暂出现在 ps 的进程列表里。
+# trap 覆盖 EXIT/INT/TERM/HUP，保证 set -e 提前退出或被中断时凭据文件也会被删除。
+MYSQL_CNF="$(umask 077 && mktemp "${TMPDIR:-/tmp}/.p0-mysql-XXXXXX")"
+trap 'rm -f "$MYSQL_CNF"' EXIT INT TERM HUP
+cat > "$MYSQL_CNF" <<EOF
+[client]
+host=$DB_HOST
+port=$DB_PORT
+user=$DB_USER
+password=$DB_PASS
+EOF
+MYSQL=(mysql --defaults-extra-file="$MYSQL_CNF" "$DB_NAME")
 "${MYSQL[@]}" -e "SELECT 1" >/dev/null || die "数据库 $DB_NAME 连接失败"
 green "  校验通过"
 
@@ -321,13 +407,30 @@ fi
 # 5. 同步代码
 # ---------------------------------------------------------------
 yellow "=== [5/8] 同步后端源码与前端静态 ==="
-run rsync -a --exclude='.env' "$SCRIPT_DIR/backend/src/" "$BACKEND_DIR/src/"
+# 属主取目标目录当前值，不硬编码；探测不到时前端回退 root:root，后端回退 PM2 进程用户
+FRONTEND_OWNER="$(detect_owner "$FRONTEND_DIR")"
+FRONTEND_OWNER="${FRONTEND_OWNER:-root:root}"
+BACKEND_OWNER="$(detect_owner "$BACKEND_DIR/src")"
+if [[ -z "$BACKEND_OWNER" ]]; then
+  PM2_USER="$(pm2 jlist 2>/dev/null | pm2_user_by_app "$PM2_APP" || true)"
+  BACKEND_OWNER="${PM2_USER:+$PM2_USER:$PM2_USER}"
+  BACKEND_OWNER="${BACKEND_OWNER:-root:root}"
+fi
+echo "  同步后将恢复属主：前端 $FRONTEND_OWNER / 后端 $BACKEND_OWNER"
+
+sync_tree "$SCRIPT_DIR/backend/src/" "$BACKEND_DIR/src/" "$BACKEND_OWNER" --exclude='.env'
 run cp "$SCRIPT_DIR/backend/package.json" "$BACKEND_DIR/package.json"
 if [[ -f "$SCRIPT_DIR/backend/package-lock.json" ]]; then
   run cp "$SCRIPT_DIR/backend/package-lock.json" "$BACKEND_DIR/package-lock.json"
 fi
-run rsync -a --delete "$SCRIPT_DIR/frontend/dist/" "$FRONTEND_DIR/"
-[[ "$DRY_RUN" == "1" ]] || green "  前端版本: $(grep -o 'index-[^"]*\.js' "$FRONTEND_DIR/index.html" | head -1)"
+sync_tree "$SCRIPT_DIR/frontend/dist/" "$FRONTEND_DIR/" "$FRONTEND_OWNER" --delete
+
+if [[ "$DRY_RUN" != "1" ]]; then
+  FRONTEND_ASSET="$(grep -o 'index-[^"]*\.js' "$FRONTEND_DIR/index.html" | head -1)"
+  green "  前端版本: ${FRONTEND_ASSET:-<未识别>}"
+else
+  FRONTEND_ASSET=""
+fi
 
 # ---------------------------------------------------------------
 # 6. 依赖
@@ -358,28 +461,46 @@ restart_api
 # ---------------------------------------------------------------
 # 8. 健康检查（失败则回滚代码）
 # ---------------------------------------------------------------
-yellow "=== [8/8] 健康检查 ==="
+yellow "=== [8/8] 健康检查（后端 /health + nginx 静态站点）==="
 if [[ "$DRY_RUN" == "1" ]]; then
   run curl "http://127.0.0.1:${API_PORT}/health"
+  run curl "--resolve ${SITE_DOMAIN}:80:127.0.0.1 http://${SITE_DOMAIN}/ （校验 200 + 首页引用的 index-*.js）"
   green ""
   green "✅ DRY_RUN 完成：探测与校验均通过，未改动任何东西。确认目标无误后去掉 DRY_RUN 重跑。"
   exit 0
 fi
 
-CODE=$(curl -s -m 10 -o /dev/null -w "%{http_code}" "http://127.0.0.1:${API_PORT}/health" || echo 000)
-echo "  /health -> $CODE"
-if [[ "$CODE" != "200" ]]; then
-  red "健康检查失败，正在回滚代码…"
+# 备份是在服务器上打的，归档内元数据本来就正确；tar 以 root 解开时默认 --same-owner，
+# 属主会照归档恢复。这里仍再规范一次，避免历史遗留的错误权限被原样还原回去。
+rollback() {
+  red "$1，正在回滚代码…"
   pm2 logs "$PM2_APP" --err --lines 40 --nostream || true
   rm -rf "$BACKEND_DIR/src"
   tar xzf "$BACKUP_ROOT/backend-src.tar.gz" -C "$BACKEND_DIR"
+  normalize_tree "$BACKEND_DIR/src" "$BACKEND_OWNER"
   find "$FRONTEND_DIR" -mindepth 1 -delete
   tar xzf "$BACKUP_ROOT/frontend-dist.tar.gz" -C "$FRONTEND_DIR"
+  normalize_tree "$FRONTEND_DIR" "$FRONTEND_OWNER"
   restart_api
+  sleep 8
+
+  yellow "  回滚后复验："
+  local back_code
+  back_code=$(curl -s -m 10 -o /dev/null -w "%{http_code}" "http://127.0.0.1:${API_PORT}/health" || echo 000)
+  echo "  /health -> $back_code"
+  verify_static_site "" || red "  回滚后静态站点仍不可用，需要人工介入"
+  [[ "$back_code" == "200" ]] || red "  回滚后 /health 仍非 200，需要人工介入"
+
   red "已回滚到部署前版本。数据库新增表/列保留，不影响旧逻辑。"
   red "备份目录：$BACKUP_ROOT"
   exit 1
-fi
+}
+
+CODE=$(curl -s -m 10 -o /dev/null -w "%{http_code}" "http://127.0.0.1:${API_PORT}/health" || echo 000)
+echo "  /health -> $CODE"
+[[ "$CODE" == "200" ]] || rollback "后端健康检查失败"
+
+verify_static_site "$FRONTEND_ASSET" || rollback "静态站点校验失败"
 
 green ""
 green "✅ P0 部署完成"

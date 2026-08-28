@@ -39,7 +39,17 @@ cp "$ROOT_DIR/database/100_beauty_appointments_cards.sql" "$PKG_ROOT/database/"
 cp "$ROOT_DIR/deploy/p0_install.sh" "$PKG_ROOT/p0_install.sh"
 chmod +x "$PKG_ROOT/p0_install.sh"
 
-( cd "$OUT_DIR" && tar czf "${PKG_NAME}.tar.gz" "$PKG_NAME" )
+# macOS 构建产物常是 0700/uid501:staff，tar 会保留、服务器端 rsync 再原样搬过去，
+# 导致 nginx(www-data) 读不到静态文件。打包前先统一成 755/644。
+yellow "规范包内权限 ..."
+find "$PKG_ROOT" -type d -exec chmod 755 {} +
+find "$PKG_ROOT" -type f -exec chmod 644 {} +
+chmod +x "$PKG_ROOT/p0_install.sh"
+
+# COPYFILE_DISABLE=1 抑制 macOS 的 ._* 资源分叉与扩展属性，
+# 否则服务器解包会刷 SCHILY.fflags / LIBARCHIVE.xattr.com.apple.* 警告
+( cd "$OUT_DIR" && COPYFILE_DISABLE=1 tar --no-xattrs --no-mac-metadata --no-fflags -czf "${PKG_NAME}.tar.gz" "$PKG_NAME" 2>/dev/null \
+  || COPYFILE_DISABLE=1 tar czf "${PKG_NAME}.tar.gz" "$PKG_NAME" )
 
 green "打包完成: $OUT_DIR/${PKG_NAME}.tar.gz"
 printf "大小: %s\n" "$(du -h "$OUT_DIR/${PKG_NAME}.tar.gz" | cut -f1)"

@@ -55,10 +55,33 @@ for a in "$@"; do [[ "$a" == "%{http_code}" ]] && { printf 200; exit 0; }; done
 printf ''
 EOF
 # GNU stat 桩：本机 macOS 没有 stat -c，脚本里用的是服务器上的 GNU 语法
+# 属主探测走的是数值 id + 反查，所以桩要按格式串分别应答
 cat > "$BIN/stat" <<'EOF'
 #!/usr/bin/env bash
-[[ "${1:-}" == "-c" ]] && { echo "www-data:www-data"; exit 0; }
+if [[ "${1:-}" == "-c" ]]; then
+  case "${2:-}" in
+    '%u:%g') echo "33:33"; exit 0 ;;
+    '%U:%G') echo "www-data:www-data"; exit 0 ;;
+    *) echo ""; exit 0 ;;
+  esac
+fi
 exit 1
+EOF
+# id / getent 桩：macOS 没有 getent，且本机也没有 www-data 这个用户
+cat > "$BIN/id" <<'EOF'
+#!/usr/bin/env bash
+case "$*" in
+  "-nu 33") echo "www-data" ;;
+  "-u www-data") echo "33" ;;
+  *) exit 1 ;;
+esac
+EOF
+cat > "$BIN/getent" <<'EOF'
+#!/usr/bin/env bash
+case "$*" in
+  "group 33"|"group www-data") echo "www-data:x:33:" ;;
+  *) exit 2 ;;
+esac
 EOF
 chmod +x "$BIN"/*
 

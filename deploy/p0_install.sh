@@ -184,7 +184,40 @@ pm2_user_by_app() {
 # 打包机是 macOS（uid 501 / staff / 0700），rsync -a 含 -o -g -p，
 # 会把这套元数据原样搬到服务器，nginx(www-data) stat() 失败 → 整站 403。
 # ---------------------------------------------------------------
-detect_owner() { stat -c '%U:%G' "$1" 2>/dev/null || true; }
+# 属主探测只接受「能被本机真正解析」的 uid/gid：
+# GNU stat 在 uid/gid 没有对应用户/组时会输出字面量 UNKNOWN 且退出码 0，
+# 于是 `-z` 兜底判断压根不触发，后面 chown 才报 invalid user。
+# 所以这里读数值 id 再反查名字，而不是去信 stat 的名字输出。
+# 名字解析不了就返回空串，交给调用方的兜底链。
+detect_owner() {
+  local path="$1" num uid gid uname gname
+  num="$(stat -c '%u:%g' "$path" 2>/dev/null || true)"
+  # stat 不支持 -c（BSD）或路径不存在时拿不到数值，直接交给兜底
+  [[ "$num" =~ ^[0-9]+:[0-9]+$ ]] || return 0
+  uid="${num%%:*}"; gid="${num##*:}"
+  uname="$(id -nu "$uid" 2>/dev/null || true)"
+  gname="$(getent group "$gid" 2>/dev/null | cut -d: -f1 || true)"
+  if [[ -n "$uname" && -n "$gname" ]]; then
+    printf '%s:%s\n' "$uname" "$gname"
+    return 0
+  fi
+  yellow "  ⚠ ${path} 的属主是孤儿：uid=${uid}（${uname:-本机无对应用户}）gid=${gid}（${gname:-本机无对应组}）" >&2
+  yellow "    多半是早期从 macOS 用 rsync -a 同步残留的 uid，本次将改用兜底属主并顺手纠正该目录。" >&2
+}
+
+# 校验 "user" 或 "user:group" 里的名字在本机真实存在，兜底属主也要过这一关
+owner_is_resolvable() {
+  local owner="$1" u g
+  u="${owner%%:*}"
+  [[ -n "$u" ]] || return 1
+  id -u "$u" >/dev/null 2>&1 || return 1
+  if [[ "$owner" == *:* ]]; then
+    g="${owner##*:}"
+    [[ -n "$g" ]] || return 1
+    getent group "$g" >/dev/null 2>&1 || return 1
+  fi
+  return 0
+}
 
 # --chmod 必须配合 -p 才生效（rsync 只在「要设置权限」时才套用 --chmod 规则），
 # 所以用 -rlpt 保留 -p 而丢掉 -o -g -D；老版本 rsync（如 macOS 自带 openrsync）
@@ -421,12 +454,20 @@ fi
 yellow "=== [5/8] 同步后端源码与前端静态 ==="
 # 属主取目标目录当前值，不硬编码；探测不到时前端回退 root:root，后端回退 PM2 进程用户
 FRONTEND_OWNER="$(detect_owner "$FRONTEND_DIR")"
-FRONTEND_OWNER="${FRONTEND_OWNER:-root:root}"
+if [[ -z "$FRONTEND_OWNER" ]]; then
+  FRONTEND_OWNER="root:root"
+  yellow "  前端属主无法解析，回退为 $FRONTEND_OWNER"
+fi
 BACKEND_OWNER="$(detect_owner "$BACKEND_DIR/src")"
 if [[ -z "$BACKEND_OWNER" ]]; then
   PM2_USER="$(pm2 jlist 2>/dev/null | pm2_user_by_app "$PM2_APP" || true)"
   BACKEND_OWNER="${PM2_USER:+$PM2_USER:$PM2_USER}"
+  if [[ -n "$BACKEND_OWNER" ]] && ! owner_is_resolvable "$BACKEND_OWNER"; then
+    yellow "  PM2 进程用户 ${PM2_USER} 在本机同样无法解析，忽略"
+    BACKEND_OWNER=""
+  fi
   BACKEND_OWNER="${BACKEND_OWNER:-root:root}"
+  yellow "  后端属主无法解析，回退为 $BACKEND_OWNER"
 fi
 echo "  同步后将恢复属主：前端 $FRONTEND_OWNER / 后端 $BACKEND_OWNER"
 

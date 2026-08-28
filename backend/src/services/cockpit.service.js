@@ -74,10 +74,19 @@ async function sumCardPaid(tenantId, range) {
 }
 
 async function sumAdSpend(tenantId, startDate, endDate) {
-  const total = await AdSpendDaily.sum('spend_cny', {
-    where: { tenant_id: tenantId, stat_date: { [Op.between]: [startDate, endDate] } },
-  });
-  return money(total);
+  try {
+    const total = await AdSpendDaily.sum('spend_cny', {
+      where: { tenant_id: tenantId, stat_date: { [Op.between]: [startDate, endDate] } },
+    });
+    return money(total);
+  } catch (err) {
+    // 广告成本打通是可选模块，未建表的环境不应让整个驾驶舱不可用；
+    // 返回 null 会让下游 CAC / ROI 一并留空，符合「没有数据就不编造」。
+    if (err?.original?.code === 'ER_NO_SUCH_TABLE' || err?.parent?.code === 'ER_NO_SUCH_TABLE') {
+      return null;
+    }
+    throw err;
+  }
 }
 
 /**

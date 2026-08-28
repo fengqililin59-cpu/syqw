@@ -130,39 +130,46 @@ CREATE TABLE IF NOT EXISTS staff_schedules (
 -- ------------------------------------------------------------
 -- 6. 已有表扩展（全部为可空新增列）
 -- ------------------------------------------------------------
--- 使用存储过程安全添加列与索引（幂等，可重复执行）
-DROP PROCEDURE IF EXISTS add_beauty_customer_columns;
-DELIMITER $$
-CREATE PROCEDURE add_beauty_customer_columns()
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS
-      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'next_appointment_at') THEN
-    ALTER TABLE customers ADD COLUMN next_appointment_at DATETIME NULL COMMENT '下次预约到店时间';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS
-      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'last_visit_at') THEN
-    ALTER TABLE customers ADD COLUMN last_visit_at DATETIME NULL COMMENT '最近一次到店时间';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS
-      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'visit_count') THEN
-    ALTER TABLE customers ADD COLUMN visit_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '累计到店次数';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS
-      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'total_paid_amount') THEN
-    ALTER TABLE customers ADD COLUMN total_paid_amount DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT '累计消费金额(LTV缓存)';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM information_schema.STATISTICS
-      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND INDEX_NAME = 'idx_tenant_last_visit') THEN
-    ALTER TABLE customers ADD INDEX idx_tenant_last_visit (tenant_id, last_visit_at);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM information_schema.STATISTICS
-      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND INDEX_NAME = 'idx_tenant_next_appt') THEN
-    ALTER TABLE customers ADD INDEX idx_tenant_next_appt (tenant_id, next_appointment_at);
-  END IF;
-END$$
-DELIMITER ;
-CALL add_beauty_customer_columns();
-DROP PROCEDURE IF EXISTS add_beauty_customer_columns;
+-- 幂等添加列与索引，可重复执行。
+-- 刻意不使用存储过程：应用数据库账号通常没有 CREATE ROUTINE 权限
+-- （生产 syqw_app 实测报 "alter routine command denied"）。
+-- PREPARE/EXECUTE 只需普通 ALTER 权限。
+
+SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'next_appointment_at') > 0,
+  'SELECT ''next_appointment_at 已存在''',
+  'ALTER TABLE customers ADD COLUMN next_appointment_at DATETIME NULL COMMENT ''下次预约到店时间''');
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
+
+SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'last_visit_at') > 0,
+  'SELECT ''last_visit_at 已存在''',
+  'ALTER TABLE customers ADD COLUMN last_visit_at DATETIME NULL COMMENT ''最近一次到店时间''');
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
+
+SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'visit_count') > 0,
+  'SELECT ''visit_count 已存在''',
+  'ALTER TABLE customers ADD COLUMN visit_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT ''累计到店次数''');
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
+
+SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'total_paid_amount') > 0,
+  'SELECT ''total_paid_amount 已存在''',
+  'ALTER TABLE customers ADD COLUMN total_paid_amount DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT ''累计消费金额(LTV缓存)''');
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
+
+SET @sql = IF((SELECT COUNT(*) FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND INDEX_NAME = 'idx_tenant_last_visit') > 0,
+  'SELECT ''idx_tenant_last_visit 已存在''',
+  'ALTER TABLE customers ADD INDEX idx_tenant_last_visit (tenant_id, last_visit_at)');
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
+
+SET @sql = IF((SELECT COUNT(*) FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND INDEX_NAME = 'idx_tenant_next_appt') > 0,
+  'SELECT ''idx_tenant_next_appt 已存在''',
+  'ALTER TABLE customers ADD INDEX idx_tenant_next_appt (tenant_id, next_appointment_at)');
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
 
 -- ------------------------------------------------------------
 -- 7. 权限码

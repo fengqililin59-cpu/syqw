@@ -23,8 +23,8 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'https://wework.syzs.top',
-        secure: true,
+        target: process.env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:3000',
+        secure: false,
         changeOrigin: true,
       },
     },

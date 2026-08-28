@@ -59,9 +59,10 @@ function Metric({
   )
 }
 
-function yuan(n: number) {
-  if (n >= 10000) return `${(n / 10000).toFixed(1)}万`
-  return n.toFixed(0)
+function yuan(n: number | null | undefined) {
+  if (n == null) return '—'
+  if (n >= 10000) return `¥${(n / 10000).toFixed(1)}万`
+  return `¥${n.toFixed(0)}`
 }
 
 export function CockpitPage() {
@@ -134,7 +135,7 @@ export function CockpitPage() {
             <Metric label="预约" value={t.appointments} unit="人" />
             <Metric label="到店" value={t.arrived} unit="人" accent="#10b981" />
             <Metric label="到店率" value={t.arrival_rate == null ? '—' : `${t.arrival_rate}%`} />
-            <Metric label="收入" value={`¥${yuan(t.revenue)}`} accent="#6366f1" />
+            <Metric label="收入" value={yuan(t.revenue)} accent="#6366f1" />
           </div>
         </section>
       ) : null}
@@ -145,11 +146,15 @@ export function CockpitPage() {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
             <Metric label="新增客户" value={m.new_customers} unit="人" />
             <Metric label="到店人次" value={m.arrived} />
-            <Metric label="收入" value={`¥${yuan(m.income)}`} accent="#6366f1" />
-            <Metric label="广告花费" value={`¥${yuan(m.ad_spend)}`} />
+            <Metric label="收入" value={yuan(m.income)} accent="#6366f1" />
+            <Metric
+              label="广告花费"
+              value={yuan(m.ad_spend)}
+              hint={m.ad_spend == null ? '需录入广告消耗' : undefined}
+            />
             <Metric
               label="获客成本"
-              value={m.cac == null ? '—' : `¥${m.cac.toFixed(0)}`}
+              value={yuan(m.cac)}
               hint={m.cac == null ? '需录入广告消耗' : undefined}
             />
             <Metric

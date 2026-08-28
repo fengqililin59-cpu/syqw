@@ -50,22 +50,18 @@ export interface ContractListParams {
 }
 
 export interface ContractListResponse {
-  code: number;
-  data: {
-    items: Contract[];
-    total: number;
-    page: number;
-    page_size: number;
-  };
+  items: Contract[];
+  total: number;
 }
 
 /**
  * 获取合同列表
  */
-export async function fetchContracts(params: ContractListParams = {}): Promise<ContractListResponse['data']> {
+export async function fetchContracts(params: ContractListParams = {}): Promise<ContractListResponse> {
   const query = new URLSearchParams();
   if (params.page) query.set('page', String(params.page));
-  if (params.page_size) query.set('page_size', String(params.page_size));
+  // 后端 Joi 校验的分页参数名是 pageSize
+  if (params.page_size) query.set('pageSize', String(params.page_size));
   if (params.status) query.set('status', params.status);
   if (params.type) query.set('type', params.type);
   if (params.keyword) query.set('keyword', params.keyword);
@@ -74,32 +70,29 @@ export async function fetchContracts(params: ContractListParams = {}): Promise<C
   if (params.start_date_from) query.set('start_date_from', params.start_date_from);
   if (params.start_date_to) query.set('start_date_to', params.start_date_to);
 
-  const res = await getJson<ContractListResponse>(`/contracts?${query.toString()}`);
-  return res.data!;
+  const res = await getJson<{ list?: Contract[]; total?: number }>(`/contracts?${query.toString()}`);
+  return { items: res?.list ?? [], total: res?.total ?? 0 };
 }
 
 /**
  * 获取单个合同详情
  */
 export async function fetchContract(id: number): Promise<Contract> {
-  const res = await getJson<{ code: number; data: Contract }>(`/contracts/${id}`);
-  return res.data!;
+  return getJson<Contract>(`/contracts/${id}`);
 }
 
 /**
  * 创建合同
  */
 export async function createContract(data: Partial<Contract>): Promise<Contract> {
-  const res = await postJson<{ code: number; data: Contract }>('/contracts', data);
-  return res.data!;
+  return postJson<Contract>('/contracts', data);
 }
 
 /**
  * 更新合同
  */
 export async function updateContract(id: number, data: Partial<Contract>): Promise<Contract> {
-  const res = await putJson<{ code: number; data: Contract }>(`/contracts/${id}`, data);
-  return res.data!;
+  return putJson<Contract>(`/contracts/${id}`, data);
 }
 
 /**

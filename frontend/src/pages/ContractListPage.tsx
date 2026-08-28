@@ -28,6 +28,7 @@ const TYPE_MAP: Record<string, string> = {
 export default function ContractListPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -38,10 +39,15 @@ export default function ContractListPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const data = await fetchContracts({ ...params, page, page_size: pageSize });
       setContracts(data.items);
       setTotal(data.total);
+    } catch (e) {
+      setContracts([]);
+      setTotal(0);
+      setLoadError(e instanceof Error ? e.message : '加载合同列表失败');
     } finally {
       setLoading(false);
     }
@@ -141,6 +147,8 @@ export default function ContractListPage() {
           <tbody>
             {loading ? (
               <tr><td colSpan={8} style={{ padding: 40, textAlign: 'center', color: 'var(--color-text-secondary)' }}>加载中...</td></tr>
+            ) : loadError ? (
+              <tr><td colSpan={8} style={{ padding: 40, textAlign: 'center', color: '#F56C6C' }}>加载失败：{loadError}</td></tr>
             ) : contracts.length === 0 ? (
               <tr><td colSpan={8} style={{ padding: 40, textAlign: 'center', color: 'var(--color-text-secondary)' }}>暂无合同记录</td></tr>
             ) : (

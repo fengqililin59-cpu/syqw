@@ -17,7 +17,8 @@ export type CockpitOverview = {
     new_customers: number
     arrived: number
     income: number
-    ad_spend: number
+    /** 未部署广告成本模块时为 null */
+    ad_spend: number | null
     /** 未录入广告消耗时为 null，不做估算 */
     cac: number | null
     roi: number | null

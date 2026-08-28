@@ -40,10 +40,28 @@ const createSchema = Joi.object({
   metadata: Joi.object().unknown(true).allow(null).optional(),
 });
 
-const CARD_INCLUDE = [
+/**
+ * 关联加载。product 额外按 tenant_id 过滤：历史数据里可能存在跨租户或已删除项目的
+ * 悬空 product_id，不加这层过滤会泄露其他租户的项目名。
+ */
+const cardInclude = (tenantId) => [
   { model: Customer, as: 'customer', attributes: ['id', 'name', 'phone'], required: false },
-  { model: Product, as: 'product', attributes: ['id', 'name'], required: false },
+  {
+    model: Product,
+    as: 'product',
+    attributes: ['id', 'name'],
+    required: false,
+    where: { tenant_id: tenantId },
+  },
 ];
+
+/** 校验 product_id 属于本租户。product_id 可空，传空视为不关联卡项定义。 */
+async function assertProductExists(tenantId, productId) {
+  if (productId === undefined || productId === null) return null;
+  const product = await Product.findOne({ where: { id: productId, tenant_id: tenantId } });
+  if (!product) throw new HttpError(404, '卡项定义不存在', 404);
+  return product;
+}
 
 function toNumber(v) {
   return v == null ? null : Number(v);
@@ -116,7 +134,7 @@ export async function listCustomerCards(tenantId, customerId, query = {}) {
 
   const rows = await CustomerCard.findAll({
     where,
-    include: CARD_INCLUDE,
+    include: cardInclude(tenantId),
     order: [['created_at', 'DESC']],
   });
   return { list: rows.map(decorate) };
@@ -125,7 +143,7 @@ export async function listCustomerCards(tenantId, customerId, query = {}) {
 export async function getCard(tenantId, id) {
   const card = await CustomerCard.findOne({
     where: { id, tenant_id: tenantId },
-    include: CARD_INCLUDE,
+    include: cardInclude(tenantId),
   });
   if (!card) throw new HttpError(404, '卡项不存在', 404);
   return card;
@@ -139,6 +157,7 @@ export async function createCard(tenantId, body, ctx = {}) {
   if (error) throw new HttpError(400, error.details?.[0]?.message || '参数校验失败', 400, error.details);
 
   await assertCustomerExists(tenantId, value.customer_id);
+  await assertProductExists(tenantId, value.product_id);
 
   if (value.card_type === CARD_TYPES.TIMES && !value.total_times) {
     throw new HttpError(400, '次卡必须填写总次数', 400);
@@ -425,7 +444,7 @@ export async function listAlerts(tenantId, query = {}) {
         card_type: CARD_TYPES.TIMES,
         remaining_times: { [Op.lte]: lowTimes, [Op.gt]: 0 },
       },
-      include: CARD_INCLUDE,
+      include: cardInclude(tenantId),
       order: [['remaining_times', 'ASC']],
       limit: 100,
     }),
@@ -434,7 +453,7 @@ export async function listAlerts(tenantId, query = {}) {
         ...activeBase,
         valid_until: { [Op.ne]: null, [Op.lte]: expireBefore },
       },
-      include: CARD_INCLUDE,
+      include: cardInclude(tenantId),
       order: [['valid_until', 'ASC']],
       limit: 100,
     }),
@@ -444,7 +463,7 @@ export async function listAlerts(tenantId, query = {}) {
         card_type: CARD_TYPES.STORED,
         remaining_amount: { [Op.lte]: lowAmount, [Op.gt]: 0 },
       },
-      include: CARD_INCLUDE,
+      include: cardInclude(tenantId),
       order: [['remaining_amount', 'ASC']],
       limit: 100,
     }),

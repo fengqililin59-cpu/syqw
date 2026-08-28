@@ -388,14 +388,26 @@ green "  备份已写入 $BACKUP_ROOT"
 # 4. 数据库迁移
 # ---------------------------------------------------------------
 yellow "=== [4/8] 执行数据库迁移（幂等，目标库 ${DB_NAME}）==="
-MIGRATION="$SCRIPT_DIR/database/100_beauty_appointments_cards.sql"
-[[ -f "$MIGRATION" ]] || die "缺少迁移文件 $MIGRATION"
-if [[ "$DRY_RUN" == "1" ]]; then
-  run mysql "...$DB_NAME < $MIGRATION"
-else
-  "${MYSQL[@]}" < "$MIGRATION"
-  green "  迁移完成，校验新表："
-  for t in appointments customer_cards card_transactions service_records staff_schedules; do
+# 按文件名排序执行包内全部迁移，避免新增迁移时漏改这里。
+# 不用 mapfile：macOS 自带 bash 3.2 没有该内建，本地测试会跑不到这段。
+MIGRATIONS=()
+while IFS= read -r f; do
+  MIGRATIONS+=("$f")
+done < <(find "$SCRIPT_DIR/database" -maxdepth 1 -name '*.sql' -type f | sort)
+[[ ${#MIGRATIONS[@]} -gt 0 ]] || die "包内 database/ 下没有迁移文件"
+for MIGRATION in "${MIGRATIONS[@]}"; do
+  if [[ "$DRY_RUN" == "1" ]]; then
+    run mysql "...$DB_NAME < $MIGRATION"
+  else
+    echo "  执行 $(basename "$MIGRATION")"
+    "${MYSQL[@]}" < "$MIGRATION"
+  fi
+done
+
+if [[ "$DRY_RUN" != "1" ]]; then
+  green "  迁移完成，校验关键表："
+  for t in appointments customer_cards card_transactions service_records staff_schedules \
+           products notifications approval_templates approval_instances; do
     cnt=$("${MYSQL[@]}" -N -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$DB_NAME' AND TABLE_NAME='$t'")
     [[ "$cnt" == "1" ]] && echo "    ✓ $t" || die "    ✗ $t 未创建"
   done

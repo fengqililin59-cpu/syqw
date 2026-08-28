@@ -10,6 +10,7 @@ import { customerWhereScope, isAdmin } from '../utils/permissions.js';
 import { maybePromoteCustomerOnRevenueOrder } from './orderRevenue.service.js';
 import { dispatchStageChangedFlows } from './flowEngine.service.js';
 import { syncInboxThreadsFromCustomerStage } from './salesStageSync.service.js';
+import { HttpError } from '../utils/httpError.js';
 
 /** 合法订单状态 */
 export const ORDER_STATUSES = ['pending', 'paid', 'completed', 'refunded', 'cancelled'];
@@ -102,7 +103,7 @@ export async function getOrder(auth, id) {
       { model: Customer, attributes: ['id', 'name', 'nickname', 'phone', 'stage'], required: false },
     ],
   });
-  if (!order) throw Object.assign(new Error('订单不存在'), { status: 404 });
+  if (!order) throw new HttpError(404, '订单不存在');
   return order.toJSON();
 }
 
@@ -111,14 +112,14 @@ export async function getOrder(auth, id) {
 export async function createOrder(auth, body) {
   const { customer_id, order_no, amount, currency, status, paid_at, remark } = body;
 
-  if (!customer_id) throw Object.assign(new Error('客户不能为空'), { status: 400 });
-  if (!amount || Number(amount) <= 0) throw Object.assign(new Error('订单金额必须大于0'), { status: 400 });
+  if (!customer_id) throw new HttpError(400, '客户不能为空');
+  if (!amount || Number(amount) <= 0) throw new HttpError(400, '订单金额必须大于0');
 
   // 校验客户存在
   const customer = await Customer.findOne({
     where: { id: Number(customer_id), tenant_id: auth.tenantId, deleted_at: null },
   });
-  if (!customer) throw Object.assign(new Error('客户不存在'), { status: 404 });
+  if (!customer) throw new HttpError(404, '客户不存在');
 
   const normalizedStatus = normalizeStatus(status);
   const order = await CustomerOrder.create({
@@ -153,14 +154,14 @@ export async function updateOrder(auth, id, body) {
   const order = await CustomerOrder.findOne({
     where: { id: Number(id), tenant_id: auth.tenantId },
   });
-  if (!order) throw Object.assign(new Error('订单不存在'), { status: 404 });
+  if (!order) throw new HttpError(404, '订单不存在');
 
   const { order_no, amount, currency, status, paid_at, remark } = body;
   const updates = {};
 
   if (order_no !== undefined) updates.order_no = order_no || null;
   if (amount !== undefined) {
-    if (Number(amount) < 0) throw Object.assign(new Error('订单金额不能为负'), { status: 400 });
+    if (Number(amount) < 0) throw new HttpError(400, '订单金额不能为负');
     updates.amount = Number(amount);
   }
   if (currency !== undefined) updates.currency = currency || 'CNY';
@@ -201,7 +202,7 @@ export async function deleteOrder(auth, id) {
   const order = await CustomerOrder.findOne({
     where: { id: Number(id), tenant_id: auth.tenantId },
   });
-  if (!order) throw Object.assign(new Error('订单不存在'), { status: 404 });
+  if (!order) throw new HttpError(404, '订单不存在');
 
   await order.destroy();
   return { deleted: true };

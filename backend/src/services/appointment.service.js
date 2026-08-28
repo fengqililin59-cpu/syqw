@@ -105,6 +105,17 @@ async function assertCustomerExists(tenantId, customerId) {
 }
 
 /**
+ * 校验 product_id 属于本租户。product_id 可空，传空视为不关联项目。
+ * 不校验会留下悬空引用，且 include 会把其他租户的项目名带出去。
+ */
+async function assertProductExists(tenantId, productId) {
+  if (productId === undefined || productId === null) return null;
+  const product = await Product.findOne({ where: { id: productId, tenant_id: tenantId } });
+  if (!product) throw new HttpError(404, '服务项目不存在', 404);
+  return product;
+}
+
+/**
  * 重算客户的「下次到店时间」缓存字段。
  * @param {number} tenantId
  * @param {number} customerId
@@ -126,10 +137,20 @@ async function refreshNextAppointment(tenantId, customerId) {
   );
 }
 
-const INCLUDE_RELATIONS = [
+/**
+ * 关联加载。product 额外按 tenant_id 过滤：历史数据里可能存在跨租户或已删除项目的
+ * 悬空 product_id，不加这层过滤会泄露其他租户的项目名。
+ */
+const includeRelations = (tenantId) => [
   { model: Customer, as: 'customer', attributes: ['id', 'name', 'phone', 'stage'], required: false },
   { model: User, as: 'staff', attributes: ['id', 'real_name', 'username'], required: false },
-  { model: Product, as: 'product', attributes: ['id', 'name'], required: false },
+  {
+    model: Product,
+    as: 'product',
+    attributes: ['id', 'name'],
+    required: false,
+    where: { tenant_id: tenantId },
+  },
 ];
 
 /**
@@ -154,7 +175,7 @@ export async function listAppointments(tenantId, query = {}) {
 
   const { rows, count } = await Appointment.findAndCountAll({
     where,
-    include: INCLUDE_RELATIONS,
+    include: includeRelations(tenantId),
     order: [['start_at', 'ASC']],
     limit: size,
     offset: (page - 1) * size,
@@ -182,7 +203,7 @@ export async function getCalendar(tenantId, query = {}) {
   if (query.staff_id) where.staff_id = Number(query.staff_id);
 
   const [appointments, staff] = await Promise.all([
-    Appointment.findAll({ where, include: INCLUDE_RELATIONS, order: [['start_at', 'ASC']] }),
+    Appointment.findAll({ where, include: includeRelations(tenantId), order: [['start_at', 'ASC']] }),
     User.findAll({
       where: { tenant_id: tenantId, status: 1 },
       attributes: ['id', 'real_name', 'username'],
@@ -196,7 +217,7 @@ export async function getCalendar(tenantId, query = {}) {
 export async function getAppointment(tenantId, id) {
   const row = await Appointment.findOne({
     where: { id, tenant_id: tenantId },
-    include: INCLUDE_RELATIONS,
+    include: includeRelations(tenantId),
   });
   if (!row) throw new HttpError(404, '预约不存在', 404);
   return row;
@@ -213,12 +234,10 @@ export async function createAppointment(tenantId, body, ctx = {}) {
   if (error) throw new HttpError(400, '参数校验失败', 400, error.details);
 
   await assertCustomerExists(tenantId, value.customer_id);
+  const product = await assertProductExists(tenantId, value.product_id);
 
   let title = value.title?.trim();
-  if (!title && value.product_id) {
-    const product = await Product.findOne({ where: { id: value.product_id, tenant_id: tenantId } });
-    title = product?.name;
-  }
+  if (!title) title = product?.name;
   if (!title) title = '到店服务';
 
   await assertNoStaffConflict(tenantId, {
@@ -262,6 +281,8 @@ export async function updateAppointment(tenantId, id, body) {
   if ([APPOINTMENT_STATUS.COMPLETED, APPOINTMENT_STATUS.CANCELLED].includes(row.status)) {
     throw new HttpError(400, `预约${STATUS_LABEL[row.status]}，不可修改`, 400);
   }
+
+  if (value.product_id !== undefined) await assertProductExists(tenantId, value.product_id);
 
   const staffId = value.staff_id !== undefined ? value.staff_id : row.staff_id;
   const startAt = value.start_at !== undefined ? value.start_at : row.start_at;
@@ -343,7 +364,7 @@ export async function getTodayBoard(tenantId, dateStr) {
         [Op.lte]: new Date(`${date}T23:59:59`),
       },
     },
-    include: INCLUDE_RELATIONS,
+    include: includeRelations(tenantId),
     order: [['start_at', 'ASC']],
   });
 

@@ -34,7 +34,9 @@ yellow "复制前端 dist ..."
 rsync -a "$ROOT_DIR/frontend/dist/" "$PKG_ROOT/frontend/dist/"
 
 yellow "复制 P0 迁移 SQL ..."
-cp "$ROOT_DIR/database/100_beauty_appointments_cards.sql" "$PKG_ROOT/database/"
+for sql in 100_beauty_appointments_cards.sql 101_missing_core_tables.sql; do
+  cp "$ROOT_DIR/database/$sql" "$PKG_ROOT/database/"
+done
 
 cp "$ROOT_DIR/deploy/p0_install.sh" "$PKG_ROOT/p0_install.sh"
 chmod +x "$PKG_ROOT/p0_install.sh"

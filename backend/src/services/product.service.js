@@ -1,5 +1,6 @@
 import { Product } from '../models/product.model.js';
 import { Op } from 'sequelize';
+import { HttpError } from '../utils/httpError.js';
 
 export const productService = {
   /**
@@ -53,14 +54,14 @@ export const productService = {
     const product = await Product.findOne({
       where: { id, tenant_id: auth.tenantId },
     });
-    if (!product) throw Object.assign(new Error('产品不存在'), { status: 404 });
+    if (!product) throw new HttpError(404, '产品不存在');
     return product;
   },
 
   /** 创建产品 */
   async createProduct(auth, body) {
     const { name, description, category, unit_price, unit, is_active, image_url, metadata } = body;
-    if (!name) throw Object.assign(new Error('产品名称不能为空'), { status: 400 });
+    if (!name) throw new HttpError(400, '产品名称不能为空');
 
     const product = await Product.create({
       tenant_id: auth.tenantId,
@@ -81,7 +82,7 @@ export const productService = {
     const product = await Product.findOne({
       where: { id, tenant_id: auth.tenantId },
     });
-    if (!product) throw Object.assign(new Error('产品不存在'), { status: 404 });
+    if (!product) throw new HttpError(404, '产品不存在');
 
     const updatableFields = [
       'name', 'description', 'category', 'unit_price', 'unit',
@@ -109,7 +110,7 @@ export const productService = {
     const product = await Product.findOne({
       where: { id, tenant_id: auth.tenantId },
     });
-    if (!product) throw Object.assign(new Error('产品不存在'), { status: 404 });
+    if (!product) throw new HttpError(404, '产品不存在');
 
     await product.destroy();
     return { deleted: true };

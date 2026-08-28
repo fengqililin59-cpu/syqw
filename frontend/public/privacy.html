@@ -1,168 +1,73 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>隐私政策 · 中数云科</title>
-    <meta name="description" content="中数云科 私域增长平台隐私政策" />
-    <style>
-      :root {
-        --bg: #f0f4f8;
-        --surface: #ffffff;
-        --deep: #0a1628;
-        --primary: #5b8dd9;
-        --text: #0f1e2e;
-        --muted: #5a728d;
-        --line: #dbe6f2;
-      }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-        color: var(--text);
-        background:
-          radial-gradient(circle at 14% -10%, rgba(126, 179, 240, 0.35), transparent 35%),
-          var(--bg);
-        line-height: 1.65;
-      }
-      .container { width: min(720px, 92vw); margin: 0 auto; }
-      .nav {
-        position: sticky; top: 0; z-index: 30;
-        backdrop-filter: blur(8px);
-        background: rgba(240, 244, 248, 0.84);
-        border-bottom: 1px solid var(--line);
-      }
-      .nav-inner {
-        display: flex; align-items: center; justify-content: space-between;
-        height: 64px;
-      }
-      .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
-      .logo {
-        width: 32px; height: 32px; border-radius: 8px;
-        background: linear-gradient(135deg, #0a1628, #1b3f73);
-        display: grid; place-items: center; color: #cfe2ff; font-weight: 700; font-size: 14px;
-      }
-      .brand strong { font-size: 15px; }
-      .back { font-size: 14px; color: var(--muted); text-decoration: none; }
-      .back:hover { color: var(--primary); }
-      main { padding: 36px 0 24px; }
-      .doc {
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        padding: 28px 28px 32px;
-        box-shadow: 0 8px 32px rgba(15, 30, 46, 0.06);
-      }
-      h1 { margin: 0 0 8px; font-size: 1.5rem; }
-      .meta { margin: 0 0 24px; font-size: 13px; color: var(--muted); }
-      h2 { margin: 24px 0 10px; font-size: 1rem; color: var(--deep); }
-      p { margin: 0 0 12px; font-size: 14px; color: #2a3f55; }
-      ul { margin: 0 0 12px; padding-left: 1.25rem; font-size: 14px; color: #2a3f55; }
-      li { margin-bottom: 6px; }
-      .notice {
-        margin-top: 20px; padding: 12px 14px;
-        background: #f5f9fd; border-radius: 10px; border: 1px solid var(--line);
-        font-size: 12px; color: var(--muted);
-      }
-      footer {
-        margin: 20px 0 34px; font-size: 13px; color: #607995;
-        display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-      }
-      footer a { color: inherit; text-decoration: none; }
-      footer a:hover { color: var(--primary); }
-    </style>
-  </head>
-  <body>
-    <header class="nav">
-      <div class="container nav-inner">
-        <a class="brand" href="/landing.html">
-          <span class="logo">中</span>
-          <strong>中数云科</strong>
-        </a>
-        <a class="back" href="/landing.html">← 返回首页</a>
-      </div>
-    </header>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>隐私政策 - 杭州中数云科智慧科技有限公司</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: -apple-system, "PingFang SC", "Helvetica Neue", system-ui, sans-serif; }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-700">
+<div class="max-w-2xl mx-auto px-5 py-8">
 
-    <main class="container">
-      <article class="doc">
-        <h1>隐私政策</h1>
-        <p class="meta">生效日期：2026 年 8 月 · 最后更新：2026 年 8 月</p>
-        <p>
-          本政策适用于中数云科（「我们」）提供的 SaaS 服务。使用本产品即表示您已阅读并理解本政策。
-        </p>
+  <h1 class="text-2xl font-bold text-slate-900 mb-2">隐私政策</h1>
+  <p class="text-xs text-slate-500 mb-6">最后更新日期：2026 年 8 月 28 日</p>
 
-        <h2>1. 我们收集的信息</h2>
-        <ul>
-          <li><strong>账号信息：</strong>企业名称、管理员邮箱/手机号、登录凭证、角色与权限配置。</li>
-          <li><strong>业务数据：</strong>客户资料、跟进记录、销售阶段、话术、工单、计费与订阅状态等您主动录入或同步的数据。</li>
-          <li><strong>企微与渠道数据：</strong>经您授权后，通过企业微信等接口同步的会话、联系人、标签及回调消息（以您配置的范围为准）。</li>
-          <li><strong>使用与日志：</strong>登录时间、功能使用、AI 调用记录、操作审计、错误与性能日志。</li>
-          <li><strong>营销留资：</strong>落地页/表单提交的姓名、手机、公司及 UTM 等归因参数。</li>
-          <li><strong>设备与访问：</strong>IP、浏览器类型、Cookie/本地存储中的会话标识（用于安全与统计）。</li>
-        </ul>
+  <p class="text-sm leading-relaxed mb-4">
+    杭州中数云科智慧科技有限公司（以下简称「我们」）深知个人信息对您的重要性，将按照法律法规要求和行业成熟稳健的安全标准，采取相应的安全保护措施来保护您的个人信息安全可控。
+  </p>
 
-        <h2>2. 信息用途</h2>
-        <ul>
-          <li>提供、维护与改进产品功能（含 AI 草稿、跟进提醒、报表等）。</li>
-          <li>身份验证、安全防护、故障排查与合规审计。</li>
-          <li>按套餐计费、到期提醒及客户支持。</li>
-          <li>在获得授权或法律要求时，向广告平台回传转化事件（如您启用广告监测）。</li>
-          <li>经您同意的产品通知或运营沟通。</li>
-        </ul>
+  <h2 class="text-base font-bold text-slate-900 mt-6 mb-2">一、我们收集的信息</h2>
+  <p class="text-sm leading-relaxed mb-4">
+    当您在落地页提交表单时，我们会收集以下信息：
+  </p>
+  <ul class="text-sm leading-relaxed mb-4 space-y-1 pl-5 list-disc">
+    <li>手机号码：用于与您联系产品演示</li>
+    <li>您的称呼：用于个性化沟通</li>
+    <li>门店名称：用于了解您的业务场景</li>
+    <li>门店类型、人数、痛点等：用于为您推荐合适的解决方案</li>
+  </ul>
 
-        <h2>3. 存储与安全</h2>
-        <ul>
-          <li>数据存储于中华人民共和国境内服务器（私有化部署版本以您指定环境为准）。</li>
-          <li>我们采用访问控制、传输加密（HTTPS）、敏感字段保护等合理措施；请您妥善保管账号密码。</li>
-          <li>除非法律另有规定，账号注销或合同终止后，我们将在合理期限内删除或匿名化您的数据（法律留存义务除外）。</li>
-        </ul>
+  <h2 class="text-base font-bold text-slate-900 mt-6 mb-2">二、我们如何使用信息</h2>
+  <p class="text-sm leading-relaxed mb-4">
+    我们仅将收集的信息用于：
+  </p>
+  <ul class="text-sm leading-relaxed mb-4 space-y-1 pl-5 list-disc">
+    <li>与您联系，提供产品演示和咨询服务</li>
+    <li>根据您的业务场景推荐合适的解决方案</li>
+    <li>在您同意的前提下，向您推送相关产品信息</li>
+  </ul>
+  <p class="text-sm leading-relaxed mb-4">
+    我们不会将您的个人信息用于上述目的之外的任何用途。
+  </p>
 
-        <h2>4. 第三方与共享</h2>
-        <p>为实现功能，我们可能接入或依赖以下类型的第三方（以您实际开启的功能为准）：</p>
-        <ul>
-          <li><strong>企业微信：</strong>消息收发、客户同步、OAuth 登录等。</li>
-          <li><strong>AI 服务提供商（如 DeepSeek 等）：</strong>在您触发 AI 功能时，将必要上下文发送至模型接口生成建议；我们不会向模型方出售您的客户名单。</li>
-          <li><strong>支付与通知：</strong>微信/支付宝等支付渠道，邮件或短信服务商。</li>
-          <li><strong>云基础设施：</strong>主机、数据库、对象存储与监控服务。</li>
-        </ul>
-        <p>除上述、征得您同意或法律法规要求外，我们不会向无关第三方出售您的个人信息。</p>
+  <h2 class="text-base font-bold text-slate-900 mt-6 mb-2">三、信息的存储与保护</h2>
+  <p class="text-sm leading-relaxed mb-4">
+    您的个人信息存储于中华人民共和国境内，我们采用加密传输、加密存储、访问权限控制等方式保护您的信息安全。
+  </p>
 
-        <h2>5. 您的权利</h2>
-        <ul>
-          <li>查询、更正账号与企业信息（系统设置或联系管理员）。</li>
-          <li>导出业务数据（视套餐与功能开放情况）。</li>
-          <li>撤回对可选集成的授权（如断开企微配置）。</li>
-          <li>申请注销账号或删除数据：请通过下方联系方式提出申请，我们将在核实身份后处理。</li>
-        </ul>
+  <h2 class="text-base font-bold text-slate-900 mt-6 mb-2">四、信息的共享</h2>
+  <p class="text-sm leading-relaxed mb-4">
+    我们不会向任何第三方共享您的个人信息，法律法规要求或经您明确同意的除外。
+  </p>
 
-        <h2>6. Cookie 与追踪</h2>
-        <p>我们使用 Cookie 及类似技术维持登录状态、记住 UTM 归因并统计落地页访问。您可通过浏览器设置限制 Cookie，但部分功能可能无法正常使用。</p>
+  <h2 class="text-base font-bold text-slate-900 mt-6 mb-2">五、您的权利</h2>
+  <p class="text-sm leading-relaxed mb-4">
+    您有权访问、更正、删除您的个人信息，或撤回之前给予的授权。如需行使以上权利，请通过以下方式联系我们。
+  </p>
 
-        <h2>7. 未成年人</h2>
-        <p>本产品面向企业用户，不面向未满 18 周岁的个人提供服务。</p>
+  <h2 class="text-base font-bold text-slate-900 mt-6 mb-2">六、联系我们</h2>
+  <div class="text-sm leading-relaxed mb-4 p-4 bg-slate-100 rounded-lg">
+    <p>杭州中数云科智慧科技有限公司</p>
+    <p>联系电话：400-888-8888</p>
+    <p>邮箱：contact@zhongshuyunke.com</p>
+    <p>地址：浙江省杭州市</p>
+  </div>
 
-        <h2>8. 政策更新</h2>
-        <p>我们可能适时修订本政策，并在产品内或官网公布更新版本。重大变更时，我们将通过合理方式通知您。</p>
+  <a href="javascript:history.back()" class="inline-block mt-4 text-sm text-purple-600 underline">返回上一页</a>
 
-        <h2>9. 联系我们</h2>
-        <p>
-          运营主体：<strong>杭州中数云科智慧科技有限公司</strong><br />
-          联系邮箱：<strong>privacy@syzs.top</strong><br />
-          通信地址：<strong>浙江省杭州市</strong>
-        </p>
-      </article>
-
-      <footer>
-        <div>
-          © 2026 中数云科<br />
-          杭州中数云科智慧科技有限公司 ·
-          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">浙ICP备2026009605号-1</a>
-        </div>
-        <div>
-          <a href="/terms.html">服务条款</a> ·
-          <a href="/landing.html">返回首页</a>
-        </div>
-      </footer>
-    </main>
-  </body>
+</div>
+</body>
 </html>

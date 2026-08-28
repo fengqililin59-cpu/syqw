@@ -297,13 +297,20 @@
       </div>
     </div>
 
+    <label class="flex items-start gap-2 cursor-pointer select-none">
+      <input type="checkbox" id="consentCheck" class="mt-0.5 w-4 h-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500" />
+      <span class="text-xs text-slate-600 leading-relaxed">
+        我已阅读并同意<a href="privacy.html" target="_blank" class="text-brand-600 underline">《隐私政策》</a>，授权中数云科收集我的联系信息用于本次咨询
+      </span>
+    </label>
+
     <button type="submit" id="submitBtn"
       class="w-full py-3.5 rounded-2xl hero-grad text-white font-bold text-base pulse-cta disabled:opacity-60 disabled:cursor-not-allowed">
       立即免费领取演示
     </button>
 
     <p class="text-center text-[11px] text-slate-400 leading-relaxed">
-      提交即表示同意<a href="#" class="underline">《隐私协议》</a>，您的信息仅用于本次咨询
+      您的信息仅用于本次咨询，不会泄露给第三方
     </p>
 
     <div id="formMsg" class="hidden text-center text-sm py-3 rounded-xl"></div>
@@ -356,8 +363,7 @@
       <a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=33010502012823" target="_blank" rel="noopener noreferrer" class="underline">浙公网安备33010502012823号</a>
     </div>
     <div class="flex justify-center gap-4 pt-2">
-      <a href="#" class="underline">服务条款</a>
-      <a href="#" class="underline">隐私政策</a>
+      <a href="privacy.html" target="_blank" class="underline">隐私政策</a>
     </div>
   </div>
 </footer>
@@ -444,6 +450,10 @@ form.addEventListener('submit', async (e) => {
   if (!company) { showMsg('请填写门店名称', 'error'); return; }
   if (!CONFIG.tenantId) {
     showMsg('落地页尚未配置企业ID，请联系管理员', 'error');
+    return;
+  }
+  if (!document.getElementById('consentCheck').checked) {
+    showMsg('请先阅读并同意《隐私政策》', 'error');
     return;
   }
 

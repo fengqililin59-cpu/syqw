@@ -4,7 +4,13 @@
 # 或：先 git clone，再 bash deploy/ecs_deploy_from_git.sh
 set -euo pipefail
 
-REPO="https://github.com/fengqililin59-cpu/syqw.git"
+# 注意：源码仓库已迁移到 syqw-app（私有）。
+# 旧的 syqw 仓库已被改造为投流落地页静态站，只含 index.html / privacy.html，
+# 用它部署会把整个生产环境覆盖成一个落地页。
+# 私有仓库在 ECS 上克隆需要凭据，若网络或鉴权不通，改用 Workbench 上传包：
+#   本地: bash scripts/pack-p0-upload.sh
+#   服务器: cd /tmp && tar xzf <包>.tar.gz && cd <包> && sudo bash ./p0_install.sh
+REPO="${REPO:-https://github.com/fengqililin59-cpu/syqw-app.git}"
 TMP="/tmp/syqw-deploy-$$"
 BACKEND_SRC="/var/www/wework-saas/backend/src"
 # nginx HTTPS root（wework.syzs.top 443）
@@ -15,6 +21,14 @@ WEB_HTTP="/var/www/wework"
 echo "=== [1/5] 克隆最新代码 ==="
 rm -rf "$TMP"
 git clone --depth=1 "$REPO" "$TMP"
+
+# 防呆：确认克隆到的是源码仓库而非落地页站点，否则 rsync --delete 会清空生产
+if [[ ! -d "$TMP/backend/src" || ! -f "$TMP/frontend/package.json" ]]; then
+  echo "ERROR: 克隆到的仓库不含 backend/src 或 frontend/package.json，疑似克隆了落地页仓库。" >&2
+  echo "已中止，未改动生产环境。" >&2
+  rm -rf "$TMP"
+  exit 1
+fi
 
 echo "=== [2/5] 构建前端 ==="
 cd "$TMP/frontend"

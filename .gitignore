@@ -15,9 +15,27 @@ backend/certs/
 !backend/certs/**/README.md
 .DS_Store
 dist-workbench/
+dist/
 
 # macOS AppleDouble (exFAT)
 ._*
 **/._*
 *.tgz
 *.tgz.b64
+
+# 视频文件（营销视频、演示录制）
+*.mp4
+*.mov
+demo_recording/
+
+# Cursor / WorkBuddy 内部状态
+.workbuddy/
+
+# 嵌套的外部仓库
+获客系统/
+
+# 根目录散落文件（图片/PDF/PRD 等本地工作产物）
+/*.png
+/*.jpg
+/*.jpeg
+/*.pdf

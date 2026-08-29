@@ -1,0 +1,7 @@
+[0:v]trim=start=0:end=15,setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1[v0base];[v0base][3:v]overlay=0:0:shortest=1[v0];
+[1:v]trim=start=1:end=6,setpts=PTS-STARTPTS,split=2[b1bg][b1fg];[b1bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=25:10,eq=brightness=-0.35[bg1];[b1fg]scale=1000:-2[fg1];[bg1][fg1]overlay=(W-w)/2:690[b1];[b1][4:v]overlay=0:0:shortest=1[v1];
+[1:v]trim=start=7:end=11,setpts=PTS-STARTPTS,split=2[b2bg][b2fg];[b2bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=25:10,eq=brightness=-0.35[bg2];[b2fg]scale=1000:-2[fg2];[bg2][fg2]overlay=(W-w)/2:690[b2];[b2][5:v]overlay=0:0:shortest=1[v2];
+[1:v]trim=start=13:end=16,setpts=PTS-STARTPTS,split=2[b3bg][b3fg];[b3bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=25:10,eq=brightness=-0.35[bg3];[b3fg]scale=1000:-2[fg3];[bg3][fg3]overlay=(W-w)/2:690[b3];[b3][6:v]overlay=0:0:shortest=1[v3];
+[7:v]trim=duration=3,setpts=PTS-STARTPTS[v4];
+[v0][v1][v2][v3][v4]concat=n=5:v=1:a=0,format=yuv420p[outv];
+[0:a]atrim=start=0:end=15,asetpts=PTS-STARTPTS[a0];anullsrc=r=44100:cl=stereo:d=15[silence];[a0][silence]concat=n=2:v=0:a=1[outa]

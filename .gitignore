@@ -39,3 +39,9 @@ demo_recording/
 /*.jpg
 /*.jpeg
 /*.pdf
+
+# 生成图片素材（可从脚本重新生成）
+docs/promo/beauty_video_cards/
+docs/promo/five_pain_cards/
+docs/promo/douyin_images/
+docs/promo/*.png

@@ -5,7 +5,7 @@ import Joi from 'joi';
 import { Op } from 'sequelize';
 import { HttpError } from '../utils/httpError.js';
 import { Customer, CustomerTransfer, Tenant, User } from '../models/index.js';
-import { getAccessToken } from './wework.service.js';
+import { callWeworkApi } from './wework.service.js';
 
 const initiateSchema = Joi.object({
   from_user_id: Joi.number().integer().positive().required(),
@@ -27,22 +27,23 @@ function sleep(ms) {
  * @param {'resigned'|'reassign'} reason
  */
 async function postWeworkTransferCustomer(tenant, reason, handoverUserid, takeoverUserid, externalUserids) {
-  const token = await getAccessToken(tenant);
   const path =
     reason === 'resigned'
       ? 'externalcontact/resigned/transfer_customer'
       : 'externalcontact/transfer_customer';
-  const url = `https://qyapi.weixin.qq.com/cgi-bin/${path}?access_token=${encodeURIComponent(token)}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      handover_userid: handoverUserid,
-      takeover_userid: takeoverUserid,
-      external_userid: externalUserids,
-    }),
+  return callWeworkApi(tenant, async (token) => {
+    const url = `https://qyapi.weixin.qq.com/cgi-bin/${path}?access_token=${encodeURIComponent(token)}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        handover_userid: handoverUserid,
+        takeover_userid: takeoverUserid,
+        external_userid: externalUserids,
+      }),
+    });
+    return res.json();
   });
-  return res.json();
 }
 
 function formatUserBrief(u) {

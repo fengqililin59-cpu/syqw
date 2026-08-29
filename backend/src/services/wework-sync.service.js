@@ -5,7 +5,7 @@
 import { Op } from 'sequelize';
 import { Tenant, User, Customer } from '../models/index.js';
 import { HttpError } from '../utils/httpError.js';
-import { getAccessToken } from './wework.service.js';
+import { callWeworkApi } from './wework.service.js';
 
 const LIST_LIMIT = 100;
 const WEWORK_SOURCE = 'wework_sync';
@@ -22,24 +22,25 @@ function strOrNull(v) {
 
 /**
  * 按 userid 拉取全部外部联系人 external_userid（支持 cursor 分页）。
- * @param {string} accessToken
+ * @param {object} tenant
  * @param {string} wwUserid 企微成员 userid
  */
-async function fetchExternalUserIds(accessToken, wwUserid) {
-  const url = `https://qyapi.weixin.qq.com/cgi-bin/externalcontact/list?access_token=${encodeURIComponent(accessToken)}`;
+async function fetchExternalUserIds(tenant, wwUserid) {
   const ids = [];
   let cursor;
 
   for (;;) {
-    const body = { userid: wwUserid, limit: LIST_LIMIT };
-    if (cursor) body.cursor = cursor;
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      body: JSON.stringify(body),
+    const data = await callWeworkApi(tenant, async (token) => {
+      const url = `https://qyapi.weixin.qq.com/cgi-bin/externalcontact/list?access_token=${encodeURIComponent(token)}`;
+      const body = { userid: wwUserid, limit: LIST_LIMIT };
+      if (cursor) body.cursor = cursor;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify(body),
+      });
+      return res.json();
     });
-    const data = await res.json();
 
     if (data.errcode !== 0) {
       throw new Error(data.errmsg || `列出客户失败 (${data.errcode})`);
@@ -58,18 +59,20 @@ async function fetchExternalUserIds(accessToken, wwUserid) {
   return ids;
 }
 
-async function fetchExternalDetail(accessToken, externalUserId) {
-  const url = `https://qyapi.weixin.qq.com/cgi-bin/externalcontact/get?access_token=${encodeURIComponent(accessToken)}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-    body: JSON.stringify({ external_userid: externalUserId }),
+async function fetchExternalDetail(tenant, externalUserId) {
+  return callWeworkApi(tenant, async (token) => {
+    const url = `https://qyapi.weixin.qq.com/cgi-bin/externalcontact/get?access_token=${encodeURIComponent(token)}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify({ external_userid: externalUserId }),
+    });
+    const data = await res.json();
+    if (data.errcode !== 0) {
+      return { ok: false, errcode: data.errcode, errmsg: data.errmsg };
+    }
+    return { ok: true, data };
   });
-  const data = await res.json();
-  if (data.errcode !== 0) {
-    return { ok: false, errcode: data.errcode, errmsg: data.errmsg };
-  }
-  return { ok: true, data };
 }
 
 function pickFollowInfo(detailRes, wwUserid) {
@@ -93,11 +96,11 @@ export async function syncExternalCustomersForTenant(tenantId) {
     throw new HttpError(400, '请先在设置中配置企微 CorpID 与应用 Secret', 400);
   }
 
-  const accessToken = await getAccessToken(tenant);
-
-  const fuUrl = `https://qyapi.weixin.qq.com/cgi-bin/externalcontact/get_follow_user_list?access_token=${encodeURIComponent(accessToken)}`;
-  const fuRes = await fetch(fuUrl);
-  const fuData = await fuRes.json();
+  const fuData = await callWeworkApi(tenant, async (token) => {
+    const fuUrl = `https://qyapi.weixin.qq.com/cgi-bin/externalcontact/get_follow_user_list?access_token=${encodeURIComponent(token)}`;
+    const fuRes = await fetch(fuUrl);
+    return fuRes.json();
+  });
   if (fuData.errcode !== 0) {
     throw new Error(fuData.errmsg || `获取客户联系成员失败 (${fuData.errcode})`);
   }
@@ -130,7 +133,7 @@ export async function syncExternalCustomersForTenant(tenantId) {
 
     let extIds;
     try {
-      extIds = await fetchExternalUserIds(accessToken, String(ww));
+      extIds = await fetchExternalUserIds(tenant, String(ww));
     } catch {
       listErrors += 1;
       continue;
@@ -141,7 +144,7 @@ export async function syncExternalCustomersForTenant(tenantId) {
         setTimeout(r, 50);
       });
 
-      const got = await fetchExternalDetail(accessToken, extId);
+      const got = await fetchExternalDetail(tenant, extId);
       if (!got.ok) {
         skippedFetch += 1;
         continue;

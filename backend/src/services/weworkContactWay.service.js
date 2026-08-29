@@ -6,7 +6,7 @@
 
 /** 渠道参数 state 长度上限（企微文档通常为 30，超限会导致接口报错） */
 export const CONTACT_WAY_STATE_MAX_LEN = 30;
-import { getAccessToken } from './wework.service.js';
+import { callWeworkApi } from './wework.service.js';
 
 /**
  * @param {import('../models/tenant.model.js').Tenant} tenant
@@ -28,8 +28,6 @@ export async function addContactWay(tenant, params) {
   if (type === 1 && user.length !== 1) {
     throw new Error('单人活码需且仅需一名成员');
   }
-  const accessToken = await getAccessToken(tenant);
-  const url = `https://qyapi.weixin.qq.com/cgi-bin/externalcontact/add_contact_way?access_token=${encodeURIComponent(accessToken)}`;
   const body = {
     type,
     scene: 2,
@@ -39,12 +37,15 @@ export async function addContactWay(tenant, params) {
     state: String(state).slice(0, CONTACT_WAY_STATE_MAX_LEN),
     user,
   };
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-    body: JSON.stringify(body),
+  return callWeworkApi(tenant, async (token) => {
+    const url = `https://qyapi.weixin.qq.com/cgi-bin/externalcontact/add_contact_way?access_token=${encodeURIComponent(token)}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify(body),
+    });
+    return res.json();
   });
-  return res.json();
 }
 
 /**
@@ -60,8 +61,6 @@ export async function addContactWay(tenant, params) {
  * }} params
  */
 export async function updateContactWay(tenant, params) {
-  const accessToken = await getAccessToken(tenant);
-  const url = `https://qyapi.weixin.qq.com/cgi-bin/externalcontact/update_contact_way?access_token=${encodeURIComponent(accessToken)}`;
   const body = { ...params };
   if (body.style != null) {
     body.style = Math.min(4, Math.max(1, Number(body.style) || 1));
@@ -69,10 +68,13 @@ export async function updateContactWay(tenant, params) {
   if (body.state != null) {
     body.state = String(body.state).slice(0, CONTACT_WAY_STATE_MAX_LEN);
   }
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-    body: JSON.stringify(body),
+  return callWeworkApi(tenant, async (token) => {
+    const url = `https://qyapi.weixin.qq.com/cgi-bin/externalcontact/update_contact_way?access_token=${encodeURIComponent(token)}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify(body),
+    });
+    return res.json();
   });
-  return res.json();
 }

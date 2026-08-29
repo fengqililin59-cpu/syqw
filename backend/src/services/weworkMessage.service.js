@@ -3,7 +3,7 @@
  * @description 优先调用「消息推送」类接口；若企业能力不符则回退到 add_msg_template（可能需成员在客户端确认）。
  */
 import { env } from '../config/env.js';
-import { getAccessToken } from './wework.service.js';
+import { callWeworkApi } from './wework.service.js';
 import { addMsgTemplate } from './weworkBroadcast.service.js';
 
 const MESSAGE_SEND_URL =
@@ -53,8 +53,6 @@ export async function sendExternalTextMessage(tenant, opts) {
     return { errcode: -1001, errmsg: 'missing_external_or_sender' };
   }
 
-  const accessToken = await getAccessToken(tenant);
-  const url = `${MESSAGE_SEND_URL}${encodeURIComponent(accessToken)}`;
   const primaryBody = {
     msgtype: 'text',
     text: { content: content },
@@ -62,12 +60,15 @@ export async function sendExternalTextMessage(tenant, opts) {
     sender: senderUserid,
   };
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-    body: JSON.stringify(primaryBody),
+  const data = await callWeworkApi(tenant, async (token) => {
+    const url = `${MESSAGE_SEND_URL}${encodeURIComponent(token)}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify(primaryBody),
+    });
+    return res.json().catch(() => ({}));
   });
-  const data = await res.json().catch(() => ({}));
 
   if (data.errcode === 0) {
     return { ...data, via: 'message_send' };

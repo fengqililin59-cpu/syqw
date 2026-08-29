@@ -69,12 +69,6 @@ async function readValidTokenFromDb(tenantId, transaction = null) {
   return token ? String(token) : null;
 }
 
-async function readLatestTokenFromDb(tenantId) {
-  const row = await WeworkToken.findByPk(Number(tenantId));
-  if (!row?.access_token) return null;
-  return String(row.access_token);
-}
-
 async function readValidTicketsFromDb(tenantId, transaction = null) {
   const rows = await sequelize.query(
     `SELECT jsapi_ticket, agent_jsapi_ticket
@@ -106,11 +100,19 @@ async function fetchTokenFromWework(tenant) {
   }
   const expiresInSec = Math.max(300, Number(data.expires_in) || 7200);
   const expiresAt = new Date(Date.now() + (expiresInSec - 300) * 1000);
-  await WeworkToken.upsert({
-    tenant_id: Number(tenant.id),
-    access_token: String(data.access_token),
-    expires_at: expiresAt,
-  });
+  // 只更新 token 字段，不覆盖 JS-SDK ticket 字段（它们由 getJsapiTickets 独立管理，使用不同的锁）
+  const [affectedRows] = await WeworkToken.update(
+    { access_token: String(data.access_token), expires_at: expiresAt },
+    { where: { tenant_id: Number(tenant.id) } },
+  );
+  if (affectedRows === 0) {
+    // 首次：行不存在，创建
+    await WeworkToken.create({
+      tenant_id: Number(tenant.id),
+      access_token: String(data.access_token),
+      expires_at: expiresAt,
+    });
+  }
   return String(data.access_token);
 }
 
@@ -134,10 +136,11 @@ export async function getAccessToken(tenant) {
       // ② 尝试获取锁（最多 3 秒）
       const locked = await queryNamedLock(lockName, transaction);
       if (!locked) {
-        // 锁超时（GET_LOCK=0）：降级读库，不报错。
-        const degraded = await readLatestTokenFromDb(tenant.id);
-        if (degraded) return degraded;
-        throw new Error('获取企业微信 access_token 失败：锁超时且无可用缓存');
+        // 锁超时：另一个进程正在刷新，短暂等待后重试读库（带过期检查）
+        await new Promise(r => setTimeout(r, 500));
+        const retryRead = await readValidTokenFromDb(tenant.id);
+        if (retryRead) return retryRead;
+        throw new Error('获取企业微信 access_token 失败：锁超时且无有效缓存');
       }
       try {
         // ③ 锁内二次读，避免等锁期间重复刷新
@@ -153,6 +156,47 @@ export async function getAccessToken(tenant) {
       }
     }
   );
+}
+
+// ─── 企微 API 通用调用（自动 token 过期重试） ───
+
+const TOKEN_ERROR_CODES = new Set([40014, 42001]);
+
+/**
+ * 清除 access_token 缓存（不删除整行，保留 ticket 字段）。
+ * 下次 getAccessToken() 会触发远端刷新。
+ */
+export async function invalidateAccessToken(tenantId) {
+  await WeworkToken.update(
+    { access_token: '', expires_at: new Date(0) },
+    { where: { tenant_id: Number(tenantId) } },
+  );
+}
+
+/**
+ * 带自动 token 重试的企微 API 调用。
+ *
+ * 当 WeWork 返回 errcode 40014（invalid token）或 42001（token expired）时，
+ * 自动清除缓存、重新获取 token，然后重试一次。
+ *
+ * @param {object} tenant - 租户对象（需含 id, wework_corp_id, wework_secret）
+ * @param {(token: string) => Promise<{errcode: number; [key: string]: any}>} apiCall
+ *   接收 access_token，返回含 errcode 的 JSON 响应
+ * @returns {Promise<{errcode: number; [key: string]: any}>} WeWork API 响应
+ */
+export async function callWeworkApi(tenant, apiCall) {
+  const token = await getAccessToken(tenant);
+  const result = await apiCall(token);
+
+  if (!TOKEN_ERROR_CODES.has(Number(result.errcode))) {
+    return result;
+  }
+
+  // Token 被 WeWork 服务端作废/过期 → 清缓存 + 强制刷新 + 重试一次
+  console.warn(`[wework] errcode ${result.errcode}，清除缓存并重试 token 刷新`);
+  await invalidateAccessToken(tenant.id);
+  const freshToken = await getAccessToken(tenant);
+  return apiCall(freshToken);
 }
 
 async function fetchJsapiTicket(accessToken) {
@@ -265,10 +309,11 @@ export async function getJsSdkSignature(tenant, url) {
  * @param {string} code
  */
 export async function getUserIdByCode(tenant, code) {
-  const accessToken = await getAccessToken(tenant);
-  const url = `https://qyapi.weixin.qq.com/cgi-bin/auth/getuserinfo?access_token=${encodeURIComponent(accessToken)}&code=${encodeURIComponent(code)}`;
-  const response = await fetch(url);
-  const data = await response.json();
+  const data = await callWeworkApi(tenant, async (token) => {
+    const url = `https://qyapi.weixin.qq.com/cgi-bin/auth/getuserinfo?access_token=${encodeURIComponent(token)}&code=${encodeURIComponent(code)}`;
+    const response = await fetch(url);
+    return response.json();
+  });
 
   if (data.errcode !== 0) {
     throw new Error(data.errmsg || '换取用户信息失败');
@@ -300,14 +345,12 @@ export async function clearAccessTokenCache(tenantId) {
  */
 export async function sendAgentTextMessage(tenant, opts) {
   const { touser, content } = opts;
-  const accessToken = await getAccessToken(tenant);
   const agentRaw = tenant.wework_agent_id;
   const agentid = Number(agentRaw);
   if (!agentRaw || Number.isNaN(agentid) || agentid < 1) {
     throw new Error('应用 AgentID 未配置或无效');
   }
 
-  const url = `https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=${encodeURIComponent(accessToken)}`;
   const body = {
     touser,
     msgtype: 'text',
@@ -318,12 +361,15 @@ export async function sendAgentTextMessage(tenant, opts) {
     safe: 0,
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-    body: JSON.stringify(body),
+  const data = await callWeworkApi(tenant, async (token) => {
+    const url = `https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=${encodeURIComponent(token)}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify(body),
+    });
+    return response.json();
   });
-  const data = await response.json();
 
   if (data.errcode !== 0) {
     throw new Error(`${data.errmsg || '发送失败'} (errcode: ${data.errcode})`);

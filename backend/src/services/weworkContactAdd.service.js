@@ -3,7 +3,6 @@
  */
 import { Tenant, Customer, WeworkChannel } from '../models/index.js';
 import { env } from '../config/env.js';
-import { getAccessToken } from './wework.service.js';
 import { fetchExternalDetail, pickFollowInfo, strOrNull } from './wework-sync.service.js';
 import { dispatchNewCustomerFlows } from './flowEngine.service.js';
 import { resolveLeadOwnerId, notifyOwnerNewLead } from './leadAssignment.service.js';
@@ -104,8 +103,7 @@ export async function ensureCustomerFromWeworkContactAdd(payload) {
   };
 
   try {
-    const accessToken = await getAccessToken(tenant);
-    const got = await fetchExternalDetail(accessToken, extId);
+    const got = await fetchExternalDetail(tenant, extId);
     if (got.ok && got.data?.external_contact?.external_userid) {
       detailFields = buildFieldsFromDetail(got, payload.follow_userid);
     }

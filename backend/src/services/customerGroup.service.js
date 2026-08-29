@@ -14,7 +14,7 @@ import {
   Tenant,
   User,
 } from '../models/index.js';
-import { getAccessToken } from './wework.service.js';
+import { callWeworkApi } from './wework.service.js';
 
 const listGroupsSchema = Joi.object({
   page: Joi.number().integer().min(1).default(1),
@@ -51,48 +51,52 @@ function maskWebhook(url) {
   return `${s.slice(0, 20)}***`;
 }
 
-async function fetchGroupChatListPage(accessToken, cursor = '') {
-  const url = `https://qyapi.weixin.qq.com/cgi-bin/externalcontact/groupchat/list?access_token=${encodeURIComponent(accessToken)}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      status_filter: 0,
-      owner_filter: { type: 0 },
-      cursor,
-      limit: 100,
-    }),
+async function fetchGroupChatListPage(tenant, cursor = '') {
+  return callWeworkApi(tenant, async (token) => {
+    const url = `https://qyapi.weixin.qq.com/cgi-bin/externalcontact/groupchat/list?access_token=${encodeURIComponent(token)}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status_filter: 0,
+        owner_filter: { type: 0 },
+        cursor,
+        limit: 100,
+      }),
+    });
+    const data = await res.json();
+    if (Number(data.errcode) !== 0) {
+      throw new Error(`同步群列表失败: ${data.errmsg || data.errcode}`);
+    }
+    return data;
   });
-  const data = await res.json();
-  if (Number(data.errcode) !== 0) {
-    throw new Error(`同步群列表失败: ${data.errmsg || data.errcode}`);
-  }
-  return data;
 }
 
-async function fetchAllGroupChats(accessToken) {
+async function fetchAllGroupChats(tenant) {
   const groups = [];
   let cursor = '';
   do {
-    const data = await fetchGroupChatListPage(accessToken, cursor);
+    const data = await fetchGroupChatListPage(tenant, cursor);
     groups.push(...(data.group_chat_list || []));
     cursor = data.next_cursor || '';
   } while (cursor);
   return groups;
 }
 
-async function fetchGroupDetail(accessToken, chatId) {
-  const url = `https://qyapi.weixin.qq.com/cgi-bin/externalcontact/groupchat/get?access_token=${encodeURIComponent(accessToken)}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, need_name: 1 }),
+async function fetchGroupDetail(tenant, chatId) {
+  return callWeworkApi(tenant, async (token) => {
+    const url = `https://qyapi.weixin.qq.com/cgi-bin/externalcontact/groupchat/get?access_token=${encodeURIComponent(token)}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, need_name: 1 }),
+    });
+    const data = await res.json();
+    if (Number(data.errcode) !== 0) {
+      throw new Error(`拉取群详情失败(${chatId}): ${data.errmsg || data.errcode}`);
+    }
+    return data.group_chat || null;
   });
-  const data = await res.json();
-  if (Number(data.errcode) !== 0) {
-    throw new Error(`拉取群详情失败(${chatId}): ${data.errmsg || data.errcode}`);
-  }
-  return data.group_chat || null;
 }
 
 async function sendViaWebhook(webhookUrl, content) {
@@ -132,8 +136,7 @@ export async function syncGroups(tenantId) {
   const tenant = await Tenant.findByPk(Number(tenantId));
   if (!tenant) throw new HttpError(404, '租户不存在', 404);
 
-  const accessToken = await getAccessToken(tenant);
-  const list = await fetchAllGroupChats(accessToken);
+  const list = await fetchAllGroupChats(tenant);
   if (list.length === 0) return { synced_groups: 0, synced_members: 0 };
 
   const ownerUserids = new Set();
@@ -142,7 +145,7 @@ export async function syncGroups(tenantId) {
   for (const item of list) {
     const chatId = String(item.chat_id || '').trim();
     if (!chatId) continue;
-    const detail = await fetchGroupDetail(accessToken, chatId);
+    const detail = await fetchGroupDetail(tenant, chatId);
     if (!detail) continue;
     groupDetails.push(detail);
     if (detail.owner) ownerUserids.add(String(detail.owner).trim());

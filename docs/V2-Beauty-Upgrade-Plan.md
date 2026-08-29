@@ -12,7 +12,7 @@
 
 上一版列出剩余 6.25–7.75 天工时。此后 G10（分配开关与溯源字段迁移）、G2（回调建线索链路）、G9（前端角色可见性）、G4（能力探测与错误码语义化）、G1（OAuth 登录闭环）、G3（出站队列）、G7（活码归属校验）、G8（`specialties` / `assignedAt` 暴露）逐项落地，另外顺带修复了一个**超出美业范围的既有生产 bug**：`cron/refresh-tokens` 等 7 条定时任务的鉴权只认 `Authorization: Bearer`，而 ECS crontab 发的是 `x-cron-secret`，导致平台 OAuth token 刷新任务长期 401。该 bug 的修复反而暴露出「两套调度器并存」的重复执行风险，见新增的第九节。
 
-**本次改写的章节**：本节（修订说明）、第一节完成度总览、2.1 / 2.4 / 2.5（已有能力探测与队列兜底，结论更新）、2.6 PostgreSQL 迁移约束（新增两条迁移的经验）、2.7 迁移历史（迁移条数更新为 4 条）、第三节企微实现盘点（按最新文件重列，`src/lib/wework/` 已从 8 个文件增至 11 个）、第四节阶段章节（G1–G10 逐条标注已完成与落地位置）、第五节"已实现请勿重做"（重列，新增 `src/lib/cron/authorize.ts`、`src/lib/beauty/` 与 `src/lib/wework/` 下的新模块）、第七节技术决策记录（新增 7 条本轮决策）、第八节上一版缺口逐条现状（20 条重判）。
+**本次改写的章节**：本节（修订说明）、第一节完成度总览、2.1 / 2.4 / 2.5（已有能力探测与队列兜底，结论更新）、2.6 PostgreSQL 迁移约束（新增两条迁移的经验）、2.7 迁移历史（迁移条数更新为 5 条）、第三节企微实现盘点（按最新文件重列，`src/lib/wework/` 已从 8 个文件增至 11 个）、第四节阶段章节（G1–G10 逐条标注已完成与落地位置）、第五节"已实现请勿重做"（重列，新增 `src/lib/cron/authorize.ts`、`src/lib/beauty/` 与 `src/lib/wework/` 下的新模块）、第七节技术决策记录（新增 7 条本轮决策）、第八节上一版缺口逐条现状（20 条重判）。
 
 **新增章节**：第九节「生产环境风险与待确认项」（7 条，全部超出美业范围但影响生产）、第十节「上线前检查清单」（可勾选）。
 
@@ -20,12 +20,12 @@
 
 **与实施描述不符、需要知晓的四处**（以代码为准）：
 
-1. **迁移是 4 条不是 5 条**：`prisma/migrations/` 下为 `20260829010000_baseline`、`20260829020000_beauty_deal_amount_and_message_log`、`20260829030000_beauty_assign_switch_and_traceability`、`20260829040000_beauty_wework_outbox`。`prisma migrate status` 实测输出 `4 migrations found` + `Database schema is up to date!`。
+1. **迁移是 5 条**：`prisma/migrations/` 下为 `20260829010000_baseline`、`20260829020000_beauty_deal_amount_and_message_log`、`20260829030000_beauty_assign_switch_and_traceability`、`20260829040000_beauty_wework_outbox`、`20260829050000_beauty_lead_status_timestamps`（漏斗看板依赖的 `contactedAt` / `bookedAt` / `visitedAt` / `dealAt` 四个状态节点时间戳，纯加列且可空）。`prisma migrate status` 期望输出 `5 migrations found` + `Database schema is up to date!`。
 2. **加 `canManage` prop 的是 4 个 client 组件不是 6 个**：`BeautyEmployeesClient` / `BeautyLandingClient` / `BeautyDashboardClient` / `BeautyChannelsClient`。`WeWorkSettingsForm` 与 `BeautyContentClient` 没有该 prop（前者整页已被 `canManageStore` 门禁挡住，后者内容页对全角色开放）。传 `canManage` 的 server component 页面是 5 个。
 3. **导航收敛的只有 1 项：企微设置**。`nav-config.ts` 里带 `requireStoreScope: true` 的曾是「落地页 / 员工管理 / 活码管理 / 企微设置」四项，与服务端不一致——落地页 / 员工 / 活码三页服务端都允许低权角色只读（只有写操作有 `canManageStore` 门禁），导航比服务端更严会让 `SELF` 角色连只读入口都进不去。现已去掉这三项的标记，只保留企微设置（该页对低权角色直接 `redirect`，是唯一「整页仅店主/店长可用」的路由）。全角色可见：驾驶舱、内容、线索、落地页、员工管理、活码管理。
 4. **出站队列限频维度是「门店」而非「agent」**：`drainOutbox` 按 `storeId` 分桶取配额。本项目一门店一自建应用，两者等价，但代码里的分组键是 `storeId`。
 
-**本轮实测基线**：`tsc --noEmit` 零错误；`vitest run` **254 个用例全绿**（`Test Files 1 failed | 26 passed`，唯一失败 suite 是 macOS AppleDouble 垃圾文件 `src/lib/analytics/._service.test.ts` 的转译失败，属既有环境噪音）；`prisma validate` 通过；`prisma migrate status` up to date（4 条迁移）。
+**本轮实测基线**：`tsc --noEmit` 零错误；`vitest run` **254 个用例全绿**（`Test Files 1 failed | 26 passed`，唯一失败 suite 是 macOS AppleDouble 垃圾文件 `src/lib/analytics/._service.test.ts` 的转译失败，属既有环境噪音）；`prisma validate` 通过；`prisma migrate status` up to date（5 条迁移）。
 
 ---
 
@@ -119,11 +119,11 @@
 **状态：已解决。** 本次实测 `prisma migrate status` 输出：
 
 ```
-4 migrations found in prisma/migrations
+5 migrations found in prisma/migrations
 Database schema is up to date!
 ```
 
-四条迁移依次是：
+五条迁移依次是：
 
 | 迁移 | 内容 |
 |---|---|
@@ -131,6 +131,7 @@ Database schema is up to date!
 | `20260829020000_beauty_deal_amount_and_message_log` | `BeautyLead.dealAmount` 可空 + `BeautyWeWorkMessageLog` 表与枚举 |
 | `20260829030000_beauty_assign_switch_and_traceability` | `BeautyStore.autoAssignEnabled`（NOT NULL DEFAULT true）、`BeautyLead.channelId`（FK → `BeautyWeWorkChannel`，SET NULL）与索引、`BeautyLead.weworkExternalUserId` + `@@unique([storeId, weworkExternalUserId])`、`BeautyLead` 的 `assignedEmployeeId` 索引、`BeautyContent.createdByEmployeeId`（FK → `BeautyEmployee`，SET NULL）与索引 |
 | `20260829040000_beauty_wework_outbox` | `BeautyWeWorkOutboxStatus` 枚举 + `BeautyWeWorkOutbox` 表 + 三索引三外键。**纯新增，不动任何已有对象** |
+| `20260829050000_beauty_lead_status_timestamps` | `BeautyLead` 加 `contactedAt` / `bookedAt` / `visitedAt` / `dealAt` 四个可空时间戳（首次进入对应状态时盖戳、回退不清空），经营漏斗看板的唯一数据来源。**纯加列，无默认值回填、无破坏性操作** |
 
 **成因记录（供后续复盘，不要删）**：
 
@@ -329,7 +330,7 @@ Database schema is up to date!
 | 2 | 门店归属重构（服务端 + 前端收敛） | ✅ 已完成 |
 | 3 | 线索分配 + 成交业绩回写 + 自动分配开关 | ✅ 已完成 |
 | 4 | 企微集成全量（配置/活码/回调/OAuth/消息队列/能力探测） | ✅ 已完成 |
-| — | 迁移 baseline 重置与三条后续迁移 | ✅ 已完成 |
+| — | 迁移 baseline 重置与四条后续迁移 | ✅ 已完成 |
 | — | cron 鉴权统一（跨模块 bug 修复） | ✅ 已完成 |
 | 5 | **上线前验证与生产风险处置** | ⬛ 待用户提供环境信息与决策（第九、十节） |
 
@@ -363,7 +364,7 @@ Database schema is up to date!
 | 线索分配（事务 + 条件更新 + 轮转 + 开关） | `src/lib/beauty/assign-lead.ts` | **不要在 route 里另写一份分配逻辑** |
 | 员工成交业绩回写 | `src/lib/beauty/deal-stats.ts` | `dealCount` / `dealAmount` 的**唯一写入方** |
 | 6 张企微表 + 3 个枚举 | `prisma/schema.prisma` | `Token` / `ChannelGroup` / `Channel` / `CallbackLog` / `MessageLog` / **`Outbox`**。**禁止清理** |
-| 迁移 baseline 与三条后续迁移 | `prisma/migrations/` | 历史 SQL 在 `_archive-migrations-20260829/` 与 `_merge-backup/`。**都不要删** |
+| 迁移 baseline 与四条后续迁移 | `prisma/migrations/` | 历史 SQL 在 `_archive-migrations-20260829/` 与 `_merge-backup/`。**都不要删** |
 | 美业玫瑰金主题 / 图标注册 / 手机号打码 / 确认弹窗 hook / token 加密工具 | `globals.css`、`icon-registry.ts`、`mask-phone.ts`、`use-confirm.tsx`、`token-crypto.ts` | 统一复用，不要另写一套 |
 
 ---
@@ -558,8 +559,15 @@ A: 自建应用不需要，但要求企业**已完成微信认证**才能使用�
 - [ ] 用 `prisma migrate diff` **证明线上现有结构与 `20260829010000_baseline` 一致**（两个方向都跑）。线上大概率已有这批表，**不能直接 deploy baseline**。
 - [ ] diff 若有差异：**先补一条差异迁移，不要动 baseline 文件**，补完重新回到上一步。
 - [ ] diff 无差异后，`prisma migrate resolve --applied 20260829010000_baseline` 记账。
-- [ ] `prisma migrate deploy` 依次应用 `20260829020000` / `20260829030000` / `20260829040000`。三条都是纯新增（加列 / 加索引 / 加表），无破坏性操作。
-- [ ] deploy 后再跑一次 `migrate status`，期望 `4 migrations found` + `Database schema is up to date!`。
+- [ ] `prisma migrate deploy` 依次应用 `20260829020000` / `20260829030000` / `20260829040000` / `20260829050000`。四条都是纯新增（加列 / 加索引 / 加表），无破坏性操作。
+- [ ] deploy 后再跑一次 `migrate status`，期望 `5 migrations found` + `Database schema is up to date!`。
+- [ ] **确认 `deploy.sh` 的迁移执行方式是 `prisma migrate deploy` 而不是 `prisma db push`**（2026-08-29 已改）。
+      `db push` 不写 `_prisma_migrations`，会让结构与记账再次分叉（正是本轮 baseline 重置要根治的问题）；
+      `--accept-data-loss` 等于授权 DROP 列，属红线。脚本现在在迁移前**前置探测 `vector` 扩展**，
+      并且迁移失败会 `exit 1` 中断部署——**不允许把失败降级成 warning 后继续 build + PM2 reload**，
+      否则结构没落地而应用照常启动，故障会延迟到运行时才以 `column does not exist` 暴露，而部署日志显示成功。
+      迁移失败时**不要用 `db push` 或 `migrate resolve` 绕过**：生产库状态未知时自动修复迁移是危险操作，
+      必须先跑 `migrate status` + 双向 `migrate diff`，人工判断后再处置。
 - [ ] 全程禁止 `migrate reset`、禁止 `DROP`、禁止手改 `_prisma_migrations` 数据行、禁止删除 `_archive-migrations-20260829/` 与 `_merge-backup/` 与两个验证库。
 
 ### 第 2 组：调度器二选一（部署前的硬门槛）
@@ -573,6 +581,20 @@ A: 自建应用不需要，但要求企业**已完成微信认证**才能使用�
 
 - [ ] `CRON_SECRET` 在 ECS 的 `.env.production` 里已配置且非空。**未配置时 `authorizeCron` 一律拒绝**，所有定时任务会全部 401。
 - [ ] `NEXT_PUBLIC_APP_URL` 已配置为对外可访问的正式域名（第九节 9.4）。用企微通知卡片的链接与 OAuth redirect 各验证一次。
+      读取点：`src/lib/beauty/notify-assignment.ts` 与 `src/app/api/beauty/wework/oauth-callback/route.ts`，
+      两处兜底都是 `http://localhost:8787`——缺值不会报错，只会静默生成打不开的链接。
+- [ ] **`NEXT_PUBLIC_APP_URL` 的注入链路要查两段，缺一段都不算验证**：
+      ① **build 期**：`NEXT_PUBLIC_` 前缀的变量由 `next build` **内联进产物**，不是运行时读取。
+      必须在 `next build` 之前就存在于环境里。`deploy.sh` 第 1 步 `set -a; source .env.production`
+      早于第 4 步 build，所以只要它写在 `.env.production` 里就会被正确内联；脚本另加了一道
+      build 前非空校验（缺值直接中断完整部署）。**跑 `--skip-build` / `--restart` 改这个值不会生效**，
+      改完必须重新 build。
+      ② **运行时**：`deploy.sh` 用显式白名单往 PM2 注入变量，`NEXT_PUBLIC_APP_URL` 2026-08-29 已补进白名单
+      （两处白名单：`--restart` 分支与完整部署分支都要有），`setup-env.sh` 与 `.env.example` 同步补齐。
+- [ ] **陷阱：只 `grep .env.production` 不算验证**。文件里有、白名单里没有 = 进程里没有。
+      必须查进程实际环境：`pm2 env 0 | grep NEXT_PUBLIC_APP_URL`（或 `pm2 describe growth-os`），
+      再叠加 build 期结论——若产物是在该值缺失时编译的，`pm2 env` 有值也照样是 localhost 兜底，
+      唯一可信的终检是**实际点开一次企微通知卡片里的链接**。
 - [ ] `AUTH_SECRET` 已配置（企微登录票据与 NextAuth session 共用这把密钥）。
 - [ ] Redis 可用（OAuth state nonce 与登录票据 nonce 都存 Redis，不可用会让一次性消费保护退化）。
 
